@@ -46,7 +46,7 @@ However, contracts that allocate more than 8 MB of memory will now revert.
 
 ## Security Considerations
 
-No security concerns were raised.
+The cost to expand 8 mb is 1048576 gas. The result is that it is cheaper to expand memory then current costs. Potentially concurrency limits for RPC nodes should be adjusted to prevent OOM issue. 
 
 ## Historical Reference
 
