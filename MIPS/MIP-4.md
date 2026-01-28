@@ -39,6 +39,10 @@ A precise gas cost for the method is TBD pending benchmarking.
 
 The method `dippedIntoReserve()` evaluates the condition that `DippedIntoReserve` (Algorithm 3 of the initial spec) would return, substituting the current state for the post-execution state.
 
+## Rationale
+
+A previous design proposed adding a new opcode with similar semantics. Since this introspection feature is intended for direct use by smart contract developers (e.g., in bundler entrypoint contracts), a precompile was chosen because it can be called immediately via standard `staticcall` without requiring compiler or toolchain updates.
+
 ## Backwards Compatibility
 
 This proposal adds a new precompile and does not modify existing behavior. Contracts that do not use the precompile are unaffected.
