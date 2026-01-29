@@ -25,7 +25,7 @@ Memory expansion cost is redefined as:
 
 ```python
 memory_size_words = (memory_byte_size + 31) // 32
-memory_cost = 3 * memory_size_words 
+memory_cost = memory_size_words // 2
 ```
 
 The max memory usage is capped at 8 MB.  Memory allocation is bounded across call contexts with the following rule: 
@@ -38,6 +38,7 @@ The max memory usage is capped at 8 MB.  Memory allocation is bounded across cal
 ```
 3. Once a call returns, the memory is returned to the pool.
 4. If a call exceeds the remaining memory limit, it reverts.
+
 ## Backwards Compatibility
 
 This proposal is highly compatible with existing contracts. Almost all standard EVM operations remain valid and ERC-4337 contracts continue to function correctly, as child call memory is released upon completion. Replay testing of historical Ethereum transactions will be used to quantify compatibility.
@@ -46,11 +47,16 @@ However, contracts that allocate more than 8 MB of memory will now revert.
 
 ## Security Considerations
 
-The cost to expand 8 mb is 1048576 gas. The result is that it is cheaper to expand memory then current costs. Potentially concurrency limits for RPC nodes should be adjusted to prevent OOM issue. 
+The cost to expand memory to the 8MB ceiling is 131,072 gas. The result is that it is cheaper to expand memory than current costs. Potentially concurrency limits for RPC nodes should be adjusted to prevent OOM issue. 
 
-## Historical Reference
+## Acknowledgements
 
-This is thematically similar to Vitalik’s EIP-7686 proposal. The main difference is that EIP-7686 defines a direct relationship between memory limit and gas limit.
+The proposals in this MIP are based on two previous EIP documents. Additionally, conversations with Charles Cooper were instructive in developing the Monad memory model:
+
+- [EIP-7686](https://eips.ethereum.org/EIPS/eip-7686) (@vbuterin)
+- [EIP-7923](https://eips.ethereum.org/EIPS/eip-7923) (@charles-cooper, @qizhou)
+
+MIP-3 differs from EIP-7686 in that EIP-7686 defines a direct relationship between memory limit and gas limit, and from EIP-7923 in that MIP-3 does not adopt the page-based thrashing cost model.
 
 ## Copyright
 
