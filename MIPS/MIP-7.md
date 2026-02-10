@@ -13,7 +13,7 @@ This MIP proposes a new 2-byte opcode `EXTENSION` (`0xEEXX`, where `XX` is a sin
 
 ## Motivation
 
-At present, bytecode execution in the Monad VM is fully Ethereum-compatible: all Ethereum opcodes are supported, and there are no additional opcodes implemented by Monad that are not present in Ethereum. However, in the future, new features will be proposed for Monad that warrant the addition of new opcodes. For example, an early version of [MIP-3](./MIP-3.md) specified the addition of an opcode to inspect the state of Monad's reserve balance mechanism. While that MIP rejected the opcode-based design in favour of a precompile, the design decisions discussed in relation to that early version prompted this MIP.
+At present, bytecode execution in the Monad VM is fully Ethereum-compatible: all Ethereum opcodes are supported, and there are no additional opcodes implemented by Monad that are not present in Ethereum. However, in the future, new features will be proposed for Monad that warrant the addition of new opcodes. For example, an early version of [MIP-4](./MIP-4.md) specified the addition of an opcode to inspect the state of Monad's reserve balance mechanism. While that MIP rejected the opcode-based design in favour of a precompile, the design decisions discussed in relation to that early version prompted this MIP.
 
 ## Specification
 
