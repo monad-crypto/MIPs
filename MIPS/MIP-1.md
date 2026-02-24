@@ -219,8 +219,6 @@ The following external resources may be linked:
 
 - **Ethereum Yellow Paper**: Links to the [Ethereum Yellow Paper](https://github.com/ethereum/yellowpaper/blob/efc5f9a1f356cba376c978eedb63cb0363c2aa85/Paper.tex) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 
-- **Monad Execution Specification Tests**: Links to the [Monad execution specification tests](https://github.com/monad-developers/execution-spec-tests) may be included using normal Markdown syntax, but MUST anchor to a specific release commit.
-
 - **Ethereum Execution Client Specifications**: Links to the [Ethereum Execution Client Specifications](https://github.com/ethereum/execution-specs) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 
 - **Internet Engineering Task Force (IETF)**: Links to an IETF Request For Comment (RFC) specification may be included using normal Markdown syntax. Permitted URLs MUST anchor to a specification with an assigned RFC number.
