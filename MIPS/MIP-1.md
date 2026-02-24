@@ -253,7 +253,8 @@ If you are interested in assuming ownership of a MIP, send a message asking to t
 
 The current MIP editors are:
 
-*To be determined.*
+* Piotr Dobaczewski (@pdobacz)
+* QEDK (@qedk)
 
 ## MIP Editor Responsibilities
 
