@@ -81,6 +81,8 @@ These calls generally result in a "rough consensus" around what MIPs should be i
 
 The following is the standardization process for all MIPs in all tracks:
 
+![MIP Status Diagram](../assets/MIP-1/process.jpg)
+
 **Idea** - An idea that is pre-draft. This is not tracked within the MIP Repository.
 
 **Draft** - The first formally tracked stage of a MIP in development. A MIP is merged by a MIP Editor into the MIP repository when properly formatted.
