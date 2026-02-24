@@ -7,7 +7,7 @@ status: Draft
 type: <Standards Track, Meta, or Informational>
 category: <Core, Networking, Interface, or MRC> # Only required for Standards Track. Otherwise, remove this field.
 created: <date created on, in ISO 8601 (yyyy-mm-dd) format>
-requires: <MIP number(s)> # Only required when you reference an MIP in the `Specification` section. Otherwise, remove this field.
+requires: <MIP number(s)> # Only required when this MIP cannot be understood or implemented without concepts or technical elements from another MIP. Otherwise, remove this field.
 ---
 
 <!--
@@ -52,7 +52,7 @@ requires: <MIP number(s)> # Only required when you reference an MIP in the `Spec
   TODO: Remove this comment before submitting
 -->
 
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://www.ietf.org/rfc/rfc2119.html) and [RFC 8174](https://www.ietf.org/rfc/rfc8174.html).
 
 ### Chain Specifics
 

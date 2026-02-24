@@ -115,7 +115,7 @@ Each MIP should have the following parts:
 
 - **Backwards Compatibility** *(optional)* - All MIPs that introduce backwards incompatibilities must include a section describing these incompatibilities and their consequences. The MIP must explain how the author proposes to deal with these incompatibilities. This section may be omitted if the proposal does not introduce any backward incompatibilities, but this section must be included if backward incompatibilities exist.
 
-- **Test Cases** *(optional)* - Test cases for an implementation are mandatory for MIPs that are affecting consensus changes. Tests should either be inlined in the MIP as data (such as input/expected output pairs) or included in `../assets/mip-###/<filename>`. This section may be omitted for non-Core proposals.
+- **Test Cases** *(optional)* - Test cases for an implementation are mandatory for MIPs that are affecting consensus changes. Tests should either be inlined in the MIP as data (such as input/expected output pairs) or included in `../assets/MIP-###/<filename>`. This section may be omitted for non-Core proposals.
 
 - **Reference Implementation** *(optional)* - An optional section that contains a reference or example implementation that people can use to assist in understanding or implementing this specification. This section may be omitted for all MIPs.
 
@@ -129,7 +129,7 @@ MIPs should be written in [Markdown](https://github.com/adam-p/markdown-here/wik
 
 ## MIP Header Preamble
 
-Each MIP must begin with an [RFC 822](https://www.ietf.org/rfc/rfc822.txt) style header preamble, preceded and followed by three hyphens (`---`). This header is also termed "front matter" by Jekyll. The headers must appear in the following order.
+Each MIP must begin with an [RFC 822](https://www.ietf.org/rfc/rfc822.html) style header preamble, preceded and followed by three hyphens (`---`). This header is also termed "front matter" by Jekyll. The headers must appear in the following order.
 
 `mip`: *MIP number*
 
