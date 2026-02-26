@@ -34,11 +34,11 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ### Contract Creation
 
-If contract creation initialization returns data with length of more than `MAX_CODE_SIZE` bytes, contract creation MUST fail with an out-of-gas error. This applies to all contract creation contexts: top-level creation transactions, `CREATE` (0xF0), and `CREATE2` (0xF5).
+As defined in [EIP-170](https://eips.ethereum.org/EIPS/eip-170), if contract creation initialization returns data with length of more than `MAX_CODE_SIZE` bytes, contract creation MUST fail with an out-of-gas error. This applies to all contract creation contexts: top-level creation transactions, `CREATE` (0xf0), and `CREATE2` (0xf5).
 
 ### Initcode Size
 
-If the length of initcode exceeds `MAX_INITCODE_SIZE`, the transaction or instruction MUST be treated as invalid, consistent with [EIP-3860](https://eips.ethereum.org/EIPS/eip-3860). For creation transactions, this means the transaction is invalid. For `CREATE` and `CREATE2` instructions, execution MUST exceptionally abort.
+If the length of initcode exceeds `MAX_INITCODE_SIZE`, the transaction or instruction MUST be treated as invalid, consistent with [EIP-3860](https://eips.ethereum.org/EIPS/eip-3860). For creation transactions, this means the transaction is invalid. For `CREATE` and `CREATE2` instructions, execution MUST fail with an out-of-gas error.
 
 The initcode cost defined by EIP-3860 remains unchanged:
 
