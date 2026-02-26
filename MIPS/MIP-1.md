@@ -2,7 +2,7 @@
 mip: 1
 title: MIP Purpose and Guidelines
 description: Guidelines and procedures for the Monad Improvement Proposal process
-author: QEDK (@qedk) <qedk@monad.foundation>
+author: QEDK (@qedk)
 discussions-to: https://forum.monad.xyz/t/mip-1-mip-purpose-and-guidelines
 status: Draft
 type: Meta
@@ -255,6 +255,8 @@ The current MIP editors are:
 
 * Piotr Dobaczewski (@pdobacz)
 * QEDK (@qedk)
+* Bruce Collie (@Baltoli)
+* Ken Camman (@kjcamann)
 
 ## MIP Editor Responsibilities
 
