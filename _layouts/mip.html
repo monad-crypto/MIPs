@@ -22,11 +22,11 @@ layout: default
 <table>
   <tbody>
     <tr><th>Author</th><td class="author-value">{{ page.author | default: "-" | escape }}</td></tr>
-    {% if page.status %}<tr><th>Status</th><td>{{ page.status }}</td></tr>{% endif %}
-    <tr><th>Type</th><td>{{ page.type | default: "-" }}</td></tr>
-    {% if page.category %}<tr><th>Category</th><td>{{ page.category }}</td></tr>{% endif %}
-    {% if page.created %}<tr><th>Created</th><td>{{ page.created }}</td></tr>{% endif %}
-    {% if page.requires %}<tr><th>Requires</th><td>{{ page.requires }}</td></tr>{% endif %}
+    {% if page.status %}<tr><th>Status</th><td>{{ page.status | default: "-" | escape }}</td></tr>{% endif %}
+    <tr><th>Type</th><td>{{ page.type | default: "-" | escape }}</td></tr>
+    {% if page.category %}<tr><th>Category</th><td>{{ page.category | default: "-" | escape }}</td></tr>{% endif %}
+    {% if page.created %}<tr><th>Created</th><td>{{ page.created | default: "-" | escape }}</td></tr>{% endif %}
+    {% if page.requires %}<tr><th>Requires</th><td>{{ page.requires | default: "-" | escape }}</td></tr>{% endif %}
   </tbody>
 </table>
 
