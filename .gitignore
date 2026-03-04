@@ -2,6 +2,8 @@
 .gitpod.yml
 .DS_Store
 /.idea
+/_site
+/.jekyll-cache
 
 # Secrets
 .vercel
