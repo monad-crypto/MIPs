@@ -20,10 +20,10 @@ title: MIPs
 	<tbody>
 		{% for p in mips %}
 			<tr>
-				<td><a href="{{ p.url | relative_url }}">{{ p.mip }}</a></td>
-				<td>{{ p.title }}</td>
+				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
+				<td>{{ p.title | escape }}</td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
-				<td>{{ p.type | default: "-" }}</td>
+				<td>{{ p.type | default: "-" | escape }}</td>
 			</tr>
 		{% endfor %}
 	</tbody>
