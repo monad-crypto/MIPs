@@ -2,7 +2,9 @@ name: Deploy MIP Site
 
 on:
   push:
-    # branches: ["main"]
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -16,6 +18,8 @@ concurrency:
 
 jobs:
   build:
+    # disable workflow for now
+    if: false 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -42,6 +46,8 @@ jobs:
           path: ./_site
 
   deploy:
+    # disable workflow for now
+    if: false
     runs-on: ubuntu-latest
     needs: build
     steps:
