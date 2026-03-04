@@ -1,0 +1,39 @@
+title: Monad Improvement Proposals
+description: Monad Improvement Proposals (MIPs)
+url: ""
+baseurl: ""
+lang: en
+timezone: UTC
+
+theme: minima
+markdown: kramdown
+highlighter: rouge
+permalink: /:path
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: highlight
+
+defaults:
+  -
+    scope:
+      path: "MIPS"
+    values:
+      layout: "mip"
+
+exclude:
+  - .github
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/
+
+include:
+  - LICENSE.md
+
+sass:
+  quiet_deps: true
+  silence_deprecations:
+    - import
