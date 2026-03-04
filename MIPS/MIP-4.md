@@ -3,6 +3,8 @@ mip: 4
 title: Reserve Balance Introspection
 description: Add reserve balance precompile to query reserve balance violation state during transaction execution.
 author: Category Labs
+status: Review
+type: Standards Track
 category: Core
 created: 2026-01-08
 ---

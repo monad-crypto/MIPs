@@ -3,7 +3,8 @@ mip: 6
 title: Meta - `MONAD_NINE` Network Upgrade
 description: Meta MIP for the `MONAD_NINE` network upgrade.
 author: Category Labs
-category: Meta
+status: Review
+type: Meta
 created: 2026-01-22
 requires: 3, 4, 5
 ---

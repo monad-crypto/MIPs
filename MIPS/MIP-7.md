@@ -3,6 +3,8 @@ mip: 7
 title: Extension opcodes
 description: Add a reserved two-byte opcode family for implementation-defined extension opcodes
 author: Category Labs
+status: Draft
+type: Standards Track
 category: Core
 created: 2026-01-28
 ---

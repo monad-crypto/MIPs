@@ -2,7 +2,9 @@
 mip: 3
 title: Linear Memory
 description: Redefine memory expansion cost to be linear and enforce an explicit maximum memory usage per transaction. 
-author: Category Labs 
+author: Category Labs
+status: Review
+type: Standards Track
 category: Core
 created: 2025-12-10
 ---
