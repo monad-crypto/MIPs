@@ -7,7 +7,7 @@
     {% assign meta_description = meta_description | markdownify | strip_html | normalize_whitespace | strip %}
     <meta name="description" content="{{ meta_description | truncate: 160 | escape }}" />
     <link rel="icon" type="image/svg+xml" href="{{ '/favicon.svg' | relative_url }}" />
-    <title>{% if page.mip %}MIP-{{ page.mip }}{% if page.title %}: {{ page.title | escape }}{% endif %}{% elsif page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</title>
+    <title>Monad Improvement Proposals (MIPs)</title>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerpolicy="no-referrer" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerpolicy="no-referrer" /></noscript>
@@ -68,12 +68,6 @@
       pre code {
         background: transparent;
         padding: 0;
-      }
-      .highlight,
-      .highlighter-rouge .highlight {
-        background: #f6f8fa;
-        border: 1px solid var(--border);
-        border-radius: 6px;
       }
       .highlight pre {
         margin: 0;

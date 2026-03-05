@@ -5,16 +5,21 @@ baseurl: ""
 lang: en
 timezone: UTC
 
+lsi: false
+safe: true
+incremental: false
 theme: minima
 markdown: kramdown
-highlighter: rouge
+highlighter: none
 permalink: /:path
 
 kramdown:
   input: GFM
-  syntax_highlighter: rouge
-  syntax_highlighter_opts:
-    css_class: highlight
+  math_engine: mathjax
+  syntax_highlighter: null
+
+gist:
+  noscript: false
 
 defaults:
   -
