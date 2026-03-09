@@ -1,6 +1,6 @@
 # Monad Improvement Proposals (MIPs)
 
-This repository builds a static MIP website with Jekyll and deploys it with GitHub Pages.
+This repository builds a static MIP website with Jekyll and is intended to be deployed with GitHub Pages (deployment may currently be disabled in CI).
 
 ## Build locally
 
