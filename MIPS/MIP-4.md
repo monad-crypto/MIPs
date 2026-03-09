@@ -84,7 +84,7 @@ In case more than one revert condition is present, the revert error message must
 A previous design proposed adding a new opcode with similar semantics.
 Since this introspection feature is intended for direct use by smart contract developers (e.g., in bundler entrypoint contracts), a precompile was chosen because it can be called immediately without requiring compiler or toolchain updates.
 
-The semantics described above (strict calldata validation, ABI-encoded return values, rejecting calls with value, revert messages, and all-gas-consuming reverts) are chosen for explicit consistency with the existing Monad staking precompile.
+The semantics described above (strict calldata validation, ABI-encoded return values, rejecting calls with value, conventions around `*CALL` opcodes & EIP-7702, revert messages, and all-gas-consuming reverts) are chosen for explicit consistency with the existing Monad staking precompile.
 
 ## Backwards Compatibility
 
