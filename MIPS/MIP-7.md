@@ -43,13 +43,13 @@ Each argument byte MUST NOT be `0x5B` or in the range `0x60`-`0x7F`. The number 
 
 #### PUSH-Prefix Immediates
 
-Argument bytes are framed by a `PUSHn` byte (`0x60`-`0x7F`) that follows the extended opcode:
+Argument bytes are framed by a `PUSHx` byte (`0x60`-`0x7F`) that follows the extended opcode:
 
 ```
-0xAE XX PUSHn b1 b2 ... bn
+0xAE XX PUSHx b1 b2 ... bn
 ```
 
-The `PUSHn` byte determines the argument length (n = opcode − `0x5F`). The full byte range `0x00`-`0xFF` is available.
+The `PUSHx` byte determines the argument length (n = opcode − `0x5F`). The full byte range `0x00`-`0xFF` is available.
 
 In either encoding style, an extended opcode followed by incorrectly encoded bytes MUST behave as if `INVALID` (`0xFE`) had been executed.
 
@@ -91,7 +91,7 @@ The opcode `0xAE` is currently invalid in both Ethereum and Monad. Since `JUMPDE
 
 ## Security Considerations
 
-Because `JUMPDEST` analysis is unaffected by `EXTENSION`, the risks associated with divergent jump analysis between Monad and Ethereum are mitigated. On both chains, `0xAE` followed by `0x5B` results in the `0x5B` remaining a valid `JUMPDEST`.
+Because `JUMPDEST` analysis is unaffected by `EXTENSION`, the risks associated with divergent jump analysis between Monad and Ethereum are mitigated. On both chains, `0xAE` followed by `0x5B` results in the `0x5B` remaining a valid jump destination.
 
 ## References
 
