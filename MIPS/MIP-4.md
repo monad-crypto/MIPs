@@ -63,7 +63,7 @@ If extra calldata is appended beyond the selector, the precompile must revert wi
 
 The method `dippedIntoReserve()` is not payable and must revert with the error message "value is nonzero" when called with a nonzero value.
 
-The precompile must be invoked via `CALL` directly to the precompile address.
+The precompile must be invoked via `CALL`.
 Invocations via `STATICCALL`, `DELEGATECALL`, or `CALLCODE` must revert.
 Invocations via [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702) delegations targeting the precompile address must revert.
 
@@ -72,7 +72,7 @@ This is consistent with the behavior of Ethereum precompiles, which do not retur
 
 In case more than one revert condition is present, the revert error message must correspond with the conditions evaluated in the following order:
 
-1. is not invoked via `CALL` directly to the precompile
+1. is not invoked via `CALL`
 2. `gas < GAS_DIPPED_INTO_RESERVE`
 3. `len(calldata) < 4`
 4. `calldata[:4] != SELECTOR_DIPPED_INTO_RESERVE`
