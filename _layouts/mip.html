@@ -45,7 +45,7 @@ layout: default
   {{ page.created | date: "%B %Y" }}.
   [Online serial].
   Available:
-  <a href="{{ page.url | absolute_url }}">{{ page.url | absolute_url }}</a>.
+  {% assign citation_url = "https://monad-crypto.github.io/MIPs" | append: page.url %}<a href="{{ citation_url }}">{{ citation_url }}</a>.
 </p>
 
 <footer class="home-footer muted">
