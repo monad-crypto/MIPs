@@ -3,6 +3,7 @@ mip: 8
 title: Page-ified Storage State
 description: Partition EVM storage to align with database pages.
 author: Category Labs
+discussions-to: https://forum.monad.xyz/t/mip-8-page-ified-storage-state/407
 category: Core
 created: 2026-03-05
 ---

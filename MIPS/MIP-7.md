@@ -3,6 +3,7 @@ mip: 7
 title: Extension opcodes
 description: Add a reserved opcode for implementation-defined extension opcodes
 author: Category Labs
+discussions-to: https://forum.monad.xyz/t/mip-7-extension-opcodes/387
 status: Draft
 type: Standards Track
 category: Core

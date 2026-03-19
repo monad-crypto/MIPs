@@ -3,6 +3,7 @@ mip: 2
 title: Increase Contract Code Size Limit
 description: Increase the maximum contract code size limit to 128 KB and initcode size limit to 256 KB
 author: QEDK (@qedk), et al.
+discussions-to:
 status: Final
 type: Standards Track
 category: Core
