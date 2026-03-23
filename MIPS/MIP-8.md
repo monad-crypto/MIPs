@@ -268,4 +268,4 @@ BLAKE3 provides a flexible framework for defining fixed-size Merkle trees over �
 
 ## **Copyright**
 
-Copyright and related rights waived via [CC0](https://github.com/monad-crypto/MIPs/blob/main/LICENSE.md).
+Copyright and related rights waived via [CC0](../LICENSE.md).
