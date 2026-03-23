@@ -4,7 +4,7 @@ title: Fusaka EIP Activation
 description: Activate EIP-7823, EIP-7883, and EIP-7939 from Ethereum's Fusaka upgrade.
 author: Category Labs
 discussions-to: https://forum.monad.xyz/t/mip-5-fusaka-eip-activation/373
-status: Review
+status: Final
 type: Standards Track
 category: Core
 created: 2026-01-19

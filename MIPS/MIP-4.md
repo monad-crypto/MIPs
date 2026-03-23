@@ -1,10 +1,10 @@
 ---
 mip: 4
 title: Reserve Balance Introspection
-description: Add reserve balance precompile to query reserve balance violation state during transaction execution.
+description: Add reserve balance precompile to query reserve balance violation state during transaction execution
 author: Category Labs
 discussions-to: https://forum.monad.xyz/t/mip-4-reserve-balance-introspection/363
-status: Review
+status: Final
 type: Standards Track
 category: Core
 created: 2026-01-08
