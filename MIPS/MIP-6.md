@@ -1,6 +1,6 @@
 ---
 mip: 6
-title: `MONAD_NINE` Network Upgrade
+title: MONAD_NINE Network Upgrade
 description: Meta MIP for the `MONAD_NINE` network upgrade
 author: Category Labs
 discussions-to: https://forum.monad.xyz/t/mip-6-monad-nine-revision-meta/381
