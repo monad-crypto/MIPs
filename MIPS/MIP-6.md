@@ -27,11 +27,8 @@ Monad network.
 
 | Network | Activation Timestamp |
 |---------|---------------------|
-| Monad Testnet | TBD |
-| Monad Mainnet | TBD |
-
-Activation timestamps will be fully specified before deployment, but are
-anticipated to be during the first half of February 2026.
+| Monad Testnet | `1773153000` (Mar 10, 2026, 14:30 UTC) |
+| Monad Mainnet | `1773930600` (Mar 19, 2026, 14:30 UTC) |
 
 ## Rationale
 
