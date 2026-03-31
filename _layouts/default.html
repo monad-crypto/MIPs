@@ -9,11 +9,13 @@
     <link rel="icon" type="image/svg+xml" href="{{ '/favicon.svg' | relative_url }}" />
     <title>Monad Improvement Proposals (MIPs)</title>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
-    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerpolicy="no-referrer" onload="this.onload=null;this.rel='stylesheet'" />
     <link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha512-HiD3V4nv8fcjtouznjT9TqDNDm1EXngV331YGbfVGeKUoH+OLkRTCMzA34ecjlgSQZpdHZupdSrqHY+Hz3l6uQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-python.min.js" integrity="sha512-AKaNmg8COK0zEbjTdMHJAPJ0z6VeNqvRvH4/d5M4sHJbQQUToMBtodq4HaV4fa+WV2UTfoperElm66c9/8cKmQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-solidity.min.js" integrity="sha512-cVwDlg8/p6UhSKtcNwXU8mv3QL7uwVilUFE5EtblYWLjAXqyYOh7yXDCkNKJH279fvVe4vzD0OoMX3GokaAU2A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <noscript>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    </noscript>
     <style>
       :root {
         --text: #111827;
@@ -271,10 +273,14 @@
       // Prefetch MIP links on hover
       var prefetched = new Set();
       document.addEventListener("mouseover", function (e) {
-        var link = e.target.closest("a[href]");
+        var target = e.target;
+        if (!(target instanceof Element)) return;
+        var link = target.closest("a[href]");
         if (!link) return;
         var href = link.getAttribute("href");
         if (!href || href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:") || href.startsWith("#")) return;
+        // Only prefetch links that look like MIP references (e.g., contain "MIP-<number>")
+        if (!/MIP-\d+/.test(href)) return;
         var resolved = new URL(href, location.href).href;
         if (prefetched.has(resolved)) return;
         prefetched.add(resolved);
