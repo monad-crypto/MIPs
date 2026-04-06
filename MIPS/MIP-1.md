@@ -6,6 +6,7 @@ author: QEDK (@qedk)
 discussions-to: https://forum.monad.xyz/t/mip-1-mip-purpose-and-guidelines
 status: Draft
 type: Meta
+category: Process
 created: 2026-02-24
 ---
 
@@ -28,7 +29,9 @@ There are three types of MIP:
     - **Networking**: improvements to the peer-to-peer networking layer, block propagation mechanisms (such as RaptorCast), transaction dissemination, and other network protocol specifications.
     - **Interface**: improvements around client-level standards like JSON-RPC method names, contract ABIs, and other interface conventions shared between the execution and consensus components.
     - **MRC**: application-level standards and conventions, including contract standards such as token standards, name registries, URI schemes, library or package formats, and wallet formats. MRC stands for Monad Request for Comments.
-- A **Meta MIP** describes a process surrounding Monad or proposes a change to (or an event in) a process. Meta MIPs are like Standards Track MIPs but apply to areas other than the Monad protocol itself. They may propose an implementation, but not to Monad’s codebase; they often require community consensus; unlike Informational MIPs, they are more than recommendations, and users are typically not free to ignore them. Examples include procedures, guidelines, changes to the decision-making process, changes to the tools or environment used in Monad development, and specifications for named network upgrades.
+- A **Meta MIP** describes a process surrounding Monad or proposes a change to (or an event in) a process. Meta MIPs are like Standards Track MIPs but apply to areas other than the Monad protocol itself. They may propose an implementation, but not to Monad’s codebase; they often require community consensus; unlike Informational MIPs, they are more than recommendations, and users are typically not free to ignore them. Examples include procedures, guidelines, changes to the decision-making process, changes to the tools or environment used in Monad development, and specifications for named network upgrades. Furthermore, Meta MIPs can be broken down into the following categories:
+    - **Process**:  proposals related to procedures, guidelines, changes to the decision-making process, changes to the tools or environment used in Monad development, and specifications for the MIP process itself.
+    - **Hardfork**: network upgrade Meta MIPs that specify the set of Standards Track MIPs included in a named network upgrade (such as `MONAD_NINE`), along with activation timestamps for each network (Monad Testnet, Monad Mainnet). Each Hardfork Meta MIP serves as the canonical record for a specific network upgrade.
 - An **Informational MIP** describes a Monad design issue, or provides general guidelines or information to the Monad community, but does not propose a new feature. Informational MIPs do not necessarily represent Monad community consensus or a recommendation, so users and implementers are free to ignore Informational MIPs or follow their advice.
 
 It is highly recommended that a single MIP contain a single key proposal or new idea. The more focused the MIP, the more successful it tends to be.
@@ -47,7 +50,7 @@ Because Monad’s execution and consensus layers are maintained as separate comp
 
 ### Network Upgrade Meta MIPs
 
-Named network upgrades on Monad (such as `MONAD_NINE`) MUST be specified by a Meta MIP. The network upgrade Meta MIP MUST list all included Standards Track MIPs and specify the activation timestamps for each network (Monad Testnet, Monad Mainnet). The network upgrade Meta MIP MUST use `requires` to reference all included MIPs.
+Named network upgrades on Monad (such as `MONAD_NINE`) MUST be specified by a Meta MIP with category `Hardfork`. The network upgrade Meta MIP MUST list all included Standards Track MIPs and specify the activation timestamps for each network (Monad Testnet, Monad Mainnet). The network upgrade Meta MIP MUST use `requires` to reference all included MIPs.
 
 ## MIP Work Flow
 
@@ -143,7 +146,7 @@ Each MIP must begin with an [RFC 822](https://www.ietf.org/rfc/rfc822.html) styl
 
 `type`: *One of `Standards Track`, `Meta`, or `Informational`*
 
-`category`: *One of `Core`, `Networking`, `Interface`, or `MRC`* (Optional field, only needed for `Standards Track` MIPs)
+`category`: *One of `Core`, `Networking`, `Interface`, or `MRC` for `Standards Track` MIPs; one of `Process` or `Hardfork` for `Meta` MIPs* (Optional field, only needed for `Standards Track` and `Meta` MIPs)
 
 `created`: *Date the MIP was created on*
 
@@ -185,11 +188,11 @@ The preferred discussion URL is a topic on the Monad community forum. The URL ca
 
 ### `type` Header
 
-The `type` header specifies the type of MIP: Standards Track, Meta, or Informational. If the track is Standards, please include the subcategory (Core, Networking, Interface, or MRC).
+The `type` header specifies the type of MIP: Standards Track, Meta, or Informational. If the track is Standards, please include the subcategory (Core, Networking, Interface, or MRC). If the track is Meta, please include the subcategory (Process or Hardfork).
 
 ### `category` Header
 
-The `category` header specifies the MIP's category. This is required for Standards Track MIPs only.
+The `category` header specifies the MIP's category. This is required for Standards Track and Meta MIPs only.
 
 ### `created` Header
 
