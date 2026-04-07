@@ -206,7 +206,7 @@ A `requires` dependency is created when the current MIP cannot be understood or 
 
 ## Linking to External Resources
 
-Other than the specific exceptions listed below, links to external resources **SHOULD NOT** be included. External resources may disappear, move, or change unexpectedly.
+Other than the specific exceptions listed below, links to external resources SHOULD NOT be included. External resources may disappear, move, or change unexpectedly.
 
 ### Permitted External Resources
 
@@ -224,13 +224,13 @@ The following external resources may be linked:
 
 ## Linking to Other MIPs
 
-References to other MIPs should follow the format `MIP-N` where `N` is the MIP number you are referring to. Each MIP that is referenced in a MIP **MUST** be accompanied by a relative markdown link the first time it is referenced, and **MAY** be accompanied by a link on subsequent references. The link **MUST** always be done via relative paths so that the links work in this GitHub repository, forks of this repository, and mirrors. For example, you would link to this MIP as `./MIP-1.md`.
+References to other MIPs should follow the format `MIP-N` where `N` is the MIP number you are referring to. Each MIP that is referenced in a MIP MUST be accompanied by a relative markdown link the first time it is referenced, and MAY be accompanied by a link on subsequent references. The link MUST always be done via relative paths so that the links work in this GitHub repository, forks of this repository, and mirrors. For example, you would link to this MIP as `./MIP-1.md`.
 
 When referring to a MIP with a `category` of `MRC`, it must be written in the hyphenated form `MRC-X` where `X` is that MIP’s assigned number. When referring to MIPs with any other `category`, it must be written in the hyphenated form `MIP-X` where `X` is that MIP’s assigned number.
 
 ## Auxiliary Files
 
-Images, diagrams and auxiliary files should be included in a subdirectory of the `assets` folder for that MIP as follows: `assets/MIP-N` (where **N** is to be replaced with the MIP number). When linking to an image in the MIP, use relative links such as `../assets/MIP-1/image.png`. Prefer SVG diagrams, then PNG, and finally everything else.
+Images, diagrams and auxiliary files should be included in a subdirectory of the `assets` folder for that MIP as follows: `assets/MIP-N` (where `N` is to be replaced with the MIP number). When linking to an image in the MIP, use relative links such as `../assets/MIP-1/image.png`. Prefer SVG diagrams, then PNG, and finally everything else.
 
 ## Transferring MIP Ownership
 
