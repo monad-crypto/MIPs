@@ -296,14 +296,19 @@
       var prefetched = new Set();
       function maybePrefetchLink(link) {
         var href = link.getAttribute("href");
-        if (!href || href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:") || href.startsWith("#")) return;
+        if (!href || href === "#") return;
         if (!link.hasAttribute("data-prefetch-on-hover") && !/MIP-\d+/.test(href)) return;
-        var resolved = new URL(href, location.href).href;
-        if (prefetched.has(resolved)) return;
-        prefetched.add(resolved);
+        try {
+          var url = new URL(href, location.href);
+        } catch (_) {
+          return;
+        }
+        if ((url.protocol !== "http:" && url.protocol !== "https:") || url.origin !== location.origin) return;
+        if (prefetched.has(url.href)) return;
+        prefetched.add(url.href);
         var prefetchLink = document.createElement("link");
         prefetchLink.rel = "prefetch";
-        prefetchLink.href = resolved;
+        prefetchLink.href = url.href;
         document.head.appendChild(prefetchLink);
       }
 
