@@ -292,17 +292,12 @@
         }
       });
 
-      // Prefetch MIP links on hover
+      // Prefetch selected internal links on hover or focus
       var prefetched = new Set();
-      document.addEventListener("mouseover", function (e) {
-        var target = e.target;
-        if (!(target instanceof Element)) return;
-        var link = target.closest("a[href]");
-        if (!link) return;
+      function maybePrefetchLink(link) {
         var href = link.getAttribute("href");
         if (!href || href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:") || href.startsWith("#")) return;
-        // Only prefetch links that look like MIP references (e.g., contain "MIP-<number>")
-        if (!/MIP-\d+/.test(href)) return;
+        if (!link.hasAttribute("data-prefetch-on-hover") && !/MIP-\d+/.test(href)) return;
         var resolved = new URL(href, location.href).href;
         if (prefetched.has(resolved)) return;
         prefetched.add(resolved);
@@ -310,6 +305,16 @@
         prefetchLink.rel = "prefetch";
         prefetchLink.href = resolved;
         document.head.appendChild(prefetchLink);
+      }
+
+      ["mouseover", "focusin"].forEach(function (eventName) {
+        document.addEventListener(eventName, function (e) {
+          var target = e.target;
+          if (!(target instanceof Element)) return;
+          var link = target.closest("a[href]");
+          if (!link) return;
+          maybePrefetchLink(link);
+        });
       });
     </script>
   </body>

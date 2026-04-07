@@ -7,7 +7,7 @@ layout: default
 {% assign source_url = github_repo | append: "/blob/main/" | append: source_path %}
 {% assign discussions_url = page["discussions-to"] %}
 
-<p><a href="{{ '/' | relative_url }}">← All MIPs</a></p>
+<p><a href="{{ '/' | relative_url }}" data-prefetch-on-hover="true">← All MIPs</a></p>
 <h1>
   MIP-{{ page.mip }}: {{ page.title | escape }}
   <span class="title-icons">
