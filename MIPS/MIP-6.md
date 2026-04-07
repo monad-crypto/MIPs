@@ -6,6 +6,7 @@ author: Category Labs
 discussions-to: https://forum.monad.xyz/t/mip-6-monad-nine-revision-meta/381
 status: Final
 type: Meta
+category: Hardfork
 created: 2026-01-22
 requires: 3, 4, 5
 ---
