@@ -1,8 +1,11 @@
 ---
 mip: 3
 title: Linear Memory
-description: Redefine memory expansion cost to be linear and enforce an explicit maximum memory usage per transaction. 
-author: Category Labs 
+description: Redefine memory expansion cost to be linear and enforce an explicit maximum memory usage per transaction
+author: Category Labs
+discussions-to: https://forum.monad.xyz/t/mip-3-linear-evm-memory-cost/362
+status: Final
+type: Standards Track
 category: Core
 created: 2025-12-10
 ---

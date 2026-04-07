@@ -1,0 +1,44 @@
+title: Monad Improvement Proposals
+description: Monad Improvement Proposals (MIPs)
+url: "https://mips.monad.xyz"
+baseurl: 
+lang: en
+timezone: UTC
+
+lsi: false
+safe: true
+incremental: false
+theme: minima
+markdown: kramdown
+highlighter: none
+permalink: /:path
+
+kramdown:
+  input: GFM
+  math_engine: mathjax
+  syntax_highlighter: null
+
+gist:
+  noscript: false
+
+defaults:
+  -
+    scope:
+      path: "MIPS"
+    values:
+      layout: "mip"
+
+exclude:
+  - .github
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/
+
+include:
+  - LICENSE.md
+
+sass:
+  quiet_deps: true
+  silence_deprecations:
+    - import
