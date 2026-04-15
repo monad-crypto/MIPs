@@ -41,7 +41,7 @@ The following changes are applied during block execution:
 
 The distribution account has the following logic:
 
-```
+```python
 class distribution_account:
 
     # This function is only callable via execution; no transaction can call it.
@@ -83,4 +83,4 @@ Edge cases to consider:
 
 ## Copyright
 
-Copyright and related rights waived via CC0.
+Copyright and related rights waived via [CC0](../LICENSE.md).
