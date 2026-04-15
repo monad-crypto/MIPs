@@ -12,48 +12,48 @@ created: 2026-03-05
 
 ## Abstract
 
-Partition EVM storage to align with database pages. Enabling page-level access and warm SLOAD/SSTORE cost for words within a loaded page. 
+This MIP partitions EVM storage to align with database pages, enabling page-level access and warm `SLOAD`/`SSTORE` pricing for any word within a loaded page.
 
 ## Motivation
 
-The EVM abstracts storage as 32-byte `{slot, value}` pairs. This creates a mismatch with modern hardware which operates on 4096-byte pages. Fetching a single 32-byte slot incurs the full I/O cost of a 4KB page. This is roughly an 128× bandwidth underutilization. 
+The EVM abstracts storage as 32-byte `{slot, value}` pairs. This creates a mismatch with modern hardware, which operates on 4096-byte pages: fetching a single 32-byte slot incurs the full I/O cost of a 4KB page, an approximately 128× bandwidth underutilization.
 
-The Merkle Patricia Trie compounds this by hashing keys. This causes logically contiguous slots to be scattered across disjoint pages. Consequently, this related data, is charged for independent disk reads. Some examples include adjacent entries in an order book or a Solidity struct. Hashing of storage keys and the current gas schedule incentives sparse storage layout while providing no benefit for adjacent storage layouts.
+The Merkle Patricia Trie compounds this problem by hashing keys, which scatters logically contiguous slots across disjoint pages. As a result, related data such as adjacent entries in an order book or fields of a Solidity struct are charged for independent disk reads. Together, key hashing and the current gas schedule incentivize sparse storage layouts while providing no benefit for adjacent ones.
 
-To address this we introduce a page abstraction to the EVM storage model.  A page is a fixed-size contiguous group of EVM slots. Pages therefore become the atomic unit for both disk I/O and MPT commitments. Once a page is loaded, subsequent `SLOAD` and `SSTORE` operations on slots within that page are treated as warm. This incentivizes contiguous page-aligned storage layouts. The trie then commits `{page_index, page}` pairs. 
+To address this, we introduce a page abstraction to the EVM storage model. A page is a fixed-size contiguous group of EVM slots, and pages become the atomic unit for both disk I/O and MPT commitments. Once a page is loaded, subsequent `SLOAD` and `SSTORE` operations on slots within that page are treated as warm, which incentivizes contiguous, page-aligned storage layouts. The trie then commits `{page_index, page}` pairs.
 
-This aligns protocol incentives with hardware reality. Developers are rewarded for contiguous data structures and are not penalized for maintaining current patterns.
+This aligns protocol incentives with hardware reality: developers are rewarded for using contiguous data structures and are not penalized for retaining current patterns.
 
 ## Specification
 
-We introduce the following notation:   
+We introduce the following notation:
 
-- Storage `slots` are 32 byte values.
-- EVM `words` are 32 byte values as defined in the Ethereum Yellow Paper.
-- EVM `pages` are 4096 bytes and composed of 128 words. 
+- Storage `slots` are 32-byte values.
+- EVM `words` are 32-byte values, as defined in the Ethereum Yellow Paper.
+- EVM `pages` are 4096 bytes, composed of 128 words.
 
-For a given slot, we can determine a grouping by modding out the last `n` bits of the key. This naturally stratifies the key space. It allows us to define a page as a contiguous vector of `m` EVM words. In other words, each key maps to `(page_index,offset_within_page)`, and a page stores `m` consecutive EVM words. The mapping functions from `slot` to `page` information is defined as follows:
+For a given slot, we determine its grouping by masking the low `n` bits of the key. This stratifies the key space and lets us define a page as a contiguous vector of `m` EVM words. Equivalently, each key maps to `(page_index, offset_within_page)`, and a page stores `m` consecutive EVM words. The mapping from a `slot` to its `page` information is defined as follows:
 
 - `page_index(slot) = slot >> 7`
 - `offset(slot) = slot & 0x7F`
 
 ### Page Commitment Function
 
-BLAKE3 internally constructs a Merkle tree over 1024-byte chunks. As such the native BLAKE3 tree supports inclusion proofs at the 1024-byte leaf granularity. Efficient single-word inclusion proofs are not directly supported. To recover this property, we define a commitment function using BLAKE3’s compression function. 
+BLAKE3 internally constructs a Merkle tree over 1024-byte chunks, so the native BLAKE3 tree supports inclusion proofs only at the 1024-byte leaf granularity; efficient single-word inclusion proofs are not directly supported. To recover this property, we define a commitment function built on BLAKE3's compression function.
 
-Intuitively, this commitment function is a 32-byte merkle root over a 4096-byte page using a fixed binary tree built from the BLAKE3 compression function.
+Intuitively, this commitment function is a 32-byte Merkle root over a 4096-byte page, computed as a fixed binary tree of BLAKE3 compressions.
 
-Let `P` be a 4096-byte page. Then note the following:
+Let `P` be a 4096-byte page. The construction is as follows:
 
 1. The BLAKE3 compression function operates on 64-byte blocks.
-2. The page is partitioned into 64 pair-leaves where each leaf consists of two consecutive 32-byte words.
-3. Internal nodes form a fixed binary merkle tree. 
+2. The page is partitioned into 64 pair-leaves, where each leaf consists of two consecutive 32-byte words.
+3. Internal nodes form a fixed binary Merkle tree.
 
-Each internal node is computed by hashing the concatenation of its two 32-byte child hashes using the BLAKE3 compression function. The resulting root is the page commitment. 
+Each internal node is computed by hashing the concatenation of its two 32-byte child hashes with the BLAKE3 compression function. The resulting root is the page commitment.
 
 **Reference implementation**
 
-A full reference is linked at the end of the file. This includes optimizing for simd. Below is a minimal reference implementation of the commitment function:
+A full reference, including SIMD optimizations, is linked at the end of this document. A minimal reference implementation of the commitment function is shown below:
 
 ```python
 from blake3_compress import compress, words_to_bytes, bytes_to_words, IV
@@ -108,53 +108,53 @@ def page_commit(data):
     return root
 ```
 
-### Leaves of Merkle-Patricia Trie
+### Leaves of the Merkle Patricia Trie
 
-The Merkle Patricia Trie commits to `{page_index_i: page_commit(page_i)}` pairs where `page_commit(page_i)` is a 32-byte commitment to the contents of a page.  
+The Merkle Patricia Trie commits to `{page_index_i: page_commit(page_i)}` pairs, where `page_commit(page_i)` is a 32-byte commitment to the contents of page `i`.
 
-This trie has the following modifications:
+This trie incorporates the following modifications:
 
-1. **Hash Function**: Blake3
-2. **Leaf values**: For each `page_index`, define the corresponding leaf value as page commitment of the index i page.
-3. **Leaf placement**: Each `page_index` uniquely determines a path from the MPT root to its leaf. This path is computed exactly as in a standard MPT using the `page_index` as the key.
-4. **Trie structure**: The MPT structure is unchanged otherwise: branch, extension, and leaf nodes follow the standard MPT rules.
-5.  **On-demand computation**: The value of each storage leaf is exactly 32 bytes, so the `page_commit(page)` can be recomputed from the page contents whenever needed. No additional storage layout changes are required.
-6. **Merkle Proofs**: Merkle proofs for page commitments are unchanged from a standard MPT. However, this proof only proves that a certain page has been committed. 
+1. **Hash function**: BLAKE3.
+2. **Leaf values**: for each `page_index`, the corresponding leaf value is the page commitment of the page at that index.
+3. **Leaf placement**: each `page_index` uniquely determines a path from the MPT root to its leaf. This path is computed exactly as in a standard MPT, using the `page_index` as the key.
+4. **Trie structure**: the MPT structure is otherwise unchanged; branch, extension, and leaf nodes follow the standard MPT rules.
+5. **On-demand computation**: the value of each storage leaf is exactly 32 bytes, so `page_commit(page)` can be recomputed from the page contents whenever needed. No additional storage layout changes are required.
+6. **Merkle proofs**: Merkle proofs for page commitments are unchanged from a standard MPT. However, such a proof only establishes that a particular page has been committed.
 
 ### Word Inclusion Proofs
 
-The page commit can be thought of as a fixed size merkle tree stored inside the MPT leaf. Given a merkle proof for a page commitment, we can prove the inclusion of any specific word within that page. To construct an inclusion proof for a particular word, we need the following:
+The page commitment can be thought of as a fixed-size Merkle tree stored inside the MPT leaf. Given a Merkle proof for a page commitment, we can prove the inclusion of any specific word within that page. To construct an inclusion proof for a particular word, we need the following:
 
-| Field            | Size     | Description                                                                                     |
-| ---------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `word_idx`       | usize    | Position of the word within the page (0–127). Caller-provided, not part of cryptographic proof. |
-| `word`           | 32 B     | Value of the target word.                                                                       |
-| `sibling_word`   | 32 B     | Companion word in the same pair-leaf.                                                           |
-| `parent_sibling` | 6 × 32 B | Sibling hashes at each parent level (pair-leaf → parent).                                       |
+| Field            | Size     | Description                                                                                         |
+| ---------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `word_idx`       | usize    | Position of the word within the page (0–127). Caller-provided, not part of the cryptographic proof. |
+| `word`           | 32 B     | Value of the target word.                                                                           |
+| `sibling_word`   | 32 B     | Companion word in the same pair-leaf.                                                               |
+| `parent_sibling` | 6 × 32 B | Sibling hashes at each parent level (pair-leaf → root).                                             |
 
 
-As a result, the inclusion proof for any individual word consists of two components: The inclusion proof of the word within its page commitment; The inclusion proof of the page commitment within the MPT.  The total proof size is the sum of these components in the worse case.
+An inclusion proof for any individual word therefore consists of two components: the inclusion proof of the word within its page commitment, and the inclusion proof of the page commitment within the MPT. The total proof size is the sum of these components in the worst case.
 
 ## Gas Cost
 
-We assume the following: 
+We adopt the following definitions:
 
-1. Let `read_accessed_pages` be the set of read pages accessed during the current transaction;
-2. Let `write_accessed_pages` be the set of write pages accessed during the current transaction;
-3. and let `p = page_index(s).`
+1. Let `read_accessed_pages` be the set of pages read during the current transaction.
+2. Let `write_accessed_pages` be the set of pages written during the current transaction.
+3. Let `p = page_index(s)` for the slot `s` being accessed.
 
 ### SLOAD Gas Schedule
 
-We define the `SLOAD` cost in terms of pages as the following: 
+We define the `SLOAD` cost in terms of pages as follows:
 
-- If `p` is in `read_accessed_pages` then charge BASE_SLOAD_COST gas;
-- Otherwise charge COLD_SLOAD_COST gas and add `p` to `read_accessed_pages`.
+- If `p` is in `read_accessed_pages`, charge `BASE_SLOAD_COST` gas.
+- Otherwise, charge `COLD_SLOAD_COST` gas and add `p` to `read_accessed_pages`.
 
 ### SSTORE Gas Schedule
 
-We define the `SSTORE` cost in terms of pages and state transitions. 
+We define the `SSTORE` cost in terms of pages and state transitions.
 
-Let `P0` be the initial value of the page `p` for a given `SSTORE` and let `P1`  be the terminal value of page `p` immediately after the `SSTORE`.  The following is the I/O cost for the writing the page to the hardware.
+Let `P0` be the initial value of page `p` for a given `SSTORE`, and let `P1` be its value immediately after the `SSTORE`. The following is the I/O cost of writing the page to disk.
 
 
 
@@ -177,7 +177,7 @@ else:
     gas_deducted += PAGE_WRITE_COST
 ```
 
-Besides the I/O cost component for a page write, the remainder of the SSTORE cost is computed based on the net state growth of the page. The main difference from the current evm cost is that the state growth cost are only deducted if the transaction is increasing the net state of the page. If a slot is created to replace a previously cleared slot in the same page then the growth fee is bypassed. This is defined so that gas remaining is monotonically decreasing to align with current gas model. This is defined as the following: 
+Beyond the I/O component of a page write, the remainder of the `SSTORE` cost is computed from the net state growth of the page. The key difference from the current EVM cost model is that state-growth cost is only charged when the transaction increases the net populated state of the page. If a new slot is created to replace a previously cleared slot in the same page, the growth fee is bypassed. This rule is defined so that gas remaining is monotonically decreasing, consistent with the current gas model. The schedule is as follows:
 
 ```python
 
@@ -218,37 +218,37 @@ else:
 
 ## Rationale
 
-Contracts that allocate storage in contiguous chunks aligned to page boundaries are economically optimal. They benefit from lower gas costs and more efficient inclusion proofs. 
+Contracts that allocate storage in contiguous, page-aligned chunks are economically optimal: they benefit from both lower gas costs and more efficient inclusion proofs.
 
-If a page contains only a single populated element then the remaining positions are zero. The page commitment can therefore be reconstructed without additional hashes. So single-slot proofs incur no overhead from page commitment hashes. Therefore proof size remains stable for current mapping-based state. Since two random keys collide in the same page with probability  1 in 2²⁴⁹.  
+When a page contains only a single populated element, all other positions are zero, so the page commitment can be reconstructed without additional hashes. Single-slot proofs therefore incur no overhead from page-commitment hashing, and proof size remains stable for current mapping-based state, since two random keys collide in the same page with probability 1 in 2²⁴⁹.
 
-More generally, if a page contains only a contiguous set of words then the page commitment can therefore be reconstructed without additional hashes. The effect is that proof size also remains stable for contiguous storage allocations. Therefore contiguous multi-word inclusion proofs are strictly more efficient.
+More generally, if a page contains only a contiguous set of populated words, the page commitment can again be reconstructed without additional hashes. As a result, proof size remains stable for contiguous storage allocations, and contiguous multi-word inclusion proofs are strictly more efficient.
 
-In the case where a page is sparsely populated at random, single-word inclusion proofs incur a small fixed overhead. However, inclusion proofs of either single words or contiguous multi-word  in the same page are amortizated since they share the main merkle proof component.
+When a page is sparsely populated at random, single-word inclusion proofs incur a small fixed overhead. However, inclusion proofs for either single words or contiguous word ranges within the same page are amortized, since they share the main Merkle proof component.
 
-## **Backwards Compatibility**
+## Backwards Compatibility
 
-The EVM semantics remain unchanged under this update. The only modification is paging effect to the gas schedule. 
+EVM semantics are unchanged by this update; the only modification is the paging behavior of the gas schedule.
 
-Existing contracts that access consecutive storage slots will observe reduced execution costs with high probability. Notably this is in effect for contracts that utilized solidity `structs`, state variable layout, or arrays.
+Existing contracts that access consecutive storage slots will, with high probability, observe reduced execution costs. This applies in particular to contracts that use Solidity `structs`, packed state-variable layouts, or arrays.
 
-The only class of contracts that are negatively impacted are those that explicitly rely on hardcoded opcode gas costs associated with consecutive storage accesses; all other contracts remain functionally unchanged.
+The only contracts negatively impacted are those that explicitly rely on hardcoded opcode gas costs for consecutive storage accesses; all other contracts remain functionally unchanged.
 
-## **Security Considerations**
+## Security Considerations
 
-## Page Index Space Size
+### Page Index Space Size
 
-The current Merkle Patricia Trie uses a 2²⁵⁶ key space. Keys are hashed to determine leaf placement. This ensures that the tree remains balanced. The effective key space is reduced to 2²⁴⁹ in the paged state scheme. This reduction does not affect the tree structure. The hash still forces a uniform distribution. The MPT topology and security properties are therefore preserved.
+The current Merkle Patricia Trie uses a 2²⁵⁶ key space, and keys are hashed before leaf placement to keep the tree balanced. Under the paged scheme, the effective key space is reduced to 2²⁴⁹. This reduction does not affect the tree structure: the hash still induces a uniform distribution, so the MPT's topology and security properties are preserved.
 
-## Page Size
+### Page Size
 
-Each leaf of the current Merkle Patricia Trie corresponds to a single EVM storage slot currently. We considered 2, 4, 8, 16, 32, 64, and 128 words per page. Each of these page sizes is at most 4096 bytes of raw slot data. So they fit within a I/O page. (This ignores any node metadata overhead.)
+Each leaf of the current Merkle Patricia Trie corresponds to a single EVM storage slot. We considered page sizes of 2, 4, 8, 16, 32, 64, and 128 words. Each of these holds at most 4096 bytes of raw slot data and therefore fits within a single I/O page (ignoring node metadata overhead).
 
-A consideration is that storage page may span multiple I/O pages. We can estimate the probability that a storage page crosses a I/O page boundary using uniform random offsets (assuming storage page is completely full):
+One consideration is that a storage page may span multiple I/O pages. Assuming uniform random offsets and a fully populated storage page, we can estimate the probability that a storage page crosses an I/O page boundary:
 
-| Page Size | Probability of crossing I/O page | Worse Case Block Slowdown |
+| Page Size | Probability of crossing I/O page | Worst Case Block Slowdown |
 | --------- | -------------------------------- | ------------------------- |
-| 1 words   | ~1%                              | 1.01x                     |
+| 1 word    | ~1%                              | 1.01x                     |
 | 2 words   | ~1%                              | 1.01x                     |
 | 4 words   | ~3%                              | 1.03x                     |
 | 8 words   | ~6%                              | 1.06x                     |
@@ -257,15 +257,15 @@ A consideration is that storage page may span multiple I/O pages. We can estimat
 | 64 words  | ~50%                             | 1.5x                      |
 | 128 words | ~100%                            | 2.00x                     |
 
-If a storage page straddles multiple I/O pages then a single EVM `SSTORE/SLOAD` can underprice storage operations due to read amplification. In practice recent storage is cached. So these effects are usually mitigated.
+When a storage page straddles multiple I/O pages, a single `SSTORE` or `SLOAD` can underprice the operation due to read amplification. In practice, recent storage is cached, which usually mitigates this effect.
 
-To reason about the worst case, consider a single block of EVM execution where an attacker controls all storage writes. If storage pages cross I/O boundaries, `SLOAD` operations for misaligned portions could be effectively 2× slower. To achieve this, an attacker would need to allocate an entire page and then wait until the relevant pages are no longer cached. 
+To reason about the worst case, consider a block of EVM execution in which an attacker controls all storage writes. If storage pages cross I/O boundaries, `SLOAD` operations for misaligned portions could be effectively 2× slower. To exploit this, an attacker would have to allocate an entire page and wait until the relevant pages were evicted from cache.
 
 
 ## Future Directions
 
-BLAKE3 provides a flexible framework for defining fixed-size Merkle trees over “black-box” hash functions. This flexibility enables a correspondence between trees of different fanouts. In the MIP-9, we explore this correspondence to reduce inclusion proof size, minimize Merklization overhead, and optimize storage writes. 
+BLAKE3 provides a flexible framework for defining fixed-size Merkle trees over "black-box" hash functions, which enables a correspondence between trees of different fanouts. MIP-9 explores this correspondence to reduce inclusion proof size, minimize Merklization overhead, and optimize storage writes.
 
-## **Copyright**
+## Copyright
 
-Copyright and related rights waived via [CC0](../LICENSE.md).
+Copyright and related rights waived via [CC0](../LICENSE.md).
