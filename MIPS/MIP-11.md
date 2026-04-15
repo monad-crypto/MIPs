@@ -16,7 +16,9 @@ This MIP automatically distributes priority fees to delegators rather than credi
 
 ## Motivation
 
-Currently, priority fees are credited directly to a validator's beneficiary address. To ensure consistent compensation for all stakers, this proposal introduces a mechanism that automatically distributes priority fees to delegators.
+Currently, priority fees are credited directly to a validator's beneficiary address. In principle, a validator could forward these fees to its delegators by calling `externalReward` on the staking contract, but doing so is operationally cumbersome — it requires each validator to run additional infrastructure to sweep the beneficiary balance, manage gas for the forwarding transaction, and handle the `dust_threshold` minimum. In practice, most validators do not do this today, so priority fees accrue to the beneficiary rather than flowing through to delegators.
+
+To ensure consistent compensation for all stakers without relying on per-validator tooling, this proposal introduces a mechanism that automatically distributes priority fees to delegators at the protocol level.
 
 ## Specification
 
