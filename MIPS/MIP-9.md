@@ -1,7 +1,7 @@
 ---
 mip: 9
 title: Active Set Increase
-description: Increase the `ACTIVE_VALSET_SIZE` from 200 to 250.
+description: Increase the `ACTIVE_VALSET_SIZE` from 200 to 300.
 author: Jackson Lewis (@jacksononchain)
 discussions-to: https://forum.monad.xyz/t/mip-9-active-set-increase/416
 status: Draft
@@ -12,7 +12,7 @@ created: 2026-03-19
 
 ## Abstract
 
-This MIP proposes an increase to the maximum active validator set from 200 to 250.
+This MIP proposes an increase to the maximum active validator set from 200 to 300.
 
 The current active validator set is capped at 200. Raising the cap expands participation without introducing abrupt load changes to the consensus layer (MonadBFT) or execution pipeline.
 
@@ -22,9 +22,9 @@ The current active validator set is capped at 200. Raising the cap expands parti
 
 | Parameter | Current Value | Proposed Value |
 |---|---|---|
-| `ACTIVE_VALSET_SIZE` | 200 | 250 |
+| `ACTIVE_VALSET_SIZE` | 200 | 300 |
 
-`ACTIVE_VALSET_SIZE` SHOULD be increased from 200 to 250.
+`ACTIVE_VALSET_SIZE` SHOULD be increased from 200 to 300.
 
 ### Consensus and Execution Layer Impact
 
@@ -34,13 +34,13 @@ The consensus daemon enforces `ACTIVE_VALSET_SIZE` as an upper bound on the numb
 
 ## Rationale
 
-An increment of 50 represents a meaningful expansion (~25%) without dramatically altering the message complexity in MonadBFT's voting rounds. Larger single-step increases carry higher risk of unforeseen performance degradation; smaller increments would add process overhead without proportionate benefit.
+An increment of 100 represents a meaningful expansion (~50%) without dramatically altering the message complexity in MonadBFT's voting rounds. Larger single-step increases carry higher risk of unforeseen performance degradation; smaller increments would add process overhead without proportionate benefit.
 
 The increase allows for greater decentralization in the active set, enforcing stronger fault tolerance and economic security.
 
 ## Backwards Compatibility
 
-This MIP does not introduce backwards incompatibilities. The change is additive: existing validators in the active set are unaffected. The hard-coded `ACTIVE_VALSET_SIZE = 200` MUST be updated to `250` to support the new parameter values prior to activation.
+This MIP does not introduce backwards incompatibilities. The change is additive: existing validators in the active set are unaffected. The hard-coded `ACTIVE_VALSET_SIZE = 200` MUST be updated to `300` to support the new parameter values prior to activation.
 
 ## Security Considerations
 
