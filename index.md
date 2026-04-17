@@ -29,14 +29,19 @@ title: MIPs
 	</thead>
 	<tbody>
 		{% for p in mips %}
-			{% assign status = p.status | default: "-" %}
-			{% assign status_slug = status | downcase | replace: " ", "-" %}
 			<tr>
 				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
 				<td>{{ p.title | escape }}</td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
 				<td>{{ p.type | default: "-" | escape }}</td>
-				<td><span class="status-pill status-pill--{{ status_slug | escape }}">{{ status | escape }}</span></td>
+				<td>
+					{% if p.status and p.status != "" %}
+						{% assign status_slug = p.status | slugify %}
+						<span class="status-pill{% if status_slug != "" %} status-pill--{{ status_slug }}{% endif %}">{{ p.status | escape }}</span>
+					{% else %}
+						<span class="muted">-</span>
+					{% endif %}
+				</td>
 			</tr>
 		{% endfor %}
 	</tbody>
@@ -131,7 +136,7 @@ No MIPs found.
 </style>
 
 <script>
-	window.addEventListener("load", function () {
+	document.addEventListener("DOMContentLoaded", function () {
 		var input = document.getElementById("mip-search-input");
 		var table = document.getElementById("mip-table");
 		if (!input || !table) return;
@@ -140,20 +145,20 @@ No MIPs found.
 		var status = document.getElementById("mip-search-status");
 		var empty = document.getElementById("mip-search-empty");
 		var rows = Array.prototype.slice.call(table.tBodies[0].rows);
+		var rowData = null;
 
-		var rowData = rows.map(function (row) {
-			var cells = Array.prototype.slice.call(row.cells);
-			return {
-				row: row,
-				cells: cells,
-				originals: cells.map(function (cell) { return cell.innerHTML; }),
-				texts: cells.map(function (cell) { return (cell.textContent || "").toLowerCase(); })
-			};
-		});
-
-		function escapeHtml(v) {
-			return v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+		function captureRows() {
+			rowData = rows.map(function (row) {
+				var cells = Array.prototype.slice.call(row.cells);
+				return {
+					row: row,
+					cells: cells,
+					originals: cells.map(function (cell) { return cell.innerHTML; }),
+					texts: cells.map(function (cell) { return (cell.textContent || "").toLowerCase(); })
+				};
+			});
 		}
+
 		function escapeRegex(v) {
 			return v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 		}
@@ -168,13 +173,28 @@ No MIPs found.
 				re.lastIndex = 0;
 				if (!re.test(text)) return;
 				re.lastIndex = 0;
-				var span = document.createElement("span");
-				span.innerHTML = escapeHtml(text).replace(re, "<mark>$1</mark>");
-				node.parentNode.replaceChild(span, node);
+				var frag = document.createDocumentFragment();
+				var lastIndex = 0;
+				var m;
+				while ((m = re.exec(text)) !== null) {
+					if (m[0].length === 0) { re.lastIndex++; continue; }
+					if (m.index > lastIndex) {
+						frag.appendChild(document.createTextNode(text.slice(lastIndex, m.index)));
+					}
+					var mark = document.createElement("mark");
+					mark.textContent = m[0];
+					frag.appendChild(mark);
+					lastIndex = re.lastIndex;
+				}
+				if (lastIndex < text.length) {
+					frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+				}
+				node.parentNode.replaceChild(frag, node);
 			});
 		}
 
 		function apply() {
+			if (!rowData) return;
 			var q = input.value.trim();
 			var ql = q.toLowerCase();
 			var visible = 0;
@@ -217,6 +237,14 @@ No MIPs found.
 				apply();
 			});
 		}
+
+		// Defer row capture + initial apply() past any other DOMContentLoaded
+		// listeners (notably the default layout's @username linkification),
+		// then sync UI to the current input value (handles bfcache restores).
+		setTimeout(function () {
+			captureRows();
+			apply();
+		}, 0);
 	});
 </script>
 
