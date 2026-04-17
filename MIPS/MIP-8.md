@@ -12,17 +12,17 @@ created: 2026-03-05
 
 ## Abstract
 
-Partition EVM storage to align with database pages. Enabling page-level access and warm SLOAD/SSTORE cost for words within a loaded page. 
+We introduce key locality to the Merkle Patricia Trie by adding a page abstraction to the state model, enabling page-level access and warm SLOAD/SSTORE cost for any word within a loaded page.
 
 ## Motivation
 
-The EVM abstracts storage as 32-byte `{slot, value}` pairs. This creates a mismatch with modern hardware which operates on 4096-byte pages. Fetching a single 32-byte slot incurs the full I/O cost of a 4KB page. This is roughly an 128× bandwidth underutilization. 
+The EVM abstracts storage as 32-byte `{slot, value}` pairs. The gas schedule of this model is tied to the commitment scheme of the Merkle Patricia Trie, since the trie acts on these pairs. This creates a dilemma: mapping the MPT to disk causes access to a 32-byte slot to require loading an entire 4KB page; while optimizing the physical disk layout independently leaves the commitment layer bound to the original slot-based pricing model. 
 
-The Merkle Patricia Trie compounds this by hashing keys. This causes logically contiguous slots to be scattered across disjoint pages. Consequently, this related data, is charged for independent disk reads. Some examples include adjacent entries in an order book or a Solidity struct. Hashing of storage keys and the current gas schedule incentives sparse storage layout while providing no benefit for adjacent storage layouts.
+In either case, the inefficiency is propagated by the application layer and the state layer. At the application layer, high-level languages such as Solidity rely heavily on `keccak256` hashing for mapping layouts. This causes related data to be assigned to pseudorandom storage locations. At the state layer, the MPT hashes keys before commitment, so sequential slot updates modify disjoint regions of the trie. These factors cause logically contiguous slots to be scattered across disjoint pages, resulting in related data being charged as independent disk reads. 
 
-To address this we introduce a page abstraction to the EVM storage model.  A page is a fixed-size contiguous group of EVM slots. Pages therefore become the atomic unit for both disk I/O and MPT commitments. Once a page is loaded, subsequent `SLOAD` and `SSTORE` operations on slots within that page are treated as warm. This incentivizes contiguous page-aligned storage layouts. The trie then commits `{page_index, page}` pairs. 
+To address this, we introduce a page abstraction to the state model.  A page is a fixed-size contiguous group of EVM slots. Pages become the atomic unit for both disk I/O and MPT commitments. Once a page is loaded, subsequent `SLOAD` and `SSTORE` operations on slots within that page are treated as warm. The trie then commits `{page_index, page}` pairs. 
 
-This aligns protocol incentives with hardware reality. Developers are rewarded for contiguous data structures and are not penalized for maintaining current patterns.
+Standard EVM execution semantics and backward compatibility with existing gas pricing are preserved. Common storage patterns in Solidity naturally benefit from page warming. For example, mappings to structs benefit because a struct’s internal fields occupy contiguous storage slots once the mapping entry is resolved. This preserves existing smart contract development best practices while incentivizing contiguous storage grouping.
 
 ## Specification
 
@@ -39,74 +39,91 @@ For a given slot, we can determine a grouping by modding out the last `n` bits o
 
 ### Page Commitment Function
 
-BLAKE3 internally constructs a Merkle tree over 1024-byte chunks. As such the native BLAKE3 tree supports inclusion proofs at the 1024-byte leaf granularity. Efficient single-word inclusion proofs are not directly supported. To recover this property, we define a commitment function using BLAKE3’s compression function. 
+BLAKE3 supports inclusion proofs at the 1024-byte leaf granularity since internally it constructs a Merkle Tree over 1024-byte chunks. However, efficient single-word inclusion proofs are not natively supported. 
 
-Intuitively, this commitment function is a 32-byte merkle root over a 4096-byte page using a fixed binary tree built from the BLAKE3 compression function.
+To recover this property, we define a commitment function that computes a 32-byte Merkle root over a 4096-byte page by constructing an induced subtree using BLAKE3. This commitment function, referred to as the Induced Subtree Merkle Commit, commits only to the occupied state.
 
 Let `P` be a 4096-byte page. Then note the following:
 
 1. The BLAKE3 compression function operates on 64-byte blocks.
-2. The page is partitioned into 64 pair-leaves where each leaf consists of two consecutive 32-byte words.
-3. Internal nodes form a fixed binary merkle tree. 
+2. The page is partitioned into 64 pair-leaves where each leaf consists of two 32-byte words, and its active state is tracked via an induced 64-bit occupancy bitmap. However, a 128 bitmap is used for the commitment. 
+3. Internal nodes form a induced subtree determined by occupancy of pair-leaves, topologically bypassing empty branches entirely. Singletons are carried up the tree without requiring empty hash operations.
+4. Commit is done in two phases: 
+    1. Merge Phase: A bottom-up reduction of the occupied pair-leaves. This captures the  payload of all active data in the page.
+    2. Seal Phase: The resulting subtree root is hashed alongside the 128-bit slot bitmap. This uniquely binds the data to the exact geometric positions and prevents spatial collisions.
+5. Execution and proof size scales with occupancy. The merge phase costs exactly k-1 compressions, where k is the number of active pairs.
 
-Each internal node is computed by hashing the concatenation of its two 32-byte child hashes using the BLAKE3 compression function. The resulting root is the page commitment. 
+The resulting root is the **page commitment**. A python psuedo code implementation of this commitment is seen below. A full breakdown of this commitment function can be found in the paper titled Merkle Commitments via Induced Subtrees.
 
 **Reference implementation**
 
-A full reference is linked at the end of the file. This includes optimizing for simd. Below is a minimal reference implementation of the commitment function:
-
 ```python
-from blake3_compress import compress, words_to_bytes, bytes_to_words, IV
-
-CHUNK_START         = 1
-CHUNK_END           = 2
-DERIVE_KEY_MATERIAL = 64
-
-_PAIR_LEAF_KEY = b"ultra_merkle_pair_leaf_domain___"
-assert len(_PAIR_LEAF_KEY) == 32
-
-def _derive_leaf_iv():
-    key_block = _PAIR_LEAF_KEY + bytes(32) 
-    return compress(IV, key_block, 64, 0, DERIVE_KEY_MATERIAL)  
+Function ISMC_Commit(page, slot_bitmap):
+    // Inputs:
+    // page: 4096-byte array (64 pairs of 64 bytes)
+    // slot_bitmap: 128-bit integer representing exact 32-byte word occupancy
     
-LEAF_IV = _derive_leaf_iv()
-
-def hash_leaf(block_64):
-    assert len(block_64) == 64
-    return words_to_bytes(compress(LEAF_IV, block_64, 64, 0, DERIVE_KEY_MATERIAL))
-
-def hash_parent(children):
-    assert len(children) == 2
-    block = b"".join(children)
-    assert len(block) == 64
-
-    return words_to_bytes(
-        compress(IV, block, 64, 0, CHUNK_START | CHUNK_END)
-    )
-
-def page_commit(data):
-    """
-    Fully unrolled binary Merkle root of a 4096-byte page.
-    Returns 32 bytes.
-    """
-    assert len(data) == 4096
-
-    l0 = [hash_leaf(data[i*64:(i+1)*64]) for i in range(64)]
-
-    l1 = [hash_parent([l0[i], l0[i+1]]) for i in range(0, 64, 2)]
-
-    l2 = [hash_parent([l1[i], l1[i+1]]) for i in range(0, 32, 2)]
-
-    l3 = [hash_parent([l2[i], l2[i+1]]) for i in range(0, 16, 2)]
-
-    l4 = [hash_parent([l3[i], l3[i+1]]) for i in range(0, 8, 2)]
-
-    l5 = [hash_parent([l4[i], l4[i+1]]) for i in range(0, 4, 2)]
-
-    root = hash_parent([l5[0], l5[1]])
-
-    return root
+    // Convert 128-bit slot bitmap to 64-bit pair bitmap (1 if either word in pair is active)
+    pair_bitmap = reduce_to_pair_bitmap(slot_bitmap)
+    
+    // --- Phase 1: Data Merge Phase ---
+    active_nodes = []
+    
+    // Extract only occupied pair-leaves (Bypassing empty branches)
+    For i from 0 to 63:
+        If bit i is set in pair_bitmap:
+            pair_data = page[i * 64 : (i + 1) * 64]
+            active_nodes.append({ index: i, value: pair_data })
+            
+    // Bottom-up reduction 
+    For level from 0 to 5:
+        next_level_nodes = []
+        i = 0
+        
+        While i < length(active_nodes):
+            current_node = active_nodes[i]
+            
+            // Check if a right sibling exists in the active nodes
+            If i + 1 < length(active_nodes):
+                next_node = active_nodes[i + 1]
+                
+                // Nodes are siblings if they share the same parent at the next level
+                If (current_node.index >> (level + 1)) == (next_node.index >> (level + 1)):
+                    // Hash the two 32-byte children into a new 32-byte parent
+                    parent_value = BLAKE3_Hash(current_node.value || next_node.value)
+                    next_level_nodes.append({ index: current_node.index, value: parent_value })
+                    i += 2
+                    continue
+            
+            // Singleton Case: Carry up without hashing
+            next_level_nodes.append(current_node)
+            i += 1
+            
+        active_nodes = next_level_nodes
+        
+        // Early exit: The tree is fully reduced to a single root
+        If length(active_nodes) == 1:
+            break
+            
+    subtree_root = active_nodes[0].value
+    
+    // --- Phase 2: Structural Seal Phase ---
+    // Uniquely bind the subtree root to the exact geometric layout
+    seal_payload = concatenate(slot_bitmap, subtree_root)   // 16 bytes + 32 bytes
+    page_commitment = BLAKE3_Hash(seal_payload)
+    
+    Return page_commitment
 ```
+### Inclusion Proofs
+
+Intuitively, the ISMC can be viewed as an embedded Merkle tree that proves the exact state of a 4096-byte page. Given a page commitment, we can efficiently prove the inclusion of any specific 32-byte word within that page.
+
+To construct an inclusion proof for a particular word, the verifier must be able to recompute the page commitment using the merge schedule. Therefore, an ISMC inclusion proof consists of exactly two components:
+
+1. The 128-bit slot bitmap: Required to deterministically reconstruct the tree's geometry and prove the exact spatial index of the word.
+2. The sibling hashes: The minimal set of sibling hashes required to route from the target word to the subtree root under the induced merge schedule.
+
+The inclusion proof size scales strictly with the occupancy of the page rather than its physical size. Let `k` be the number of active leaves, and the maximum tree depth of the tree is 6. Then the number of sibling hashes along a leaf’s path is at most `min(k - 1, 6)`. Therefore, the worst-case inclusion proof size for a word is strictly bounded by `min(k - 1, 6) * 32 bytes + 16`.
 
 ### Leaves of Merkle-Patricia Trie
 
@@ -121,19 +138,8 @@ This trie has the following modifications:
 5.  **On-demand computation**: The value of each storage leaf is exactly 32 bytes, so the `page_commit(page)` can be recomputed from the page contents whenever needed. No additional storage layout changes are required.
 6. **Merkle Proofs**: Merkle proofs for page commitments are unchanged from a standard MPT. However, this proof only proves that a certain page has been committed. 
 
-### Word Inclusion Proofs
+As a result, the  inclusion proof for any individual word consists of two components: The inclusion proof of the word within its page commitment and the inclusion proof of the page commitment within the MPT.  The total proof size is the sum of these components.
 
-The page commit can be thought of as a fixed size merkle tree stored inside the MPT leaf. Given a merkle proof for a page commitment, we can prove the inclusion of any specific word within that page. To construct an inclusion proof for a particular word, we need the following:
-
-| Field            | Size     | Description                                                                                     |
-| ---------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `word_idx`       | usize    | Position of the word within the page (0–127). Caller-provided, not part of cryptographic proof. |
-| `word`           | 32 B     | Value of the target word.                                                                       |
-| `sibling_word`   | 32 B     | Companion word in the same pair-leaf.                                                           |
-| `parent_sibling` | 6 × 32 B | Sibling hashes at each parent level (pair-leaf → parent).                                       |
-
-
-As a result, the inclusion proof for any individual word consists of two components: The inclusion proof of the word within its page commitment; The inclusion proof of the page commitment within the MPT.  The total proof size is the sum of these components in the worse case.
 
 ## Gas Cost
 
@@ -142,20 +148,34 @@ We assume the following:
 1. Let `read_accessed_pages` be the set of read pages accessed during the current transaction;
 2. Let `write_accessed_pages` be the set of write pages accessed during the current transaction;
 3. and let `p = page_index(s).`
+4. BASE_COST is 100 gas;
+5. LOAD_COST is 8000 gas;
+6. WRITE_COST is 2000 gas;
+7. STATE_GROWTH_COST is 17000 gas.
 
 ### SLOAD Gas Schedule
 
-We define the `SLOAD` cost in terms of pages as the following: 
+We define the SLOAD cost in terms of pages as the following: 
 
-- If `p` is in `read_accessed_pages` then charge BASE_SLOAD_COST gas;
-- Otherwise charge COLD_SLOAD_COST gas and add `p` to `read_accessed_pages`.
+```python
+# Page is cached then charge base cost. 
+if p in read_accessed_pages: 
+    gas_deducted += BASE_COST
+# Page is not cached charge load cost.
+else: 
+    gas_deducted += LOAD_COST
+    read_accessed_pages.append(p)
+```
 
 ### SSTORE Gas Schedule
 
-We define the `SSTORE` cost in terms of pages and state transitions. 
+We define the SSTORE cost in terms of I/O write cost and state transitions costs.
 
-Let `P0` be the initial value of the page `p` for a given `SSTORE` and let `P1`  be the terminal value of page `p` immediately after the `SSTORE`.  The following is the I/O cost for the writing the page to the hardware.
+### Write Cost 
 
+Let `P0` be the initial value of the page `p` for a given `SSTORE` and let `P1`  be the terminal value of page `p` immediately after the `SSTORE`.  
+
+The following is the I/O cost for the writing the page to the hardware.
 
 
 ```python
@@ -173,66 +193,67 @@ else:
 
 	# Page charged first write only
 	else:
-    write_accessed_pages.add(p)
-    gas_deducted += PAGE_WRITE_COST
+    write_accessed_pages.append(p)
+    gas_deducted += WRITE_COST
 ```
-
-Besides the I/O cost component for a page write, the remainder of the SSTORE cost is computed based on the net state growth of the page. The main difference from the current evm cost is that the state growth cost are only deducted if the transaction is increasing the net state of the page. If a slot is created to replace a previously cleared slot in the same page then the growth fee is bypassed. This is defined so that gas remaining is monotonically decreasing to align with current gas model. This is defined as the following: 
-
+### State Transition Cost
+The remainder of the SSTORE cost is computed based on the net effect of state growth. State growth cost are only deducted if the transaction is increasing the net state of the page. If a slot is created to replace a previously cleared slot in the same page then the growth fee is bypassed. This is defined so that gas remaining is monotonically decreasing to align with current gas model assumption. Further note, these costs are defined per page and there is no cross page subsidization. 
 ```python
+# Initial state growth counter instantiated first time write for page P
+if p not in write_accessed_pages:
+   current_state_growth[p] = 0
+   net_state_growth[p] = 0  
+   write_accessed_pages.append(p)
 
-# initial value at start of transaction
-slot_delta_counter[P] = 0
-max_nonzero_slots[P] = 0  
+# BASE_COST is deducted in all cases.
+gas_deducted += BASE_COST
 
-# Creating a new slot | 0 -> 0 -> Z |
-if v_original == 0 and v_current == 0 and v_new != 0:
-    gas_deducted += BASE_SSTORE_COST
-    slot_delta_counter[P] += 1
-
-	# If the current growth exceeds the previous peak then charge state growth
-    if slot_delta_counter[P] > max_nonzero_slots:
-	    gas_deducted += NEW_SLOT_COST
-	    max_nonzero_slots = slot_delta_counter[P]
+# add to current state counter growth if page state increases
+if v_current == 0 and v_new != 0:
+	current_state_growth[p] += 1
+	
+# subtract state growth counter if page state decreases
+elif v_current != 0 and v_new == 0:
+    current_state_growth[p] -= 1
     
-# Clear an existing slot | X -> Y -> 0 | X -> X -> 0 |
-elif v_original != 0 and v_current != 0 and v_new == 0:
-    gas_deducted += BASE_SSTORE_COST
-    slot_delta_counter[P] -= 1
-
-# Writing zero to zero | 0 -> Y -> 0 |
-elif v_original == 0 and v_current != 0 and v_new == 0:
-		gas_deducted += 0
-		slot_delta_counter[P] -= 1
-
-# Restoring a cleared slot | X -> 0 -> Z | X -> 0 -> X |
-elif v_original != 0 and v_current == 0 and v_new != 0:
-    gas_deducted += BASE_SSTORE_COST
-    slot_delta_counter[P] += 1
-
-# Write Nonzero to Nonzero and remaining cases | X -> Y -> X | X -> X -> Z |
-else: 
-    gas_deducted += BASE_SSTORE_COST
-
+# if net state growth has increased then charge for state growth
+if current_state_growth[p] > net_state_growth[p] :
+	  gas_deducted += STATE_GROWTH_COST
+	  net_state_growth[p]  = current_state_growth[p]
 ```
+
+During execution, if a call reverts the counters current_state_growth and net_state_growth must revert to their initial values before that call to maintain price consistency.  
 
 ## Rationale
 
-Contracts that allocate storage in contiguous chunks aligned to page boundaries are economically optimal. They benefit from lower gas costs and more efficient inclusion proofs. 
+Contracts that allocate storage in contiguous chunks aligned to page boundaries are economically optimal, benefiting from lower gas costs and highly efficient inclusion proofs. Because the page commitment execution and proof size scale with the number of active pairs, the architecture natively aligns with the EVM’s storage patterns:
 
-If a page contains only a single populated element then the remaining positions are zero. The page commitment can therefore be reconstructed without additional hashes. So single-slot proofs incur no overhead from page commitment hashes. Therefore proof size remains stable for current mapping-based state. Since two random keys collide in the same page with probability  1 in 2²⁴⁹.  
-
-More generally, if a page contains only a contiguous set of words then the page commitment can therefore be reconstructed without additional hashes. The effect is that proof size also remains stable for contiguous storage allocations. Therefore contiguous multi-word inclusion proofs are strictly more efficient.
-
-In the case where a page is sparsely populated at random, single-word inclusion proofs incur a small fixed overhead. However, inclusion proofs of either single words or contiguous multi-word  in the same page are amortizated since they share the main merkle proof component.
+1. Random Sparse State:  The probability of two randomly hashed keys colliding within the same  page is approximately 1 in 2**249. Therefore, a standard mapping slot is likely to be the only populated element in its page. The page commitment for a single word can be reconstructed with zero sibling hashes. Consequently, proof sizes for current mapping-based states remain perfectly stable outside of the bitmap.
+2. Contiguous State: When a page contains a densely packed, contiguous set of words,  a multi-word inclusion requires only the sibling hashes along the outer boundary of the data block. This amortizes the proof size per word, making contiguous multi-word inclusion proofs strictly more efficient, again outside of the bitmap overhead.
+3. Amortized Sparse Reads: In the case where a page is sparsely populated at random, single-word inclusion proofs incur a small, bounded overhead inside the page. Under a uniform distribution, the expected proof size increases logarithmically O(log k)).
 
 ## **Backwards Compatibility**
 
-The EVM semantics remain unchanged under this update. The only modification is paging effect to the gas schedule. 
+The EVM semantics remain unchanged under this update. The only modification is the introduction of page-level access warming to the gas schedule.
 
-Existing contracts that access consecutive storage slots will observe reduced execution costs with high probability. Notably this is in effect for contracts that utilized solidity `structs`, state variable layout, or arrays.
+Existing contracts that access consecutive storage slots will automatically observe reduced gas costs. This update does not require developers to adopt bespoke storage architectures or non-standard upgrade patterns to realize benefits:
 
-The only class of contracts that are negatively impacted are those that explicitly rely on hardcoded opcode gas costs associated with consecutive storage accesses; all other contracts remain functionally unchanged.
+- **No Penalty for Dispersed State:** Existing hashed patterns and dispersed state layouts are not penalized; they simply maintain their historical baseline cost. For example, reading a standard `mapping(address => Struct)` will execute the initial mapping lookup at the baseline gas cost. However, all subsequent reads to that specific user's struct fields will benefit from the new warm-page gas discounts.
+- **Solidity:** Standard Solidity features natively allocate data in consecutive slots. Common primitives such as structs, densely packed state variables, and arrays will seamlessly inherit these gas optimizations without developer intervention.
+- **Unaligned Legacy Layouts:** Conventional upgradeable contract patterns may not perfectly align with 128-word page boundaries. While developers of future contracts may choose to hyper-optimize layouts to capture maximal page-warming discounts, failing to do so incurs no penalty. Misaligned or "cold" reads across page boundaries simply execute at the standard baseline cost.
+
+The only class of contracts impacted by this update are those that explicitly rely on hardcoded opcode gas costs associated with storage accesses. All other contracts remain functionally unchanged.
+
+**EIP-2930 Access Lists**
+
+The transaction payload format for EIP-2930 Access Lists is backwards compatible.  If an access list contains multiple keys that map to the same 128-word page then the cold-access cost is charged only once and applies the warm-access cost to all subsequent keys within that boundary.
+
+**RPC Modifications**
+
+1. The RPC method `eth_getProof` must be updated to return the modified proof structure.
+2. The RPC method `eth_createAccessList` must be updated as above to return the updated a `gasUsed` estimate.
+3. `eth_estimateGas,` `eth_call,` `trace_call` should reflect the updated gas schedule. 
+
 
 ## **Security Considerations**
 
@@ -261,10 +282,13 @@ If a storage page straddles multiple I/O pages then a single EVM `SSTORE/SLOAD` 
 
 To reason about the worst case, consider a single block of EVM execution where an attacker controls all storage writes. If storage pages cross I/O boundaries, `SLOAD` operations for misaligned portions could be effectively 2× slower. To achieve this, an attacker would need to allocate an entire page and then wait until the relevant pages are no longer cached. 
 
+## Related Prior Art
+
+It should be noted that EIP-7864 introduces a similar page-structure property by grouping 256 slots into structured subtrees. However, this localization is achieved as a secondary side effect of fundamentally restructuring the entire state commitment tree with its costs defined by the EIP-4762 gas schedule.
 
 ## Future Directions
 
-BLAKE3 provides a flexible framework for defining fixed-size Merkle trees over “black-box” hash functions. This flexibility enables a correspondence between trees of different fanouts. In the MIP-9, we explore this correspondence to reduce inclusion proof size, minimize Merklization overhead, and optimize storage writes. 
+In a future MIP, we explore the correspondence between binary commitments and high fanout trees to further reduce expected proof size and minimize Merkelization complexity. 
 
 ## **Copyright**
 
