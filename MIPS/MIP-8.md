@@ -164,7 +164,7 @@ if p in read_accessed_pages:
     gas_deducted += BASE_COST
 # Page is not cached charge load cost.
 else: 
-    gas_deducted += LOAD_COST
+    gas_deducted += LOAD_COST + BASE_COST
     read_accessed_pages.append(p)
 ```
 
