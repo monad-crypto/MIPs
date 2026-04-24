@@ -70,6 +70,8 @@ This change modifies the flow of priority fees: they will no longer appear in th
 
 Because priority fees are now distributed to all delegators within a validator's pool, third-party delegation contracts may be affected. Such contracts will experience a dilution in their share of priority fees if users bypass the external contract and stake directly with the validator pool.
 
+To be amenable to this update `external_rewards` will be modified so that it removes the commission fee when called. 
+
 ## Security Considerations
 
 The primary consideration is the precision of the reward accumulator.

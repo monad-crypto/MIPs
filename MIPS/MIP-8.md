@@ -131,7 +131,7 @@ The Merkle Patricia Trie commits to `{page_index_i: page_commit(page_i)}` pairs 
 
 This trie has the following modifications:
 
-1. **Hash Function**: Blake3
+1. **Hash Function**: Keccak
 2. **Leaf values**: For each `page_index`, define the corresponding leaf value as page commitment of the index i page.
 3. **Leaf placement**: Each `page_index` uniquely determines a path from the MPT root to its leaf. This path is computed exactly as in a standard MPT using the `page_index` as the key.
 4. **Trie structure**: The MPT structure is unchanged otherwise: branch, extension, and leaf nodes follow the standard MPT rules.
@@ -153,6 +153,7 @@ We assume the following:
 6. WRITE_COST is 2000 gas;
 7. STATE_GROWTH_COST is 17000 gas.
 
+
 ### SLOAD Gas Schedule
 
 We define the SLOAD cost in terms of pages as the following: 
@@ -169,17 +170,20 @@ else:
 
 ### SSTORE Gas Schedule
 
-We define the SSTORE cost in terms of I/O write cost and state transitions costs.
+We define the SSTORE cost in terms of I/O write cost and state transitions costs. Further, we define the cost in terms of the total number of SSTORE so that PAGE I/O Cost and State Transition Cost logic is done per sstore. 
 
 ### Write Cost 
 
 Let `P0` be the initial value of the page `p` for a given `SSTORE` and let `P1`  be the terminal value of page `p` immediately after the `SSTORE`.  
 
-The following is the I/O cost for the writing the page to the hardware.
+The following is the I/O cost for the writing the page to the hardware. 
 
 
 ```python
 # PAGE I/O Cost
+
+# BASE_COST is deducted in all cases.
+gas_deducted += BASE_COST
 
 # Page did not change for this SSTORE
 if P0 == P1:
@@ -189,24 +193,27 @@ if P0 == P1:
 else:
 	# Page already charged write
 	if p in write_accessed_pages:
-    gas_deducted += 0
+        gas_deducted += 0
 
 	# Page charged first write only
 	else:
-    write_accessed_pages.append(p)
-    gas_deducted += WRITE_COST
+        gas_deducted += WRITE_COST
+
+        # Page has been charged write cost
+        write_accessed_pages.append(p)
+        if p not in read_accessed_pages:
+            read_accessed_pages.append(p)
+
+        # instantiate state growth counters
+        current_state_growth[p] = 0
+        net_state_growth[p] = 0  
+        
+    
 ```
 ### State Transition Cost
 The remainder of the SSTORE cost is computed based on the net effect of state growth. State growth cost are only deducted if the transaction is increasing the net state of the page. If a slot is created to replace a previously cleared slot in the same page then the growth fee is bypassed. This is defined so that gas remaining is monotonically decreasing to align with current gas model assumption. Further note, these costs are defined per page and there is no cross page subsidization. 
 ```python
-# Initial state growth counter instantiated first time write for page P
-if p not in write_accessed_pages:
-   current_state_growth[p] = 0
-   net_state_growth[p] = 0  
-   write_accessed_pages.append(p)
-
-# BASE_COST is deducted in all cases.
-gas_deducted += BASE_COST
+# State Transition Cost
 
 # add to current state counter growth if page state increases
 if v_current == 0 and v_new != 0:
