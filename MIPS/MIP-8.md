@@ -150,7 +150,7 @@ We assume the following:
 3. and let `p = page_index(s).`
 4. BASE_COST is 100 gas;
 5. LOAD_COST is 8000 gas;
-6. WRITE_COST is 2000 gas;
+6. WRITE_COST is 2800 gas;
 7. STATE_GROWTH_COST is 17000 gas.
 
 
