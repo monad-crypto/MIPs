@@ -242,6 +242,8 @@ Contracts that allocate storage in contiguous chunks aligned to page boundaries 
 2. Contiguous State: When a page contains a densely packed, contiguous set of words,  a multi-word inclusion requires only the sibling hashes along the outer boundary of the data block. This amortizes the proof size per word, making contiguous multi-word inclusion proofs strictly more efficient, again outside of the bitmap overhead.
 3. Amortized Sparse Reads: In the case where a page is sparsely populated at random, single-word inclusion proofs incur a small, bounded overhead inside the page. Under a uniform distribution, the expected proof size increases logarithmically O(log k)).
 
+BLAKE3 was chosen for its hashing speed, amenability to zk proof generation, and the BAO construction. This allows for faster merklization in both the standard case and proof generation. If BLAKE3 is applied to the entire Merkle tree this allows for bytecode inclusion proofs via the the BAO construction.
+
 ## Backwards Compatibility
 
 The EVM semantics remain unchanged under this update. The only modification is the introduction of page-level access warming to the gas schedule.
