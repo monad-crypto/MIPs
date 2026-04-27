@@ -12,7 +12,7 @@ created: 2026-03-05
 
 ## Abstract
 
-We introduce key locality to the Merkle Patricia Trie by adding a page abstraction to the state model, enabling page-level access and warm `SLOAD `/`SSTORE ` cost for any slot within a loaded page.
+We introduce key locality to the Merkle Patricia Trie by adding a page abstraction to the state model, enabling page-level access and warm `SLOAD`/`SSTORE` cost for any slot within a loaded page.
 
 ## Motivation
 
@@ -161,16 +161,16 @@ We define the `SLOAD` cost in terms of pages as the following:
 ```python
 # Page is cached then charge base cost. 
 if p in read_accessed_pages: 
-    gas_deducted += `BASE_COST`
+    gas_deducted += BASE_COST
 # Page is not cached charge load cost.
 else: 
-    gas_deducted += `LOAD_COST` + `BASE_COST`
+    gas_deducted += LOAD_COST + BASE_COST
     read_accessed_pages.append(p)
 ```
 
 ### SSTORE Gas Schedule
 
-We define the `SSTORE ` cost in terms of I/O write cost and state transitions costs. Further, we define the cost in terms of the total number of `SSTORE ` so that PAGE I/O Cost and State Transition Cost logic is done per `SSTORE `. Finally, as in legacy `SSTORE `, we apply the `LOAD_COST` if the page is cold. 
+We define the `SSTORE` cost in terms of I/O write cost and state transitions costs. Further, we define the cost in terms of the total number of `SSTORE` so that PAGE I/O Cost and State Transition Cost logic is done per `SSTORE`. Finally, as in legacy `SSTORE`, we apply the `LOAD_COST` if the page is cold. 
 
 ### Write Cost 
 
@@ -183,7 +183,7 @@ The following is the I/O cost for the writing the page to the hardware.
 # PAGE I/O Cost
 
 # `BASE_COST` is deducted in all cases.
-gas_deducted += `BASE_COST`
+gas_deducted += BASE_COST
 
 # Page did not change for this SSTORE
 if P0 == P1:
@@ -197,14 +197,14 @@ else:
 
 	# Page charged first write only
 	else:
-        gas_deducted += `WRITE_COST`
+        gas_deducted += WRITE_COST
 
         # Page has been charged write cost
         write_accessed_pages.append(p)
 
         # Page has not been loaded to cache
         if p not in read_accessed_pages:
-            gas_deducted += `LOAD_COST`
+            gas_deducted += LOAD_COST
             read_accessed_pages.append(p)
 
         # instantiate state growth counters
@@ -214,7 +214,7 @@ else:
     
 ```
 ### State Transition Cost
-The remainder of the `SSTORE ` cost is computed based on the net effect of state growth. The state growth cost is only deducted if the transaction is increasing the net state of the page. If a slot is created to replace a previously cleared slot in the same page then the growth fee is bypassed. This is defined so that gas remaining is monotonically decreasing to align with current gas model assumption. Further note, these costs are defined per page and there is no cross page subsidization. 
+The remainder of the `SSTORE` cost is computed based on the net effect of state growth. The state growth cost is only deducted if the transaction is increasing the net state of the page. If a slot is created to replace a previously cleared slot in the same page then the growth fee is bypassed. This is defined so that gas remaining is monotonically decreasing to align with current gas model assumption. Further note, these costs are defined per page and there is no cross page subsidization. 
 ```python
 # State Transition Cost
 
@@ -228,7 +228,7 @@ elif v_current != 0 and v_new == 0:
     
 # if net state growth has increased then charge for state growth
 if current_state_growth[p] > net_state_growth[p] :
-	  gas_deducted += `STATE_GROWTH_COST`
+	  gas_deducted += STATE_GROWTH_COST
 	  net_state_growth[p]  = current_state_growth[p]
 ```
 
