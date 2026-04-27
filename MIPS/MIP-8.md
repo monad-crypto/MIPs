@@ -264,7 +264,7 @@ The transaction payload format for EIP-2930 Access Lists is backwards compatible
 
 1. The RPC method `eth_getProof` must be updated to return the modified proof structure.
 2. The RPC method `eth_createAccessList` must be updated as above to return the updated a `gasUsed` estimate.
-3. `eth_estimateGas,` `eth_call,` and `trace_call` should reflect the updated gas schedule. 
+3. `eth_estimateGas`, `eth_call`, and `trace_call` should reflect the updated gas schedule. 
 
 
 ## **Security Considerations**
