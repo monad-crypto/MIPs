@@ -12,7 +12,7 @@ created: 2026-03-05
 
 ## Abstract
 
-We introduce key locality to the Merkle Patricia Trie by adding a page abstraction to the state model, enabling page-level access and warm SLOAD/SSTORE cost for any word within a loaded page.
+We introduce key locality to the Merkle Patricia Trie by adding a page abstraction to the state model, enabling page-level access and warm `SLOAD `/`SSTORE ` cost for any slot within a loaded page.
 
 ## Motivation
 
@@ -49,11 +49,11 @@ Let `P` be a 4096-byte page. Then note the following:
 2. The page is partitioned into 64 pair-leaves where each leaf consists of two 32-byte words, and its active state is tracked via an induced 64-bit occupancy bitmap. However, a 128 bitmap is used for the commitment. 
 3. Internal nodes form a induced subtree determined by occupancy of pair-leaves, topologically bypassing empty branches entirely. Singletons are carried up the tree without requiring empty hash operations.
 4. Commit is done in two phases: 
-    1. Merge Phase: A bottom-up reduction of the occupied pair-leaves. This captures the  payload of all active data in the page.
-    2. Seal Phase: The resulting subtree root is hashed alongside the 128-bit slot bitmap. This uniquely binds the data to the exact geometric positions and prevents spatial collisions.
-5. Execution and proof size scales with occupancy. The merge phase costs exactly k-1 compressions, where k is the number of active pairs.
+    1. **Merge Phase**: A bottom-up reduction of the occupied pair-leaves. This captures the  payload of all active data in the page.
+    2. **Seal Phase**: The resulting subtree root is hashed alongside the 128-bit slot bitmap. This uniquely binds the data to the exact geometric positions and prevents spatial collisions.
+5. Execution and proof size scales with occupancy. The **merge phase** costs exactly k-1 compressions, where k is the number of active pairs.
 
-The resulting root is the **page commitment**. A python psuedo code implementation of this commitment is seen below. A full breakdown of this commitment function can be found in the paper titled Merkle Commitments via Induced Subtrees.
+The resulting root is the **page commitment**. A Python psuedocode implementation of this commitment is seen below. A full breakdown of this commitment function can be found in the paper titled Merkle Commitments via Induced Subtrees.
 
 **Reference implementation**
 
@@ -138,7 +138,7 @@ This trie has the following modifications:
 5.  **On-demand computation**: The value of each storage leaf is exactly 32 bytes, so the `page_commit(page)` can be recomputed from the page contents whenever needed. No additional storage layout changes are required.
 6. **Merkle Proofs**: Merkle proofs for page commitments are unchanged from a standard MPT. However, this proof only proves that a certain page has been committed. 
 
-As a result, the  inclusion proof for any individual word consists of two components: The inclusion proof of the word within its page commitment and the inclusion proof of the page commitment within the MPT.  The total proof size is the sum of these components.
+As a result, the inclusion proof for any individual word consists of two components: The inclusion proof of the word within its page commitment and the inclusion proof of the page commitment within the MPT.  The total proof size is the sum of these components.
 
 
 ## Gas Cost
@@ -148,29 +148,29 @@ We assume the following:
 1. Let `read_accessed_pages` be the set of read pages accessed during the current transaction;
 2. Let `write_accessed_pages` be the set of write pages accessed during the current transaction;
 3. and let `p = page_index(s).`
-4. BASE_COST is 100 gas;
-5. LOAD_COST is 8000 gas;
-6. WRITE_COST is 2800 gas;
-7. STATE_GROWTH_COST is 17000 gas.
+4. `BASE_COST` is 100 gas;
+5. `LOAD_COST` is 8000 gas;
+6. `WRITE_COST` is 2800 gas;
+7. `STATE_GROWTH_COST` is 17000 gas.
 
 
 ### SLOAD Gas Schedule
 
-We define the SLOAD cost in terms of pages as the following: 
+We define the `SLOAD` cost in terms of pages as the following: 
 
 ```python
 # Page is cached then charge base cost. 
 if p in read_accessed_pages: 
-    gas_deducted += BASE_COST
+    gas_deducted += `BASE_COST`
 # Page is not cached charge load cost.
 else: 
-    gas_deducted += LOAD_COST + BASE_COST
+    gas_deducted += `LOAD_COST` + `BASE_COST`
     read_accessed_pages.append(p)
 ```
 
 ### SSTORE Gas Schedule
 
-We define the SSTORE cost in terms of I/O write cost and state transitions costs. Further, we define the cost in terms of the total number of SSTORE so that PAGE I/O Cost and State Transition Cost logic is done per sstore. 
+We define the `SSTORE ` cost in terms of I/O write cost and state transitions costs. Further, we define the cost in terms of the total number of `SSTORE ` so that PAGE I/O Cost and State Transition Cost logic is done per `SSTORE `. Finally, as in legacy `SSTORE `, we apply the `LOAD_COST` if the page is cold. 
 
 ### Write Cost 
 
@@ -182,8 +182,8 @@ The following is the I/O cost for the writing the page to the hardware.
 ```python
 # PAGE I/O Cost
 
-# BASE_COST is deducted in all cases.
-gas_deducted += BASE_COST
+# `BASE_COST` is deducted in all cases.
+gas_deducted += `BASE_COST`
 
 # Page did not change for this SSTORE
 if P0 == P1:
@@ -197,11 +197,14 @@ else:
 
 	# Page charged first write only
 	else:
-        gas_deducted += WRITE_COST
+        gas_deducted += `WRITE_COST`
 
         # Page has been charged write cost
         write_accessed_pages.append(p)
+
+        # Page has not been loaded to cache
         if p not in read_accessed_pages:
+            gas_deducted += `LOAD_COST`
             read_accessed_pages.append(p)
 
         # instantiate state growth counters
@@ -211,7 +214,7 @@ else:
     
 ```
 ### State Transition Cost
-The remainder of the SSTORE cost is computed based on the net effect of state growth. State growth cost are only deducted if the transaction is increasing the net state of the page. If a slot is created to replace a previously cleared slot in the same page then the growth fee is bypassed. This is defined so that gas remaining is monotonically decreasing to align with current gas model assumption. Further note, these costs are defined per page and there is no cross page subsidization. 
+The remainder of the `SSTORE ` cost is computed based on the net effect of state growth. The state growth cost is only deducted if the transaction is increasing the net state of the page. If a slot is created to replace a previously cleared slot in the same page then the growth fee is bypassed. This is defined so that gas remaining is monotonically decreasing to align with current gas model assumption. Further note, these costs are defined per page and there is no cross page subsidization. 
 ```python
 # State Transition Cost
 
@@ -225,7 +228,7 @@ elif v_current != 0 and v_new == 0:
     
 # if net state growth has increased then charge for state growth
 if current_state_growth[p] > net_state_growth[p] :
-	  gas_deducted += STATE_GROWTH_COST
+	  gas_deducted += `STATE_GROWTH_COST`
 	  net_state_growth[p]  = current_state_growth[p]
 ```
 
@@ -239,7 +242,7 @@ Contracts that allocate storage in contiguous chunks aligned to page boundaries 
 2. Contiguous State: When a page contains a densely packed, contiguous set of words,  a multi-word inclusion requires only the sibling hashes along the outer boundary of the data block. This amortizes the proof size per word, making contiguous multi-word inclusion proofs strictly more efficient, again outside of the bitmap overhead.
 3. Amortized Sparse Reads: In the case where a page is sparsely populated at random, single-word inclusion proofs incur a small, bounded overhead inside the page. Under a uniform distribution, the expected proof size increases logarithmically O(log k)).
 
-## **Backwards Compatibility**
+## Backwards Compatibility
 
 The EVM semantics remain unchanged under this update. The only modification is the introduction of page-level access warming to the gas schedule.
 
@@ -259,7 +262,7 @@ The transaction payload format for EIP-2930 Access Lists is backwards compatible
 
 1. The RPC method `eth_getProof` must be updated to return the modified proof structure.
 2. The RPC method `eth_createAccessList` must be updated as above to return the updated a `gasUsed` estimate.
-3. `eth_estimateGas,` `eth_call,` `trace_call` should reflect the updated gas schedule. 
+3. `eth_estimateGas,` `eth_call,` and `trace_call` should reflect the updated gas schedule. 
 
 
 ## **Security Considerations**
