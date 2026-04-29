@@ -258,7 +258,7 @@ The only class of contracts impacted by this update are those that explicitly re
 
 **EIP-2930 Access Lists**
 
-The transaction payload format for EIP-2930 Access Lists is backwards compatible.  If an access list contains multiple keys that map to the same 128-word page then the cold-access cost is charged only once and applies the warm-access cost to all subsequent keys within that boundary.
+The transaction payload format for [EIP-2930](https://eips.ethereum.org/EIPS/eip-2930) access lists is backwards compatible.  If an access list contains multiple keys that map to the same 128-word page then the cold-access cost is charged only once and applies the warm-access cost to all subsequent keys within that boundary.
 
 **RPC Modifications**
 
@@ -296,7 +296,7 @@ To reason about the worst case, consider a single block of EVM execution where a
 
 ## Related Prior Art
 
-It should be noted that EIP-7864 introduces a similar page-structure property by grouping 256 slots into structured subtrees. However, this localization is achieved as a secondary side effect of fundamentally restructuring the entire state commitment tree with its costs defined by the EIP-4762 gas schedule.
+It should be noted that [EIP-7864](https://eips.ethereum.org/EIPS/eip-7864) introduces a similar page-structure property by grouping 256 slots into structured subtrees. However, this localization is achieved as a secondary side effect of fundamentally restructuring the entire state commitment tree with its costs defined by the [EIP-4762](https://eips.ethereum.org/EIPS/eip-4762) gas schedule.
 
 ## Future Directions
 
