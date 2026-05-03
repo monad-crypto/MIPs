@@ -12,7 +12,9 @@ created: 2026-04-28
 
 ## Abstract
 
-This MIP proposes Deterministic RaptorCast (v1), a new broadcast mode for the RaptorCast dissemination layer that fixes the Raptor encoding via a publicly derivable seed and enforces per-round equivocation detection by recording the first valid (Merkle root, leader signature) pair seen for each round, referred to as an ``EncodingCommitment``. The change delivers three benefits: (1) it can enable validators to vote directly on the Merkle root commitment upon receiving a verified chunk without decoding, saving one message delay on the critical path; (2) it closes asymmetric liveness attacks in which a Byzantine leader selectively withholds singleton Encoding Symbol Identifiers (ESIs) from targeted validators, causing reconstruction delays of several hundred milliseconds; and (3) it closes mixed-commitment equivocation, in which a leader constructs a single Merkle root from chunks encoding multiple distinct payloads. Note that benefit (3) is contingent on the consensus protocol being revised to vote on the Merkle root commitment rather than the decoded payload; without that change, the equivocation attack surface does not arise in the first place.
+This MIP proposes Deterministic RaptorCast (v1), a new broadcast mode for the RaptorCast dissemination layer that fixes the Raptor encoding via a publicly derivable seed and enforces per-round equivocation detection by recording the first valid (Merkle root, leader signature) pair seen for each round, referred to as an ``EncodingCommitment``.
+
+The change delivers three benefits: (1) it can enable validators to vote directly on the Merkle root commitment upon receiving a verified chunk without decoding, saving one message delay on the critical path; (2) it closes asymmetric liveness attacks in which a Byzantine leader selectively withholds singleton Encoding Symbol Identifiers (ESIs) from targeted validators, causing reconstruction delays of several hundred milliseconds; and (3) it closes mixed-commitment equivocation, in which a leader constructs a single Merkle root from chunks encoding multiple distinct payloads. Note that benefit (3) is contingent on the consensus protocol being revised to vote on the Merkle root commitment rather than the decoded payload; without that change, the equivocation attack surface does not arise in the first place.
 
 ## Motivation
 
@@ -100,4 +102,4 @@ The attacks motivating this MIP, asymmetric liveness and mixed-commitment equivo
 - **Round window** Chunks outside the accepted round window are silently dropped. This prevents unbounded buffering but means a node that falls significantly behind the current round will not receive chunks for rounds outside its window until it catches up.
 
 ## Reference Implementation
-The reference implementation can be found at https://github.com/category-labs/monad-bft/pull/2811.
+The reference implementation can be found at [https://github.com/category-labs/monad-bft/pull/2811](https://github.com/category-labs/monad-bft/pull/2811).
