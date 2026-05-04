@@ -170,9 +170,9 @@ else:
 
 ### SSTORE Gas Schedule
 
-The `SSTORE` cost can be stratified in terms of I/O cost and state transitions costs. Both the I/O and the state transition cost is defined in terms of the total number of `SSTORE` per page. However, the I/O remains aware of whether that data acted upon is cold or hot. 
+The `SSTORE` cost can be stratified in terms of I/O cost and state transitions costs. The I/O cost is defined on page granularity. While the state transition cost is defined in terms of the total number of `SSTORE` per page. However, the I/O remains aware of whether that data acted upon is cold or hot. 
 
-Finally, as in legacy `SSTORE`, we apply the `LOAD_COST` to a page to check the initial value. As such we assume that the SLOAD cost schedule logic is applied initally for each sstore. 
+Finally, as in legacy `SSTORE`, we apply the `LOAD_COST` to a page to check the initial value. As such we assume that the `SLOAD` cost schedule logic is applied initally for each `SSTORE`. 
 
 ### Write Cost
 
