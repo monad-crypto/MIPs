@@ -32,9 +32,7 @@ jobs:
           bundler-cache: true
 
       - name: Build site
-        run: |
-          echo "url: \"${{ steps.pages.outputs.origin }}\"" > _config.deploy.yml
-          bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}" --config _config.yml,_config.deploy.yml
+        run: bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
         env:
           JEKYLL_ENV: production
 
