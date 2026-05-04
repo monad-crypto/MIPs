@@ -176,16 +176,9 @@ Finally, as in legacy `SSTORE`, we apply the `LOAD_COST` to a page to check the 
 
 ### Write Cost
 
-Let `P0` be the initial value of page `p` for a given `SSTORE`, and let `P1` be the terminal value of page `p` immediately after the `SSTORE`. Note that apriori the write cost, a load cost is applied to obtain the  initial value of `P0` of the page. 
-
-```python
-if p not in read_accessed_pages: 
-    gas_deducted += LOAD_COST
-    read_accessed_pages.append(p)
-```
+Let `P0` be the initial value of page `p` for a given `SSTORE`, and let `P1` be the terminal value of page `p` immediately after the `SSTORE`. Apriori the write cost, a load cost is applied to obtain the initial value `P0` of the page. 
 
 The following is the I/O cost for the writing the page to the hardware.  
-
 
 ```python
 # PAGE I/O Cost
@@ -193,6 +186,11 @@ The following is the I/O cost for the writing the page to the hardware.
 
 # `BASE_COST` is deducted in all cases.
 gas_deducted += BASE_COST
+
+# `LOAD_COST` is deducted to obtain initial state P0 from DB
+if p not in read_accessed_pages: 
+    gas_deducted += LOAD_COST
+    read_accessed_pages.append(p)
 
 # Page did not change for this SSTORE
 if P0 == P1:
