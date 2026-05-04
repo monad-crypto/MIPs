@@ -170,19 +170,26 @@ else:
 
 ### SSTORE Gas Schedule
 
-The `SSTORE` cost can be stratified in terms of I/O cost and state transitions costs. The I/O cost is defined on page granularity. While the state transition cost is defined in terms of the total number of `SSTORE` per page. However, the I/O remains aware of whether that data acted upon is cold or hot. 
+The `SSTORE` cost can be stratified in terms of I/O cost and state transitions costs. The I/O cost is defined on the level of page granularity. While the state transition cost is defined in terms of `SSTORE` granularity with respect to a page. However, the I/O remains aware of whether that data acted upon is cold or hot. 
 
-Finally, as in legacy `SSTORE`, we apply the `LOAD_COST` to a page to check the initial value. As such we assume that the `SLOAD` cost schedule logic is applied initally for each `SSTORE`. 
+Finally, as in legacy `SSTORE`, we apply the `LOAD_COST` to a page to check the initial value. 
 
 ### Write Cost
 
-Let `P0` be the initial value of page `p` for a given `SSTORE`, and let `P1` be the terminal value of page `p` immediately after the `SSTORE`.
+Let `P0` be the initial value of page `p` for a given `SSTORE`, and let `P1` be the terminal value of page `p` immediately after the `SSTORE`. Note that apriori the write cost, a load cost is applied to obtain the  initial value of `P0` of the page. 
 
-The following is the I/O cost for the writing the page to the hardware. Note that the `SLOAD` cost schedule logic is applied before each sstore.  
+```python
+if p not in read_accessed_pages: 
+    gas_deducted += LOAD_COST
+    read_accessed_pages.append(p)
+```
+
+The following is the I/O cost for the writing the page to the hardware.  
 
 
 ```python
 # PAGE I/O Cost
+
 
 # `BASE_COST` is deducted in all cases.
 gas_deducted += BASE_COST
