@@ -174,9 +174,9 @@ We define the `SSTORE` cost as the sum of an I/O write cost and a state transiti
 
 ### Write Cost
 
-Let `P0` be the initial value of page `p` for a given `SSTORE`, and let `P1` be the terminal value of page `p` immediately after the `SSTORE`.
+Let `P0` be the initial value of page `p` for a given `SSTORE`, and let `P1` be the terminal value of page `p` immediately after the `SSTORE`. Determining whether `P0 == P1` requires read access to page `p`, so a cold page is loaded before the no-change check.
 
-The following is the I/O cost for writing the page to the hardware.
+The following is the page access and I/O cost for writing the page to the hardware.
 
 
 ```python
@@ -185,27 +185,27 @@ The following is the I/O cost for writing the page to the hardware.
 # `BASE_COST` is deducted in all cases.
 gas_deducted += BASE_COST
 
-# Page did not change for this SSTORE
+# Page has not been loaded to cache
+if p not in read_accessed_pages:
+    gas_deducted += LOAD_COST
+    read_accessed_pages.append(p)
+
+# Page did not change for this SSTORE, so no write I/O is charged.
 if P0 == P1:
     gas_deducted += 0
 
 # Page did change for this SSTORE
 else:
-	# Page already charged write
-	if p in write_accessed_pages:
+    # Page already charged write
+    if p in write_accessed_pages:
         gas_deducted += 0
 
-	# Page charged first write only
-	else:
+    # Page charged first write only
+    else:
         gas_deducted += WRITE_COST
 
         # Page has been charged write cost
         write_accessed_pages.append(p)
-
-        # Page has not been loaded to cache
-        if p not in read_accessed_pages:
-            gas_deducted += LOAD_COST
-            read_accessed_pages.append(p)
 
         # instantiate state growth counters
         current_state_growth[p] = 0
