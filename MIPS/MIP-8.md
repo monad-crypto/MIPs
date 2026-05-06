@@ -63,8 +63,23 @@ Function ISMC_Commit(page, slot_bitmap):
     // page: 4096-byte array (64 pairs of 64 bytes)
     // slot_bitmap: 128-bit integer representing exact 32-byte word occupancy
     
+    // Empty-page short-circuit: bind the all-zero bitmap directly so
+    // the empty-page commitment is well-defined.
+    If slot_bitmap == 0:
+        Return BLAKE3_Hash(zero_byte_string(16))
+
     // Convert 128-bit slot bitmap to 64-bit pair bitmap (1 if either word in pair is active)
     pair_bitmap = reduce_to_pair_bitmap(slot_bitmap)
+
+    // Domain-separated leaf IV. Derived once from the constant 32-byte
+    // domain string and used to compress every active pair-leaf to 32
+    // bytes, separating the leaf domain from the parent domain.
+    PAIR_LEAF_DOMAIN = "ultra_merkle_pair_leaf_domain___"   // 32 bytes
+    LEAF_IV = BLAKE3_compress(state=IV,
+                              block=PAIR_LEAF_DOMAIN || zeros(32),
+                              block_len=64,
+                              counter=0,
+                              flags=DERIVE_KEY_MATERIAL)
     
     // --- Phase 1: Data Merge Phase ---
     active_nodes = []
@@ -73,7 +88,12 @@ Function ISMC_Commit(page, slot_bitmap):
     For i from 0 to 63:
         If bit i is set in pair_bitmap:
             pair_data = page[i * 64 : (i + 1) * 64]
-            active_nodes.append({ index: i, value: pair_data })
+            // Reduce each 64-byte pair-leaf to 32 bytes via one bare
+            // compression with LEAF_IV and DERIVE_KEY_MATERIAL.
+            leaf_hash = BLAKE3_compress(LEAF_IV, pair_data,
+                                        block_len=64, counter=0,
+                                        flags=DERIVE_KEY_MATERIAL)
+            active_nodes.append({ index: i, value: leaf_hash })
             
     // Bottom-up reduction 
     For level from 0 to 5:
@@ -89,8 +109,13 @@ Function ISMC_Commit(page, slot_bitmap):
                 
                 // Nodes are siblings if they share the same parent at the next level
                 If (current_node.index >> (level + 1)) == (next_node.index >> (level + 1)):
-                    // Hash the two 32-byte children into a new 32-byte parent
-                    parent_value = BLAKE3_Hash(current_node.value || next_node.value)
+                    // Hash the two 32-byte children into a new 32-byte
+                    // parent using ONE bare compression (NOT the full
+                    // BLAKE3_Hash pipeline) with CHUNK_START|CHUNK_END.
+                    parent_value = BLAKE3_compress(IV,
+                                                   current_node.value || next_node.value,
+                                                   block_len=64, counter=0,
+                                                   flags=CHUNK_START | CHUNK_END)
                     next_level_nodes.append({ index: current_node.index, value: parent_value })
                     i += 2
                     continue
@@ -108,11 +133,25 @@ Function ISMC_Commit(page, slot_bitmap):
     subtree_root = active_nodes[0].value
     
     // --- Phase 2: Structural Seal Phase ---
-    // Uniquely bind the subtree root to the exact geometric layout
-    seal_payload = concatenate(slot_bitmap, subtree_root)   // 16 bytes + 32 bytes
+    // Uniquely bind the subtree root to the exact geometric layout.
+    // slot_bitmap is serialized as 16 little-endian bytes; subtree_root
+    // is always 32 bytes, so the seal payload is always 16 + 32 = 48
+    // bytes. The seal uses unkeyed BLAKE3.
+    slot_bitmap_le_16B = to_little_endian_bytes(slot_bitmap, 16)
+    seal_payload = concatenate(slot_bitmap_le_16B, subtree_root)
     page_commitment = BLAKE3_Hash(seal_payload)
     
     Return page_commitment
+
+
+Function reduce_to_pair_bitmap(slot_bitmap):
+    // Bit i of pair_bitmap is set iff slot 2i or 2i+1 is set in
+    // slot_bitmap.
+    pair_bitmap = 0
+    For i from 0 to 63:
+        If (slot_bitmap >> (2 * i)) & 0b11 != 0:
+            pair_bitmap |= 1 << i
+    Return pair_bitmap
 ```
 ### Inclusion Proofs
 
@@ -132,7 +171,7 @@ The Merkle Patricia Trie commits to `{page_index_i: page_commit(page_i)}` pairs 
 This trie has the following modifications:
 
 1. **Hash Function**: Keccak.
-2. **Leaf values**: For each `page_index`, the corresponding leaf value is the page commitment of the page at that index.
+2. **Leaf values**: For each `page_index`, the corresponding leaf value is the **RLP-string framing** of the 32-byte page commitment, i.e. `RLP_encode_string(page_commit(page_i))` = `0xa0 || page_commit(page_i)` (33 bytes). The MPT leaf node then RLP-encodes this byte string when constructing the leaf RLP, matching how a standard MPT storage leaf nests an RLP-encoded `U256` value.
 3. **Leaf placement**: Each `page_index` uniquely determines a path from the MPT root to its leaf. This path is computed exactly as in a standard MPT, using the `page_index` as the key.
 4. **Trie structure**: The MPT structure is otherwise unchanged: branch, extension, and leaf nodes follow the standard MPT rules.
 5. **On-demand computation**: The value of each storage leaf is exactly 32 bytes, so `page_commit(page)` can be recomputed from the page contents whenever needed. No additional storage layout changes are required.
