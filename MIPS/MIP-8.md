@@ -142,17 +142,8 @@ Function ISMC_Commit(page, slot_bitmap):
     page_commitment = BLAKE3_Hash(seal_payload)
     
     Return page_commitment
-
-
-Function reduce_to_pair_bitmap(slot_bitmap):
-    // Bit i of pair_bitmap is set iff slot 2i or 2i+1 is set in
-    // slot_bitmap.
-    pair_bitmap = 0
-    For i from 0 to 63:
-        If (slot_bitmap >> (2 * i)) & 0b11 != 0:
-            pair_bitmap |= 1 << i
-    Return pair_bitmap
 ```
+
 ### Inclusion Proofs
 
 Intuitively, the ISMC can be viewed as an embedded Merkle tree that proves the exact state of a 4096-byte page. Given a page commitment, we can efficiently prove the inclusion of any specific 32-byte word within that page.
