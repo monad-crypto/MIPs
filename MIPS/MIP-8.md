@@ -63,10 +63,8 @@ Function ISMC_Commit(page, slot_bitmap):
     // page: 4096-byte array (64 pairs of 64 bytes)
     // slot_bitmap: 128-bit integer representing exact 32-byte word occupancy
     
-    // Empty-page short-circuit: bind the all-zero bitmap directly so
-    // the empty-page commitment is well-defined.
-    If slot_bitmap == 0:
-        Return BLAKE3_Hash(zero_byte_string(16))
+    // Assume non-empty page
+    Assert slot_bitmap != 0
 
     // Convert 128-bit slot bitmap to 64-bit pair bitmap (1 if either word in pair is active)
     pair_bitmap = reduce_to_pair_bitmap(slot_bitmap)
