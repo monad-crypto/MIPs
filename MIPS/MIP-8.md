@@ -133,13 +133,10 @@ Function ISMC_Commit(page, slot_bitmap):
     subtree_root = active_nodes[0].value
     
     // --- Phase 2: Structural Seal Phase ---
-    // Uniquely bind the subtree root to the exact geometric layout.
-    // slot_bitmap is serialized as 16 little-endian bytes; subtree_root
-    // is always 32 bytes, so the seal payload is always 16 + 32 = 48
-    // bytes. The seal uses unkeyed BLAKE3.
+    // Uniquely bind the subtree root to the exact geometric layout
     slot_bitmap_le_16B = to_little_endian_bytes(slot_bitmap, 16)
-    seal_payload = concatenate(slot_bitmap_le_16B, subtree_root)
-    page_commitment = BLAKE3_Hash(seal_payload)
+    seal_payload = concatenate(slot_bitmap_le_16B, subtree_root)  // 16 bytes + 32 bytes
+    page_commitment = BLAKE3_Hash(seal_payload)  // unkeyed
     
     Return page_commitment
 ```
