@@ -27,7 +27,7 @@ To ensure consistent compensation for all stakers without relying on per-validat
 Automated priority fee distribution has two components:
 
 1. A new account that captures priority fees and arbitrary user transfers, referred to as the `distribution account`. The address for the distribution account will be `0xfee5fee5fee5fee5fee5fee5fee5fee5fee5fee5`. 
-2. End-of-block execution logic that attributes to the corresponding validator pool with the balance accumulated in the `distribution account`.
+2. End-of-block execution logic that attributes the balance accumulated in the `distribution account` to the corresponding validator pool modulo commission rate.
 
 The `beneficiary` remains settable by the block proposer, and within the execution context, `block.coinbase` continues to refer to the beneficiary address.
 
@@ -37,7 +37,7 @@ The following changes are applied during block execution:
 
 1. The beneficiary is still set by the block proposer and is still represented by `block.coinbase` in the execution context.
 2. For each transaction, the priority fee is credited to the distribution account rather than to the beneficiary balance.
-3. At the end of block execution, the system calls `distribute` on the distribution account. This function then forwards the fully accumulated balance to the staking contract if the minimal threshold is meet.
+3. At the end of block execution, the system calls `distribute` on the distribution account. This function then forwards the fully accumulated balance to the staking contract if the minimal threshold is met.
 
 The distribution account has the following logic:
 
@@ -95,7 +95,7 @@ Because priority fees are now distributed to all delegators within a validator's
 
 The primary consideration is the precision of the reward accumulator.
 
-In order to guarantee a certain decimal accuracy within the accumulator, the constant `dust_threshold` was defined. The minimum threshold for non-zero priority fees must align with the `dust_threshold` minimum-balance requirement. Any amount below this threshold will not be distributed and will be burned from the supply.
+The constant `dust_threshold` was defined to guarantee a certain decimal accuracy within the accumulator. The minimum threshold for non-zero priority fees must align with the `dust_threshold` minimum-balance requirement. Any amount below this threshold will not be distributed and will be burned from the supply.
 
 Edge cases to consider:
 
