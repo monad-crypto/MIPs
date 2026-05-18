@@ -12,7 +12,7 @@ created: 2026-04-01
 
 ## Abstract
 
-This MIP automatically distributes priority fees to delegators rather than crediting them solely to the validator's beneficiary address.
+This MIP automatically distributes priority fees and other transfers accumulated in the distribution account to delegators rather than crediting them solely to the validator's beneficiary address.
 
 ## Motivation
 
@@ -26,8 +26,8 @@ To ensure consistent compensation for all stakers without relying on per-validat
 
 Automated priority fee distribution has two components:
 
-1. A new account that captures priority fees, referred to as the `distribution account`. The address for the distribution account will be `0xfee5fee5fee5fee5fee5fee5fee5fee5fee5fee5`. 
-2. End-of-block execution logic that calls `external_rewards` on the corresponding validator pool with the priority fees accumulated in the `distribution account`.
+1. A new account that captures priority fees and arbitrary user transfers, referred to as the `distribution account`. The address for the distribution account will be `0xfee5fee5fee5fee5fee5fee5fee5fee5fee5fee5`. 
+2. End-of-block execution logic that attributes to the corresponding validator pool with the balance accumulated in the `distribution account`.
 
 The `beneficiary` remains settable by the block proposer, and within the execution context, `block.coinbase` continues to refer to the beneficiary address.
 
@@ -37,7 +37,7 @@ The following changes are applied during block execution:
 
 1. The beneficiary is still set by the block proposer and is still represented by `block.coinbase` in the execution context.
 2. For each transaction, the priority fee is credited to the distribution account rather than to the beneficiary balance.
-3. At the end of block execution, the system calls `syscall_distribute` on the distribution account. This function forwards the full accumulated balance to the staking contract via `external_rewards`.
+3. At the end of block execution, the system calls `distribute` on the distribution account. This function then forwards the fully accumulated balance to the staking contract if the minimal threshold is meet.
 
 The distribution account has the following logic:
 
@@ -46,13 +46,33 @@ class distribution_account:
 
     # This function is only callable via execution; no transaction can call it.
     def syscall_distribute(address block_leader):
-        priority_fees = get_balance(address(this))
+        
+        # 1. Load Balance and clear balance per block
+        total_balance = get_balance(address(this))
+        set_balance(address(this), 0) 
 
-        # Same value as the val_id used by syscall_reward for block_leader.
+        # 2. Same value as the val_id used by syscall_reward for block_leader.
         val_id = staking_contract.val_id(block_leader)
+        
+        # 3. Get relevant validator info
+        val_execution = val_execution(val_id)
+        val_consensus = val_consensus(val_id)
+        auth = delegator(val_id,val_execution.auth_address)
 
-        # Sub-threshold fees are filtered by external_rewards (see dust_threshold).
-        staking_contract.external_rewards(val_id){msg.value = priority_fees}
+        # 4. Get Commission Fee if applicable 
+        commission_amount = 0 
+        distribute_amount = 0 
+        if val_consensus.commission_rate > 0:
+            commission_amount = (total_balance * val_consensus.commission_rate) / 1e18
+        
+        # 5. Check if sufficent to distribute funds
+        distribute_amount = total_balance - commission_amount
+        if distribute_amount < DUST_THRESHOLD:
+            exit 
+            
+        # 6. Distribute funds
+        staking_contract.apply_commission_to_auth_account(auth){msg.value = commission_amount}
+        staking_contract.distribute(val_id){msg.value = distribute_amount}
 ```
 
 ## Rationale
@@ -70,18 +90,17 @@ This change modifies the flow of priority fees: they will no longer appear in th
 
 Because priority fees are now distributed to all delegators within a validator's pool, third-party delegation contracts may be affected. Such contracts will experience a dilution in their share of priority fees if users bypass the external contract and stake directly with the validator pool.
 
-To be amenable to this update `external_rewards` will be modified so that it removes the commission fee when called. 
 
 ## Security Considerations
 
 The primary consideration is the precision of the reward accumulator.
 
-`external_rewards` requires a minimum input amount, defined as the `dust_threshold`, in order to guarantee a certain decimal accuracy within the accumulator. The minimum threshold for non-zero priority fees must align with this `external_rewards` minimum-balance requirement, and any fees below this threshold will not be distributed.
+In order to guarantee a certain decimal accuracy within the accumulator, the constant `dust_threshold` was defined. The minimum threshold for non-zero priority fees must align with the `dust_threshold` minimum-balance requirement. Any amount below this threshold will not be distributed and will be burned from the supply.
 
 Edge cases to consider:
 
 1. Blocks with zero priority fees result in a no-op distribution.
-2. Small fee amounts must be validated against `dust_threshold`; sub-threshold fees are burned.
+2. Small fee amounts must be validated against `dust_threshold`; Any distributable balance below dust_threshold is burned.
 
 ## Copyright
 
