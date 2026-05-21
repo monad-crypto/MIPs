@@ -260,7 +260,7 @@ if current_state_growth[p] > net_state_growth[p] :
 	  net_state_growth[p]  = current_state_growth[p]
 ```
 
-During execution, if a call reverts, the counters `current_state_growth` and `net_state_growth` must revert to their values from before that call to maintain price consistency.
+During execution, if a call reverts, the counters `current_state_growth` and `net_state_growth` as well as sets `read_accessed_pages` and `write_accessed_pages` must revert to their values from before that call to maintain price consistency.
 
 ## Rationale
 
