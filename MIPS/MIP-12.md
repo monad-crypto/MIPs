@@ -1,4 +1,5 @@
 ---
+mip: 12
 title: Decrease Vote Pace
 description: Decrease consensus vote pace from 400ms to 300ms
 author: Category Labs
