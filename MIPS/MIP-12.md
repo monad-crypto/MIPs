@@ -3,7 +3,7 @@ mip: 12
 title: Decrease Vote Pace
 description: Decrease consensus vote pace from 400ms to 300ms
 author: Category Labs
-discussions-to:
+discussions-to: https://forum.monad.xyz/t/mip-12-decrease-vote-pace/488
 status: Draft
 type: Standards Track
 category: Core
