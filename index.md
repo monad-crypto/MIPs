@@ -257,6 +257,8 @@ No MIPs found.
 		    monad-crypto/MIPs
 		</a>
 		|
+		<a href="https://forum.monad.xyz/c/mips/8" target="_blank" rel="noopener noreferrer">discussions</a>
+		|
 		<a href="{{ '/LICENSE.md' | relative_url }}">license</a>
 	</p>
 </footer>
