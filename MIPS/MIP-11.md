@@ -26,7 +26,7 @@ To ensure consistent compensation for all stakers without relying on per-validat
 
 Automated priority fee distribution has two components:
 
-1. A new account that captures priority fees, referred to as the `distribution account`.
+1. A new account that captures priority fees, referred to as the `distribution account`. The address for the distribution account will be `0xfee5fee5fee5fee5fee5fee5fee5fee5fee5fee5`. 
 2. End-of-block execution logic that calls `external_rewards` on the corresponding validator pool with the priority fees accumulated in the `distribution account`.
 
 The `beneficiary` remains settable by the block proposer, and within the execution context, `block.coinbase` continues to refer to the beneficiary address.

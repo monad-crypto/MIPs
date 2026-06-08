@@ -63,8 +63,21 @@ Function ISMC_Commit(page, slot_bitmap):
     // page: 4096-byte array (64 pairs of 64 bytes)
     // slot_bitmap: 128-bit integer representing exact 32-byte word occupancy
     
+    // Assume non-empty page
+    Assert slot_bitmap != 0
+
     // Convert 128-bit slot bitmap to 64-bit pair bitmap (1 if either word in pair is active)
     pair_bitmap = reduce_to_pair_bitmap(slot_bitmap)
+
+    // Domain-separated leaf IV. Derived once from the constant 32-byte
+    // domain string and used to compress every active pair-leaf to 32
+    // bytes, separating the leaf domain from the parent domain.
+    PAIR_LEAF_DOMAIN = "ultra_merkle_pair_leaf_domain___"   // 32 bytes
+    LEAF_IV = BLAKE3_compress(state=IV,
+                              block=PAIR_LEAF_DOMAIN || zeros(32),
+                              block_len=64,
+                              counter=0,
+                              flags=DERIVE_KEY_MATERIAL)
     
     // --- Phase 1: Data Merge Phase ---
     active_nodes = []
@@ -73,7 +86,12 @@ Function ISMC_Commit(page, slot_bitmap):
     For i from 0 to 63:
         If bit i is set in pair_bitmap:
             pair_data = page[i * 64 : (i + 1) * 64]
-            active_nodes.append({ index: i, value: pair_data })
+            // Reduce each 64-byte pair-leaf to 32 bytes via one bare
+            // compression with LEAF_IV and DERIVE_KEY_MATERIAL.
+            leaf_hash = BLAKE3_compress(LEAF_IV, pair_data,
+                                        block_len=64, counter=0,
+                                        flags=DERIVE_KEY_MATERIAL)
+            active_nodes.append({ index: i, value: leaf_hash })
             
     // Bottom-up reduction 
     For level from 0 to 5:
@@ -89,8 +107,13 @@ Function ISMC_Commit(page, slot_bitmap):
                 
                 // Nodes are siblings if they share the same parent at the next level
                 If (current_node.index >> (level + 1)) == (next_node.index >> (level + 1)):
-                    // Hash the two 32-byte children into a new 32-byte parent
-                    parent_value = BLAKE3_Hash(current_node.value || next_node.value)
+                    // Hash the two 32-byte children into a new 32-byte
+                    // parent using ONE bare compression (NOT the full
+                    // BLAKE3_Hash pipeline) with CHUNK_START|CHUNK_END.
+                    parent_value = BLAKE3_compress(IV,
+                                                   current_node.value || next_node.value,
+                                                   block_len=64, counter=0,
+                                                   flags=CHUNK_START | CHUNK_END)
                     next_level_nodes.append({ index: current_node.index, value: parent_value })
                     i += 2
                     continue
@@ -109,11 +132,13 @@ Function ISMC_Commit(page, slot_bitmap):
     
     // --- Phase 2: Structural Seal Phase ---
     // Uniquely bind the subtree root to the exact geometric layout
-    seal_payload = concatenate(slot_bitmap, subtree_root)   // 16 bytes + 32 bytes
-    page_commitment = BLAKE3_Hash(seal_payload)
+    slot_bitmap_le_16B = to_little_endian_bytes(slot_bitmap, 16)
+    seal_payload = concatenate(slot_bitmap_le_16B, subtree_root)  // 16 bytes + 32 bytes
+    page_commitment = BLAKE3_Hash(seal_payload)  // unkeyed
     
     Return page_commitment
 ```
+
 ### Inclusion Proofs
 
 Intuitively, the ISMC can be viewed as an embedded Merkle tree that proves the exact state of a 4096-byte page. Given a page commitment, we can efficiently prove the inclusion of any specific 32-byte word within that page.
@@ -132,7 +157,7 @@ The Merkle Patricia Trie commits to `{page_index_i: page_commit(page_i)}` pairs 
 This trie has the following modifications:
 
 1. **Hash Function**: Keccak.
-2. **Leaf values**: For each `page_index`, the corresponding leaf value is the page commitment of the page at that index.
+2. **Leaf values**: For each `page_index`, the corresponding leaf value is the **RLP-string framing** of the 32-byte page commitment, i.e. `RLP_encode_string(page_commit(page_i))` = `0xa0 || page_commit(page_i)` (33 bytes). The MPT leaf node then RLP-encodes this byte string when constructing the leaf RLP, matching how a standard MPT storage leaf nests an RLP-encoded `U256` value.
 3. **Leaf placement**: Each `page_index` uniquely determines a path from the MPT root to its leaf. This path is computed exactly as in a standard MPT, using the `page_index` as the key.
 4. **Trie structure**: The MPT structure is otherwise unchanged: branch, extension, and leaf nodes follow the standard MPT rules.
 5. **On-demand computation**: The value of each storage leaf is exactly 32 bytes, so `page_commit(page)` can be recomputed from the page contents whenever needed. No additional storage layout changes are required.
@@ -170,20 +195,27 @@ else:
 
 ### SSTORE Gas Schedule
 
-We define the `SSTORE` cost as the sum of an I/O write cost and a state transition cost, both computed per `SSTORE`. As in legacy `SSTORE`, we apply the `LOAD_COST` if the page is cold.
+The `SSTORE` cost can be stratified in terms of I/O cost and state transitions costs. The I/O cost is defined on the level of page granularity, while the state transition cost is defined in terms of `SSTORE` granularity with respect to a page. However, the I/O remains aware of whether that data acted upon is cold or hot. 
+
+Finally, as in legacy `SSTORE`, we apply the `LOAD_COST` to a page to check the initial value. 
 
 ### Write Cost
 
-Let `P0` be the initial value of page `p` for a given `SSTORE`, and let `P1` be the terminal value of page `p` immediately after the `SSTORE`.
+Let `P0` be the initial value of page `p` for a given `SSTORE`, and let `P1` be the terminal value of page `p` immediately after the `SSTORE`. Apriori the write cost, a load cost is applied to obtain the initial value `P0` of the page. 
 
-The following is the I/O cost for writing the page to the hardware.
-
+The following is the I/O cost for the writing the page to the hardware.  
 
 ```python
 # PAGE I/O Cost
 
+
 # `BASE_COST` is deducted in all cases.
 gas_deducted += BASE_COST
+
+# `LOAD_COST` is deducted to obtain initial state P0 from DB
+if p not in read_accessed_pages: 
+    gas_deducted += LOAD_COST
+    read_accessed_pages.append(p)
 
 # Page did not change for this SSTORE
 if P0 == P1:
@@ -201,11 +233,6 @@ else:
 
         # Page has been charged write cost
         write_accessed_pages.append(p)
-
-        # Page has not been loaded to cache
-        if p not in read_accessed_pages:
-            gas_deducted += LOAD_COST
-            read_accessed_pages.append(p)
 
         # instantiate state growth counters
         current_state_growth[p] = 0
@@ -233,7 +260,7 @@ if current_state_growth[p] > net_state_growth[p] :
 	  net_state_growth[p]  = current_state_growth[p]
 ```
 
-During execution, if a call reverts, the counters `current_state_growth` and `net_state_growth` must revert to their values from before that call to maintain price consistency.
+During execution, if a call reverts, the counters `current_state_growth` and `net_state_growth` as well as sets `read_accessed_pages` and `write_accessed_pages` must revert to their values from before that call to maintain price consistency.
 
 ## Rationale
 
