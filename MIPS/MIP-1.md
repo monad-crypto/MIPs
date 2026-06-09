@@ -4,7 +4,7 @@ title: MIP Purpose and Guidelines
 description: Guidelines and procedures for the Monad Improvement Proposal process
 author: QEDK (@qedk)
 discussions-to: https://forum.monad.xyz/t/mip-1-mip-purpose-and-guidelines
-status: Review
+status: Final Call
 type: Meta
 category: Process
 created: 2026-02-24
