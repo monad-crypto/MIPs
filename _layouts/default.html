@@ -185,7 +185,7 @@
             return;
           }
 
-          if (/(^|\/)MIP-\d+\.md(#.*)?$/.test(href)) {
+          if (/(^|\/)(MIP|MRC)-\d+\.md(#.*)?$/.test(href)) {
             link.setAttribute("href", href.replace(/\.md(?=#|$)/, ""));
           }
         });
@@ -297,7 +297,7 @@
       function maybePrefetchLink(link) {
         var href = link.getAttribute("href");
         if (!href || href === "#") return;
-        if (!link.hasAttribute("data-prefetch-on-hover") && !/MIP-\d+/.test(href)) return;
+        if (!link.hasAttribute("data-prefetch-on-hover") && !/(MIP|MRC)-\d+/.test(href)) return;
         try {
           var url = new URL(href, location.href);
         } catch (_) {

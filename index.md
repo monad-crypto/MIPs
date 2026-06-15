@@ -3,21 +3,28 @@ layout: default
 title: MIPs
 ---
 
-# Monad Improvement Proposals (MIPs)
+# Monad Improvement Proposals
 
 {% assign mips = site.pages | where_exp: "p", "p.mip" | sort: "mip" %}
+{% assign mrcs = site.pages | where_exp: "p", "p.mrc" | sort: "mrc" %}
 
+<div class="proposal-tabs" role="tablist" aria-label="Proposal type">
+	<button type="button" class="proposal-tab is-active" id="tab-mips" role="tab" aria-selected="true" aria-controls="panel-mips" data-panel="mips">MIPs</button>
+	<button type="button" class="proposal-tab" id="tab-mrcs" role="tab" aria-selected="false" aria-controls="panel-mrcs" data-panel="mrcs" tabindex="-1">MRCs</button>
+</div>
+
+<section class="proposal-panel" id="panel-mips" role="tabpanel" aria-labelledby="tab-mips" data-collection="MIPs">
 {% if mips.size > 0 %}
 <div class="mip-search" role="search">
 	<svg class="mip-search__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
 		<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M10.5 3a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15Zm10.5 18-5.4-5.4"/>
 	</svg>
-	<input id="mip-search-input" type="search" autocomplete="off" spellcheck="false" placeholder="Search MIPs by number, title, author, or type…" aria-label="Search MIPs" />
+	<input class="mip-search__input" type="search" autocomplete="off" spellcheck="false" placeholder="Search MIPs by number, title, author, or type…" aria-label="Search MIPs" />
 	<button type="button" class="mip-search__clear" aria-label="Clear search" hidden>&times;</button>
 </div>
-<p class="mip-search__status muted" id="mip-search-status" aria-live="polite" hidden></p>
+<p class="mip-search__status muted" aria-live="polite" hidden></p>
 
-<table id="mip-table">
+<table class="proposal-table">
 	<thead>
 		<tr>
 			<th>Number</th>
@@ -46,12 +53,93 @@ title: MIPs
 		{% endfor %}
 	</tbody>
 </table>
-<p class="mip-search__empty muted" id="mip-search-empty" hidden>No MIPs match your search.</p>
+<p class="mip-search__empty muted" hidden>No MIPs match your search.</p>
 {% else %}
-No MIPs found.
+<p class="muted">No MIPs found.</p>
 {% endif %}
+</section>
+
+<section class="proposal-panel" id="panel-mrcs" role="tabpanel" aria-labelledby="tab-mrcs" data-collection="MRCs" hidden>
+{% if mrcs.size > 0 %}
+<div class="mip-search" role="search">
+	<svg class="mip-search__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+		<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M10.5 3a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15Zm10.5 18-5.4-5.4"/>
+	</svg>
+	<input class="mip-search__input" type="search" autocomplete="off" spellcheck="false" placeholder="Search MRCs by number, title, author, or type…" aria-label="Search MRCs" />
+	<button type="button" class="mip-search__clear" aria-label="Clear search" hidden>&times;</button>
+</div>
+<p class="mip-search__status muted" aria-live="polite" hidden></p>
+
+<table class="proposal-table">
+	<thead>
+		<tr>
+			<th>Number</th>
+			<th>Title</th>
+			<th>Author</th>
+			<th>Type</th>
+			<th>Status</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for p in mrcs %}
+			<tr>
+				<td><a href="{{ p.url | relative_url }}">{{ p.mrc | escape }}</a></td>
+				<td>{{ p.title | escape }}</td>
+				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
+				<td>{{ p.type | default: "-" | escape }}</td>
+				<td>
+					{% if p.status and p.status != "" %}
+						{% assign status_slug = p.status | slugify %}
+						<span class="status-pill{% if status_slug != "" %} status-pill--{{ status_slug }}{% endif %}">{{ p.status | escape }}</span>
+					{% else %}
+						<span class="muted">-</span>
+					{% endif %}
+				</td>
+			</tr>
+		{% endfor %}
+	</tbody>
+</table>
+<p class="mip-search__empty muted" hidden>No MRCs match your search.</p>
+{% else %}
+<p class="muted">No MRCs found yet.</p>
+{% endif %}
+</section>
 
 <style>
+	.proposal-tabs {
+		display: flex;
+		gap: 0.25rem;
+		margin: 1.25rem 0 0;
+		border-bottom: 1px solid var(--border);
+	}
+	.proposal-tab {
+		appearance: none;
+		border: 0;
+		background: transparent;
+		font: inherit;
+		font-weight: 500;
+		color: var(--muted);
+		padding: 0.55rem 0.95rem;
+		cursor: pointer;
+		border-bottom: 2px solid transparent;
+		margin-bottom: -1px;
+		border-radius: 6px 6px 0 0;
+	}
+	.proposal-tab:hover {
+		color: var(--text);
+		background: var(--bg-soft);
+	}
+	.proposal-tab.is-active {
+		color: var(--link);
+		border-bottom-color: var(--link);
+	}
+	.proposal-tab:focus-visible {
+		outline: 2px solid var(--link);
+		outline-offset: 2px;
+	}
+	.proposal-panel[hidden] {
+		display: none;
+	}
 	.mip-search {
 		position: relative;
 		display: flex;
@@ -108,10 +196,10 @@ No MIPs found.
 		margin: 0.25rem 0.15rem 0;
 		font-size: 0.875rem;
 	}
-	#mip-table tr.is-hidden {
+	.proposal-table tr.is-hidden {
 		display: none;
 	}
-	#mip-table mark {
+	.proposal-table mark {
 		background: #fef3c7;
 		color: inherit;
 		padding: 0 0.1rem;
@@ -137,28 +225,6 @@ No MIPs found.
 
 <script>
 	document.addEventListener("DOMContentLoaded", function () {
-		var input = document.getElementById("mip-search-input");
-		var table = document.getElementById("mip-table");
-		if (!input || !table) return;
-
-		var clearBtn = document.querySelector(".mip-search__clear");
-		var status = document.getElementById("mip-search-status");
-		var empty = document.getElementById("mip-search-empty");
-		var rows = Array.prototype.slice.call(table.tBodies[0].rows);
-		var rowData = null;
-
-		function captureRows() {
-			rowData = rows.map(function (row) {
-				var cells = Array.prototype.slice.call(row.cells);
-				return {
-					row: row,
-					cells: cells,
-					originals: cells.map(function (cell) { return cell.innerHTML; }),
-					texts: cells.map(function (cell) { return (cell.textContent || "").toLowerCase(); })
-				};
-			});
-		}
-
 		function escapeRegex(v) {
 			return v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 		}
@@ -193,57 +259,121 @@ No MIPs found.
 			});
 		}
 
-		function apply() {
-			if (!rowData) return;
-			var q = input.value.trim();
-			var ql = q.toLowerCase();
-			var visible = 0;
-			var highlightRe = q ? new RegExp("(" + escapeRegex(q) + ")", "gi") : null;
+		function initSearch(panel) {
+			var input = panel.querySelector(".mip-search__input");
+			var table = panel.querySelector(".proposal-table");
+			if (!input || !table) return;
 
-			rowData.forEach(function (d) {
-				var match = !ql || d.texts.some(function (t) { return t.indexOf(ql) !== -1; });
-				if (match) {
-					visible++;
-					d.row.classList.remove("is-hidden");
-				} else {
-					d.row.classList.add("is-hidden");
-				}
+			var clearBtn = panel.querySelector(".mip-search__clear");
+			var status = panel.querySelector(".mip-search__status");
+			var empty = panel.querySelector(".mip-search__empty");
+			var rows = Array.prototype.slice.call(table.tBodies[0].rows);
+			var rowData = rows.map(function (row) {
+				var cells = Array.prototype.slice.call(row.cells);
+				return {
+					row: row,
+					cells: cells,
+					originals: cells.map(function (cell) { return cell.innerHTML; }),
+					texts: cells.map(function (cell) { return (cell.textContent || "").toLowerCase(); })
+				};
+			});
 
-				d.cells.forEach(function (cell, i) {
-					cell.innerHTML = d.originals[i];
-					if (highlightRe && match) highlightCell(cell, highlightRe);
+			function apply() {
+				var q = input.value.trim();
+				var ql = q.toLowerCase();
+				var visible = 0;
+				var highlightRe = q ? new RegExp("(" + escapeRegex(q) + ")", "gi") : null;
+
+				rowData.forEach(function (d) {
+					var match = !ql || d.texts.some(function (t) { return t.indexOf(ql) !== -1; });
+					if (match) {
+						visible++;
+						d.row.classList.remove("is-hidden");
+					} else {
+						d.row.classList.add("is-hidden");
+					}
+
+					d.cells.forEach(function (cell, i) {
+						cell.innerHTML = d.originals[i];
+						if (highlightRe && match) highlightCell(cell, highlightRe);
+					});
 				});
-			});
 
-			if (clearBtn) clearBtn.hidden = q.length === 0;
-			if (status) {
-				if (q.length === 0) {
-					status.hidden = true;
-					status.textContent = "";
-				} else {
-					status.hidden = false;
-					status.textContent = visible + (visible === 1 ? " match" : " matches");
+				if (clearBtn) clearBtn.hidden = q.length === 0;
+				if (status) {
+					if (q.length === 0) {
+						status.hidden = true;
+						status.textContent = "";
+					} else {
+						status.hidden = false;
+						status.textContent = visible + (visible === 1 ? " match" : " matches");
+					}
 				}
+				if (empty) empty.hidden = visible !== 0;
 			}
-			if (empty) empty.hidden = visible !== 0;
+
+			input.addEventListener("input", apply);
+			input.addEventListener("search", apply);
+			if (clearBtn) {
+				clearBtn.addEventListener("click", function () {
+					input.value = "";
+					input.focus();
+					apply();
+				});
+			}
+
+			apply();
 		}
 
-		input.addEventListener("input", apply);
-		input.addEventListener("search", apply);
-		if (clearBtn) {
-			clearBtn.addEventListener("click", function () {
-				input.value = "";
-				input.focus();
-				apply();
+		// Tab switching between MIPs and MRCs.
+		var tabs = Array.prototype.slice.call(document.querySelectorAll(".proposal-tab"));
+		var panels = {
+			mips: document.getElementById("panel-mips"),
+			mrcs: document.getElementById("panel-mrcs")
+		};
+
+		function activate(name, focusTab) {
+			if (!panels[name]) name = "mips";
+			tabs.forEach(function (tab) {
+				var isActive = tab.dataset.panel === name;
+				tab.classList.toggle("is-active", isActive);
+				tab.setAttribute("aria-selected", isActive ? "true" : "false");
+				tab.tabIndex = isActive ? 0 : -1;
+				if (isActive && focusTab) tab.focus();
+			});
+			Object.keys(panels).forEach(function (key) {
+				if (panels[key]) panels[key].hidden = key !== name;
 			});
 		}
 
-		// Defer row capture + initial apply() past any other DOMContentLoaded
-		// listeners (notably the default layout's @username linkification),
-		// then sync UI to the current input value (handles bfcache restores).
+		tabs.forEach(function (tab, i) {
+			tab.addEventListener("click", function () {
+				var name = tab.dataset.panel;
+				activate(name);
+				var newHash = name === "mrcs" ? "#mrcs" : "";
+				if (history.replaceState) {
+					history.replaceState(null, "", location.pathname + location.search + newHash);
+				} else {
+					location.hash = newHash;
+				}
+			});
+			tab.addEventListener("keydown", function (e) {
+				if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+				e.preventDefault();
+				var dir = e.key === "ArrowRight" ? 1 : -1;
+				var next = tabs[(i + dir + tabs.length) % tabs.length];
+				activate(next.dataset.panel, true);
+			});
+		});
+
+		// Defer search init + initial activation past the default layout's
+		// @username linkification (also DOMContentLoaded), so captured row
+		// HTML includes the linkified authors.
 		setTimeout(function () {
-			captureRows();
-			apply();
+			Object.keys(panels).forEach(function (key) {
+				if (panels[key]) initSearch(panels[key]);
+			});
+			activate(location.hash === "#mrcs" ? "mrcs" : "mips");
 		}, 0);
 	});
 </script>

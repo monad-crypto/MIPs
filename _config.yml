@@ -27,6 +27,11 @@ defaults:
       path: "MIPS"
     values:
       layout: "mip"
+  -
+    scope:
+      path: "MRCS"
+    values:
+      layout: "mrc"
 
 exclude:
   - .github
