@@ -24,12 +24,12 @@ gist:
 defaults:
   -
     scope:
-      path: "MIPS"
+      path: "MIPs"
     values:
       layout: "mip"
   -
     scope:
-      path: "MRCS"
+      path: "MRCs"
     values:
       layout: "mrc"
 
