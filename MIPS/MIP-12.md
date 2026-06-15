@@ -1,6 +1,6 @@
 ---
 mip: 12
-title: Decrease Vote Pace
+title: Decrease Block Time
 description: Decrease consensus vote pace from 400ms to 300ms
 author: Category Labs
 discussions-to: https://forum.monad.xyz/t/mip-12-decrease-vote-pace/488
@@ -12,7 +12,7 @@ created: 2026-06-01
 
 ## Abstract
 
-Decrease the consensus vote pace from 400ms to 300ms. Proportionally, decrease the following block parameters: transaction limit, proposal gas limit and proposal byte limit. Proportionally, also decrease the block reward.
+Decrease the block time by decreasing the consensus vote pace from 400ms to 300ms. Proportionally, decrease the following block parameters: transaction limit, proposal gas limit and proposal byte limit. Proportionally, also decrease the block reward.
 
 ## Specification
 
