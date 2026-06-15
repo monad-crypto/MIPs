@@ -14,6 +14,7 @@ title: MIPs
 </div>
 
 <section class="proposal-panel" id="panel-mips" role="tabpanel" aria-labelledby="tab-mips" data-collection="MIPs">
+<h2 class="panel-label" hidden>MIPs</h2>
 {% if mips.size > 0 %}
 <div class="mip-search" role="search">
 	<svg class="mip-search__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
@@ -60,6 +61,7 @@ title: MIPs
 </section>
 
 <section class="proposal-panel" id="panel-mrcs" role="tabpanel" aria-labelledby="tab-mrcs" data-collection="MRCs" hidden>
+<h2 class="panel-label" hidden>MRCs</h2>
 {% if mrcs.size > 0 %}
 <div class="mip-search" role="search">
 	<svg class="mip-search__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
@@ -221,7 +223,19 @@ title: MIPs
 	.status-pill--review, .status-pill--last-call { background: #dbeafe; border-color: #bfdbfe; color: #1e40af; }
 	.status-pill--final, .status-pill--living { background: #dcfce7; border-color: #bbf7d0; color: #166534; }
 	.status-pill--stagnant, .status-pill--withdrawn { background: #f3f4f6; border-color: #e5e7eb; color: #4b5563; }
+	.panel-label { margin-top: 1.5rem; }
 </style>
+
+<noscript>
+	<style>
+		/* Without JS the tab switcher and search can't work: show both
+		   collections stacked with headings, and hide the dead controls. */
+		.proposal-tabs { display: none; }
+		.proposal-panel[hidden] { display: block; }
+		.panel-label[hidden] { display: block; }
+		.mip-search { display: none; }
+	</style>
+</noscript>
 
 <script>
 	document.addEventListener("DOMContentLoaded", function () {
