@@ -21,6 +21,7 @@ title: MIPs
 		<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M10.5 3a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15Zm10.5 18-5.4-5.4"/>
 	</svg>
 	<input class="mip-search__input" type="search" autocomplete="off" spellcheck="false" placeholder="Search MIPs and MRCs by number, title, author, or type…" aria-label="Search MIPs and MRCs" />
+	<kbd class="mip-search__hint" aria-hidden="true">/</kbd>
 	<button type="button" class="mip-search__clear" aria-label="Clear search" hidden>&times;</button>
 </div>
 <p class="mip-search__status muted" aria-live="polite" hidden></p>
@@ -189,6 +190,25 @@ title: MIPs
 		color: var(--text);
 		background: var(--bg-soft);
 	}
+	.mip-search__hint {
+		flex-shrink: 0;
+		margin-right: 0.6rem;
+		padding: 0.05rem 0.45rem;
+		font-family: inherit;
+		font-size: 0.8rem;
+		line-height: 1.4;
+		color: var(--muted);
+		background: var(--bg-soft);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		box-shadow: 0 1px 0 rgba(17, 24, 39, 0.05);
+		pointer-events: none;
+	}
+	/* The hint only advertises the shortcut; hide it once the box is in use. */
+	.mip-search:focus-within .mip-search__hint,
+	.mip-search.is-active .mip-search__hint {
+		display: none;
+	}
 	.mip-search__status {
 		margin: 0.25rem 0.15rem 0;
 		font-size: 0.875rem;
@@ -301,6 +321,7 @@ title: MIPs
 
 			var clearBtn = document.querySelector(".mip-search__clear");
 			var status = document.querySelector(".mip-search__status");
+			var box = input.closest(".mip-search");
 			var labels = { mips: "MIPs", mrcs: "MRCs" };
 
 			var groups = ["mips", "mrcs"].map(function (key) {
@@ -350,6 +371,7 @@ title: MIPs
 				});
 
 				if (clearBtn) clearBtn.hidden = q.length === 0;
+				if (box) box.classList.toggle("is-active", q.length > 0);
 
 				// Dynamically switch to a tab that has matches when the active
 				// one has none, so a query is never silently hidden behind a tab.
