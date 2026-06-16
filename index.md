@@ -80,6 +80,7 @@ title: MIPs
 		{% for p in mrcs %}
 			<tr>
 				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
+				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
 				<td>{{ p.title | escape }}</td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
 				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>

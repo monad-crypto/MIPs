@@ -3,7 +3,7 @@ mip: 13
 title: Validator Metadata Registry
 description: An on-chain registry standard for human-readable Monad validator metadata
 author: Dorde Mijovic <dorde@monad.foundation> (@mijovic), Jackson Lewis <jlewis@monad.foundation>
-discussions-to: 
+discussions-to: https://forum.monad.xyz/t/validator-metadata-registry/497
 status: Draft
 type: Standards Track
 category: MRC
