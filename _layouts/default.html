@@ -366,7 +366,16 @@
           if (!el || !tip) return;
           el.classList.add("has-tip");
           el.setAttribute("data-tip", tip);
-          el.setAttribute("tabindex", "0");
+          // Mouse users get the tooltip on hover regardless. Only make a pill
+          // keyboard-focusable when it's NOT inside the index's proposal tables,
+          // which would otherwise add two tab stops per row (hundreds total).
+          // Detail pages have just a couple of pills, where it's worthwhile.
+          if (!el.closest(".proposal-table")) {
+            el.setAttribute("tabindex", "0");
+            // Generated ::after content isn't reliably exposed to assistive
+            // tech, so fold the explanation into the accessible name on focus.
+            el.setAttribute("aria-label", (el.textContent || "").trim() + ": " + tip);
+          }
         }
         document.querySelectorAll(".status-pill").forEach(function (el) {
           tagTip(el, statusTips[(el.textContent || "").trim().toLowerCase()]);
