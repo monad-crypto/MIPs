@@ -6,7 +6,6 @@ layout: default
 {% assign source_path = page.path | replace: " ", "%20" %}
 {% assign source_url = github_repo | append: "/blob/main/" | append: source_path %}
 {% assign discussions_url = page["discussions-to"] %}
-{% comment %} Only allow http(s) discussion links; guards against javascript: and other unsafe schemes from front matter. {% endcomment %}
 {% assign discussions_safe = "" %}
 {% if discussions_url %}
   {% assign discussions_scheme = discussions_url | strip | split: ":" | first | downcase %}

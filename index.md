@@ -5,8 +5,6 @@ title: MIPs
 
 # Monad Improvement Proposals
 
-{% comment %} An MRC is a MIP with category "MRC" (see MIP-1); both use the same
-   "mip" number field in the preamble. Split the two collections by category. {% endcomment %}
 {% assign mips = site.pages | where_exp: "p", "p.mip and p.category != 'MRC'" | sort: "mip" %}
 {% assign mrcs = site.pages | where_exp: "p", "p.mip and p.category == 'MRC'" | sort: "mip" %}
 
