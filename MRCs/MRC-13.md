@@ -1,7 +1,7 @@
 ---
 mip: 13
 title: Validator Metadata Registry
-description: An on-chain registry standard for human-readable Monad validator metadata.
+description: An on-chain registry standard for human-readable Monad validator metadata
 author: Dorde Mijovic <dorde@monad.foundation> (@mijovic), Jackson Lewis <jlewis@monad.foundation>
 discussions-to: 
 status: Draft
@@ -66,42 +66,12 @@ their own authorization rules; see [Authorization](#authorization).
 ### Interface
 
 ```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.33;
-
-/**
- * @title IValidatorMetadata
- * @notice Interface for an on-chain registry of human-readable Monad validator metadata.
- * @dev Augments the staking precompile by storing per-validator name, description, logo,
- *      socials, and a forward-compatible `additionalInfo` payload. Writes are authorized
- *      against the validator's authority address as reported by the staking precompile;
- *      implementations MAY additionally grant write access to other callers under their
- *      own authorization rules.
- */
 interface IValidatorMetadata {
-    /**
-     * @notice Emitted on every successful write to a validator's metadata.
-     * @param validatorId The validator whose metadata changed.
-     * @param authority The caller that performed the update.
-     * @param metadata The full metadata record as observable immediately after the write.
-     */
+    /// Emitted on every successful write to a validator's metadata.
     event MetadataUpdated(uint64 indexed validatorId, address indexed authority, Metadata metadata);
 
-    /**
-     * @notice Address of the Monad staking precompile used for authority resolution.
-     * @return The staking precompile address, `0x0000000000000000000000000000000000001000`.
-     */
-    function STAKING_PRECOMPILE() external view returns (address);
-
-    /**
-     * @notice Validator metadata record.
-     * @param name Human-readable validator name/moniker. Required; non-empty whenever a record exists.
-     * @param website Validator's website URL.
-     * @param description Detailed description of the validator.
-     * @param logo URL to the validator's logo/avatar image.
-     * @param socials JSON object of social profiles, keyed by platform identifier (e.g. `{"x":"...","telegram":"..."}`).
-     * @param additionalInfo JSON object reserved for forward-compatible metadata extensions; not interpreted by the registry.
-     */
+    /// Validator metadata record. See Field Semantics for write rules and the JSON
+    /// conventions for the `socials` and `additionalInfo` fields.
     struct Metadata {
         string name;
         string website;
@@ -111,7 +81,7 @@ interface IValidatorMetadata {
         string additionalInfo;
     }
 
-    /// @notice Field selector for `updateMetadataField`.
+    /// Field selector for `updateMetadataField`.
     enum Field {
         NAME,
         WEBSITE,
@@ -121,59 +91,29 @@ interface IValidatorMetadata {
         ADDITIONAL_INFO
     }
 
-    /**
-     * @notice Set or replace the full metadata record for a validator.
-     * @dev Callable by the validator's authority address, resolved live against the staking
-     *      precompile; implementations MAY accept additional authorized callers under their
-     *      own scheme. Reverts if the caller is not authorized.
-     * @dev Reverts if `metadata.name` is empty.
-     * @dev Emits `MetadataUpdated` on success.
-     * @param validatorId The validator ID to set metadata for.
-     * @param metadata The metadata record to store.
-     */
+    /// Address of the Monad staking precompile used for authority resolution.
+    /// Implementations MUST return `0x0000000000000000000000000000000000001000`.
+    function STAKING_PRECOMPILE() external view returns (address);
+
+    /// Set or replace the full metadata record for a validator. Authorized callers
+    /// and revert conditions are defined in Authorization and Field Semantics.
     function setMetadata(uint64 validatorId, Metadata calldata metadata) external;
 
-    /**
-     * @notice Update a single field of a validator's metadata, leaving other fields untouched.
-     * @dev Callable by the validator's authority address, resolved live against the staking
-     *      precompile; implementations MAY accept additional authorized callers under their
-     *      own scheme. Reverts if the caller is not authorized.
-     * @dev Reverts if no metadata has been set for `validatorId` yet — use `setMetadata` to
-     *      create the record first.
-     * @dev Reverts when `field == NAME` and `value` is empty.
-     * @dev Emits `MetadataUpdated` with the full post-update record on success.
-     * @param validatorId The validator ID whose field is being updated.
-     * @param field The field to update.
-     * @param value The new value. For `field == SOCIALS` or `ADDITIONAL_INFO`, callers SHOULD
-     *              pass a UTF-8 JSON object; the registry stores the string verbatim and
-     *              does not validate JSON syntax.
-     */
+    /// Update a single field, leaving other fields untouched. Reverts if no record
+    /// exists yet for `validatorId` — `setMetadata` is the only entry point that may
+    /// create a record. For `field == SOCIALS` or `ADDITIONAL_INFO`, callers SHOULD
+    /// pass a UTF-8 JSON object; the registry stores `value` verbatim.
     function updateMetadataField(uint64 validatorId, Field field, string calldata value) external;
 
-    /**
-     * @notice Read the stored metadata record for a validator.
-     * @dev Returns an all-default `Metadata` struct if no record exists; check `hasMetadata`
-     *      first to distinguish an unset record from one whose every field happens to be empty.
-     * @param validatorId The validator ID to read.
-     * @return metadata The validator's metadata record.
-     */
+    /// Read the full stored metadata record for `validatorId`, or an all-default
+    /// `Metadata` struct if no record exists. Use `hasMetadata` to disambiguate.
     function getMetadata(uint64 validatorId) external view returns (Metadata memory metadata);
 
-    /**
-     * @notice Whether metadata has been set for a validator.
-     * @dev True iff the stored `name` is non-empty. Because `name` is required to be non-empty
-     *      on every write, this is equivalent to "any metadata has ever been written for this
-     *      validator".
-     * @param validatorId The validator ID to check.
-     * @return True if a metadata record exists for `validatorId`, false otherwise.
-     */
+    /// True iff a metadata record has been written for `validatorId`. Equivalent to
+    /// the stored `name` being non-empty, since `name` is required on every write.
     function hasMetadata(uint64 validatorId) external view returns (bool);
 
-    /**
-     * @notice Read just the validator's stored name.
-     * @param validatorId The validator ID to read.
-     * @return The validator's name, or the empty string if no metadata has been set.
-     */
+    /// Read just the validator's stored name, or the empty string if no metadata is set.
     function getValidatorName(uint64 validatorId) external view returns (string memory);
 }
 ```
@@ -396,14 +336,14 @@ The normative artifact of this MRC is the interface and behavioural spec in
 
 ## Security Considerations
 
-**Authority key compromise.** A compromised authority key can both drain
+**Authority key compromise:** A compromised authority key can both drain
 validator stake (via the staking precompile) and post arbitrary metadata
 (via this registry). The registry does not amplify the impact of a
 compromise beyond what the staking precompile already allows. Validators
 SHOULD protect the authority key accordingly and SHOULD treat rotation of
 the authority as the canonical recovery path.
 
-**Phishing and impersonation via metadata.** Because `name`, `website`,
+**Phishing and impersonation via metadata:** Because `name`, `website`,
 `logo`, and `socials` are free-form and unverified, a malicious validator may
 copy the branding of another validator to siphon delegations. Integrators
 displaying registry data SHOULD:
@@ -417,7 +357,7 @@ displaying registry data SHOULD:
   feature that grants elevated trust (e.g. featured validators) — the
   registry's job is to provide self-attested data, not to attest its truth.
 
-**Storage griefing.** Strings and `additionalInfo` are unbounded in length.
+**Storage griefing:** Strings and `additionalInfo` are unbounded in length.
 A validator may pay to store an arbitrarily large record. This affects only
 that validator's own gas cost (an authorized caller must sign the
 transaction) and the SLOAD cost of `getMetadata` for that validator.
@@ -428,22 +368,22 @@ prefer the field-scoped getters (`getValidatorName`, `hasMetadata`) where
 they suffice, and SHOULD impose their own client-side display limits on
 string lengths.
 
-**Authority resolution race.** Authorization is resolved by calling the
+**Authority resolution race:** Authorization is resolved by calling the
 staking precompile inside the same transaction as the write. There is no
 TOCTOU window: the precompile cannot change authority mid-transaction.
 
-**Reorgs.** Like any on-chain state, registry contents are subject to
+**Reorgs:** Like any on-chain state, registry contents are subject to
 reorganisation. Integrators that cache the registry SHOULD respect the
 chain's finality guarantees before treating an update as durable.
 
-**`STATICCALL` and `DELEGATECALL` restrictions.** Monad's staking precompile
+**`STATICCALL` and `DELEGATECALL` restrictions:** Monad's staking precompile
 permits only standard `CALL`s. The registry MUST invoke the precompile via
 ordinary `CALL` (no `delegatecall`, no `staticcall` on write paths). View
 methods that proxy to the precompile MUST be marked `view`, which forces
 `STATICCALL` semantics — implementations relying on this MUST verify the
 precompile's view methods are STATICCALL-compatible on the target network.
 
-**No upgrade path.** This MRC specifies an immutable, non-upgradeable
+**No upgrade path:** This MRC specifies an immutable, non-upgradeable
 contract. A future MRC that changes the storage layout or interface MUST
 take effect through new deployments at new addresses, not by mutating
 existing ones. Integrators MUST treat each registry deployment as fixed
