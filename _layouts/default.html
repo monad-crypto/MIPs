@@ -100,18 +100,39 @@
         border-top: 1px solid var(--border);
         text-align: center;
       }
+      .title-icons {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin-left: 0.5rem;
+        vertical-align: middle;
+      }
       .icon-link {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 1.5rem;
-        font-size: 1rem;
+        width: 1.7rem;
+        height: 1.7rem;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        text-decoration: none;
+        transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
       }
-      .title-icons {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.15rem;
-        margin-left: 0.2rem;
+      .icon-link svg {
+        display: block;
+        width: 1rem;
+        height: 1rem;
+      }
+      .icon-link:hover {
+        color: var(--link);
+        border-color: var(--link);
+        background: var(--bg-soft);
+        text-decoration: none;
+      }
+      .icon-link:focus-visible {
+        outline: 2px solid var(--link);
+        outline-offset: 2px;
       }
       .mip-content blockquote {
         margin: 1rem 0;
