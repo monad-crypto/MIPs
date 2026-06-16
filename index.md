@@ -203,21 +203,29 @@ title: MIPs
 	.proposal-table tr.is-hidden {
 		display: none;
 	}
-	/* Use fixed layout with explicit column widths so a long Author string
-	   (multiple authors with emails) can't stretch its column excessively on
-	   wide viewports. max-width on cells is unreliable under auto layout. */
-	.proposal-table {
-		table-layout: fixed;
+	/* Always let long author strings (multiple authors with emails) wrap
+	   instead of forcing the column wide or overflowing the viewport. */
+	.proposal-table td.author-value {
+		overflow-wrap: anywhere;
 	}
-	.proposal-table th,
-	.proposal-table td {
-		box-sizing: border-box;
+	/* On wide viewports, use fixed layout with explicit column widths so a
+	   long Author string can't stretch its column excessively. max-width on
+	   cells is unreliable under auto layout. On narrow screens we keep the
+	   default auto layout so columns size to their content and stay readable. */
+	@media (min-width: 700px) {
+		.proposal-table {
+			table-layout: fixed;
+		}
+		.proposal-table th,
+		.proposal-table td {
+			box-sizing: border-box;
+		}
+		.proposal-table th:nth-child(1), .proposal-table td:nth-child(1) { width: 7%; }   /* Number */
+		.proposal-table th:nth-child(2), .proposal-table td:nth-child(2) { width: 38%; }  /* Title  */
+		.proposal-table th:nth-child(3), .proposal-table td:nth-child(3) { width: 25%; }  /* Author */
+		.proposal-table th:nth-child(4), .proposal-table td:nth-child(4) { width: 15%; }  /* Type   */
+		.proposal-table th:nth-child(5), .proposal-table td:nth-child(5) { width: 15%; }  /* Status */
 	}
-	.proposal-table th:nth-child(1), .proposal-table td:nth-child(1) { width: 7%; }   /* Number */
-	.proposal-table th:nth-child(2), .proposal-table td:nth-child(2) { width: 38%; }  /* Title  */
-	.proposal-table th:nth-child(3), .proposal-table td:nth-child(3) { width: 25%; overflow-wrap: anywhere; }  /* Author */
-	.proposal-table th:nth-child(4), .proposal-table td:nth-child(4) { width: 15%; }  /* Type   */
-	.proposal-table th:nth-child(5), .proposal-table td:nth-child(5) { width: 15%; }  /* Status */
 	.proposal-table mark {
 		background: #fef3c7;
 		color: inherit;
