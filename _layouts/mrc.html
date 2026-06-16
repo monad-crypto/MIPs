@@ -17,7 +17,7 @@ layout: default
 
 <p><a href="{{ '/' | relative_url }}#mrcs" data-prefetch-on-hover="true">← All MRCs</a></p>
 <h1>
-  MRC-{{ page.mrc }}: {{ page.title | escape }}
+  MRC-{{ page.mip }}: {{ page.title | escape }}
   <span class="title-icons">
     {% if discussions_safe != "" %}<a class="icon-link" href="{{ discussions_safe | escape }}" target="_blank" rel="noopener noreferrer" aria-label="Open discussion for this MRC">💬</a>{% endif %}<a class="icon-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer" aria-label="Open MRC source file on GitHub">🔗</a>
   </span>
@@ -47,9 +47,9 @@ layout: default
 <p>Please cite this document as:</p>
 <p>
   <span class="author-value">{{ page.author | default: "-" | escape }}</span>,
-  "MRC-{{ page.mrc }}: {{ page.title | escape }},"
+  "MRC-{{ page.mip }}: {{ page.title | escape }},"
   <em>Monad Improvement Proposals</em>,
-  no. {{ page.mrc }},
+  no. {{ page.mip }},
   {{ page.created | date: "%B %Y" }}.
   [Online serial].
   Available:
