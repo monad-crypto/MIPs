@@ -46,7 +46,7 @@ title: MIPs
 				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
 				<td>{{ p.title | escape }}</td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
-				<td>{{ p.type | default: "-" | escape }}</td>
+				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 				<td>
 					{% if p.status and p.status != "" %}
 						{% assign status_slug = p.status | slugify %}
@@ -84,7 +84,7 @@ title: MIPs
 				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
 				<td>{{ p.title | escape }}</td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
-				<td>{{ p.type | default: "-" | escape }}</td>
+				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 				<td>
 					{% if p.status and p.status != "" %}
 						{% assign status_slug = p.status | slugify %}
@@ -245,23 +245,8 @@ title: MIPs
 		padding: 0 0.1rem;
 		border-radius: 3px;
 	}
-	.status-pill {
-		display: inline-block;
-		padding: 0.15rem 0.55rem;
-		border-radius: 999px;
-		font-size: 0.82rem;
-		font-weight: 500;
-		line-height: 1.4;
-		border: 1px solid var(--border);
-		background: var(--bg-soft);
-		color: var(--muted);
-		white-space: nowrap;
-	}
-	.status-pill--draft { background: #fef3c7; border-color: #fde68a; color: #92400e; }
-	.status-pill--review { background: #dbeafe; border-color: #bfdbfe; color: #1e40af; }
-	.status-pill--last-call { background: #ede9fe; border-color: #ddd6fe; color: #5b21b6; }
-	.status-pill--final, .status-pill--living { background: #dcfce7; border-color: #bbf7d0; color: #166534; }
-	.status-pill--stagnant, .status-pill--withdrawn { background: #f3f4f6; border-color: #e5e7eb; color: #4b5563; }
+	/* Status & type pills and their tooltips are defined in the default layout
+	   so the MIP/MRC pages share them. */
 	.panel-label { margin-top: 1.5rem; }
 </style>
 
@@ -314,7 +299,7 @@ title: MIPs
 
 		// A single search box filters both the MIPs and MRCs tables at once.
 		// `panels` and `activate` (declared below) are assigned before this
-		// runs — it is only invoked from the deferred init.
+		// runs; it is only invoked from the deferred init.
 		function initGlobalSearch() {
 			var input = document.querySelector(".mip-search__input");
 			if (!input) return;
@@ -467,8 +452,9 @@ title: MIPs
 		});
 
 		// Defer search init + initial activation past the default layout's
-		// @username linkification (also DOMContentLoaded), so captured row
-		// HTML includes the linkified authors.
+		// DOMContentLoaded work (@username linkification and the status/type
+		// tooltip tagging), so the row HTML captured for filtering includes the
+		// linkified authors and the tooltip attributes.
 		setTimeout(function () {
 			activate(location.hash === "#mrcs" ? "mrcs" : "mips");
 			initGlobalSearch();

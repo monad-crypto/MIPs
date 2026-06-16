@@ -135,6 +135,83 @@
         height: auto;
         margin: 1.5rem auto;
       }
+      /* Status & type pills (shared by the index and the MIP/MRC pages). */
+      .status-pill {
+        display: inline-block;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        line-height: 1.4;
+        border: 1px solid var(--border);
+        background: var(--bg-soft);
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .status-pill--draft { background: #fef3c7; border-color: #fde68a; color: #92400e; }
+      .status-pill--review { background: #dbeafe; border-color: #bfdbfe; color: #1e40af; }
+      .status-pill--last-call { background: #ede9fe; border-color: #ddd6fe; color: #5b21b6; }
+      .status-pill--final, .status-pill--living { background: #dcfce7; border-color: #bbf7d0; color: #166534; }
+      .status-pill--stagnant, .status-pill--withdrawn { background: #f3f4f6; border-color: #e5e7eb; color: #4b5563; }
+      .type-pill {
+        display: inline-block;
+        padding: 0.15rem 0.55rem;
+        border-radius: 6px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        line-height: 1.4;
+        border: 1px solid var(--border);
+        background: var(--bg-soft);
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .type-pill--standards-track { background: #e0f2fe; border-color: #bae6fd; color: #075985; }
+      .type-pill--meta { background: #fae8ff; border-color: #f5d0fe; color: #86198f; }
+      .type-pill--informational { background: #f1f5f9; border-color: #e2e8f0; color: #475569; }
+      /* Hover/focus tooltip explaining a status or type (definitions per MIP-1). */
+      .has-tip {
+        position: relative;
+        cursor: help;
+      }
+      .has-tip::after {
+        content: attr(data-tip);
+        position: absolute;
+        left: 0;
+        top: calc(100% + 7px);
+        z-index: 20;
+        width: max-content;
+        max-width: min(20rem, 78vw);
+        padding: 0.5rem 0.65rem;
+        background: #111827;
+        color: #f9fafb;
+        font-size: 0.78rem;
+        font-weight: 400;
+        line-height: 1.45;
+        white-space: normal;
+        text-align: left;
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(17, 24, 39, 0.22);
+        opacity: 0;
+        transform: translateY(-3px);
+        transition: opacity 0.12s ease, transform 0.12s ease;
+        pointer-events: none;
+      }
+      /* On the index the status pill is in the rightmost column, so anchor its
+         tooltip to the right so it can't overflow the viewport edge. */
+      .proposal-table .status-pill.has-tip::after,
+      .proposal-table .type-pill.has-tip::after {
+        left: auto;
+        right: 0;
+      }
+      .has-tip:hover::after,
+      .has-tip:focus-visible::after {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .has-tip:focus-visible {
+        outline: 2px solid var(--link);
+        outline-offset: 2px;
+      }
     </style>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha512-HiD3V4nv8fcjtouznjT9TqDNDm1EXngV331YGbfVGeKUoH+OLkRTCMzA34ecjlgSQZpdHZupdSrqHY+Hz3l6uQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-python.min.js" integrity="sha512-AKaNmg8COK0zEbjTdMHJAPJ0z6VeNqvRvH4/d5M4sHJbQQUToMBtodq4HaV4fa+WV2UTfoperElm66c9/8cKmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -244,6 +321,37 @@
         authorFields.forEach(function (field) {
           var raw = field.textContent || "";
           field.innerHTML = linkifyAuthor(raw);
+        });
+
+        // Attach concise hover/focus explanations (definitions per MIP-1) to
+        // every status and type pill, on both the index and the MIP/MRC pages.
+        // Runs during DOMContentLoaded, before the index's deferred search
+        // captures cell HTML, so the tooltips survive filter/highlight redraws.
+        var statusTips = {
+          "draft": "First formally tracked stage; a MIP in development, merged into the repository once properly formatted.",
+          "review": "The author has marked the MIP ready and is requesting peer review.",
+          "last call": "Final review window before Final. The specification is stable; reverts to Review if normative changes are needed.",
+          "final": "The finalized standard. Updated only to correct errata or add non-normative clarifications.",
+          "stagnant": "Inactive in Draft, Review, or Last Call for 3+ months. Can be resurrected by an author or editor.",
+          "withdrawn": "The author(s) have withdrawn the proposal. This is final; the number cannot be reused.",
+          "living": "Designed to be continually updated and never reach finality (e.g. MIP-1)."
+        };
+        var typeTips = {
+          "standards track": "A change affecting most or all Monad implementations: the network protocol, block/transaction validity, or application standards.",
+          "meta": "A process around Monad (procedures, tooling, or named network upgrades) rather than a change to the protocol itself.",
+          "informational": "General guidelines or information for the community. Non-binding, so users and implementers may ignore it."
+        };
+        function tagTip(el, tip) {
+          if (!el || !tip) return;
+          el.classList.add("has-tip");
+          el.setAttribute("data-tip", tip);
+          el.setAttribute("tabindex", "0");
+        }
+        document.querySelectorAll(".status-pill").forEach(function (el) {
+          tagTip(el, statusTips[(el.textContent || "").trim().toLowerCase()]);
+        });
+        document.querySelectorAll(".type-pill").forEach(function (el) {
+          tagTip(el, typeTips[(el.textContent || "").trim().toLowerCase()]);
         });
 
         var mipContent = document.querySelector(".mip-content");
