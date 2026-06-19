@@ -133,6 +133,15 @@ title: MIPs
 		outline: 2px solid var(--link);
 		outline-offset: 2px;
 	}
+	.proposal-panel {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+	}
+	.proposal-panel::-webkit-scrollbar {
+        display: none;
+	}
 	.proposal-panel[hidden] {
 		display: none;
 	}
@@ -211,6 +220,9 @@ title: MIPs
 		margin: 0.25rem 0.15rem 0;
 		font-size: 0.875rem;
 	}
+	.proposal-table {
+		min-width: 900px;
+	}
 	.proposal-table tr.is-hidden {
 		display: none;
 	}
@@ -225,6 +237,7 @@ title: MIPs
 	   default auto layout so columns size to their content and stay readable. */
 	@media (min-width: 700px) {
 		.proposal-table {
+			min-width: fit-content;
 			table-layout: fixed;
 		}
 		.proposal-table th,
