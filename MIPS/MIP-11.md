@@ -45,7 +45,7 @@ The distribution account has the following logic:
 class distribution_account:
 
     # This function is only callable via execution; no transaction can call it.
-    def syscall_distribute(address block_leader):
+    def distribute(address block_leader):
         
         # 1. Load Balance and clear balance per block
         total_balance = get_balance(address(this))
