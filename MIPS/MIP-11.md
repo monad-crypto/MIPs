@@ -57,7 +57,7 @@ class distribution_account:
         # 3. Get relevant validator info
         val_execution = val_execution(val_id)
         val_consensus = val_consensus(val_id)
-        auth = delegator(val_id,val_execution.auth_address)
+        auth = delegator(val_id, val_execution.auth_address)
 
         # 4. Get Commission Fee if applicable 
         commission_amount = 0 
