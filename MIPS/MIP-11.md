@@ -60,8 +60,6 @@ class distribution_account:
         auth = delegator(val_id, val_execution.auth_address)
 
         # 4. Get Commission Fee if applicable 
-        commission_amount = 0 
-        distribute_amount = 0 
         if val_consensus.commission_rate > 0:
             commission_amount = (total_balance * val_consensus.commission_rate) / 1e18
         
