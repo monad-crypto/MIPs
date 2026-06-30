@@ -65,11 +65,12 @@ class distribution_account:
         
         # 5. Check if sufficent to distribute funds
         distribute_amount = total_balance - commission_amount
+        staking_contract.apply_commission_to_auth_account(auth){msg.value = commission_amount}
+
         if distribute_amount < DUST_THRESHOLD:
             exit 
             
         # 6. Distribute funds
-        staking_contract.apply_commission_to_auth_account(auth){msg.value = commission_amount}
         staking_contract.distribute(val_id){msg.value = distribute_amount}
 ```
 
