@@ -43,6 +43,9 @@ interface IReserveBalance {
 
 The Solidity selector for `dippedIntoReserve` is `SELECTOR_DIPPED_INTO_RESERVE (0x3a61584e)`.
 
+`dippedIntoReserve()` must be invoked via `CALL`. Invocations via `STATICCALL`, `DELEGATECALL`, or `CALLCODE` revert (see [Semantics](#semantics)).
+The interface method is intentionally not declared `view`, so that a Solidity call site compiles to `CALL` rather than `STATICCALL`.
+
 ### Gas Cost
 
 Calling `dippedIntoReserve()` has a gas cost of `GAS_DIPPED_INTO_RESERVE (100)`, equivalent to the cost of one `tload`. 
