@@ -24,16 +24,12 @@ The reserve balance precompile allows contracts to query violation state mid-exe
 
 ## Specification
 
-### Constants
-
 | Name                           | Value        |
 | ------------------------------ | ------------ |
 | `GAS_DIPPED_INTO_RESERVE`      | `100`        |
 | `SELECTOR_DIPPED_INTO_RESERVE` | `0x3a61584e` |
 
-### Precompile
-
-The new precompile has address `0x1001`, following the existing staking precompile at `0x1000`, and satisfies the following Solidity interface:
+The new precompile has address `0x1001`, and satisfies the following Solidity interface:
 
 ```solidity
 interface IReserveBalance {
@@ -43,35 +39,16 @@ interface IReserveBalance {
 
 The Solidity selector for `dippedIntoReserve` is `SELECTOR_DIPPED_INTO_RESERVE (0x3a61584e)`.
 
-### Gas Cost
+The precompile must be invoked via `CALL`.
+Invocations via `STATICCALL`, `DELEGATECALL`, or `CALLCODE` must revert.
 
-Calling `dippedIntoReserve()` has a gas cost of `GAS_DIPPED_INTO_RESERVE (100)`, equivalent to the cost of one `tload`. 
-Implementations should incrementally update their state to track violations of the reserve balance constraints, rather than iterating over the set of modified accounts in the current transaction on each call to the precompile.
-Then `dippedIntoReserve()` should be a check of this violation state and therefore should have similar resource usage to a load from transient storage.
-
-This was not benchmarked, but aligns with benchmarking and costing for the staking precompile's gas costs, which were calculated from the number of database loads and stores, events, and transfers.
-The reserve balance check produces no events or transfers and is analagous to a load from transient storage instead of database storage and thus uses the cost for a `tload`.
-
-### Semantics
-
-The method `dippedIntoReserve()` evaluates the condition that `DippedIntoReserve` (Algorithm 3 of the initial spec) would return, substituting the current state for the post-execution state.
-The check considers all accounts touched in the transaction, regardless of call depth.
-
-The return value is ABI-encoded as a Solidity `bool`—i.e., a 32-byte word in returndata, consistent with standard Solidity ABI encoding.
-This means callers can invoke the precompile via a normal contract call and decode the result using standard ABI decoding.
+Invocations via [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702) delegations targeting the precompile address must revert.
 
 Calldata must consist of exactly the 4-byte `SELECTOR_DIPPED_INTO_RESERVE`.
-Any other calldata is invalid: if the selector does not match `dippedIntoReserve()` (i.e. the selector is unrecognized) the contract must revert with the error message "method not supported".
+Any other calldata is invalid: if the calldata is shorter than 4 bytes or not equal `SELECTOR_DIPPED_INTO_RESERVE` the precompile must revert with the error message "method not supported".
 If extra calldata is appended beyond the selector, the precompile must revert with the error message "input is invalid".
 
 The method `dippedIntoReserve()` is not payable and must revert with the error message "value is nonzero" when called with a nonzero value.
-
-The precompile must be invoked via `CALL`.
-Invocations via `STATICCALL`, `DELEGATECALL`, or `CALLCODE` must revert.
-Invocations via [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702) delegations targeting the precompile address must revert.
-
-Reverts consume all gas provided to the call frame.
-This is consistent with the behavior of Ethereum precompiles, which do not return remaining gas on failure, as opposed to Solidity functions which return unused gas on revert.
 
 In case more than one revert condition is present, the revert error message must correspond with the conditions evaluated in the following order:
 
@@ -82,12 +59,48 @@ In case more than one revert condition is present, the revert error message must
 5. `value > 0`
 6. `len(calldata) > 4`
 
+Reverts consume all gas provided to the call frame.
+
+On success, the method `dippedIntoReserve()` evaluates the condition that `DippedIntoReserve` (Algorithm 3 of the initial spec) would return, substituting the current state for the post-execution state.
+The check considers all accounts touched in the transaction, regardless of call depth.
+The call consumes `GAS_DIPPED_INTO_RESERVE` gas.
+
+The return value is ABI-encoded as a Solidity `bool`—i.e., a 32-byte word in returndata.
+
 ## Rationale
+
+### Address
+
+Precompile address chosen follows the existing staking precompile at `0x1000`.
+
+### Gas cost
+
+Gas cost of `dippedIntoReserve()` is equivalent to the cost of one `tload`. 
+Implementations should incrementally update their state to track violations of the reserve balance constraints, rather than iterating over the set of modified accounts in the current transaction on each call to the precompile.
+Then `dippedIntoReserve()` should be a check of this violation state and therefore should have similar resource usage to a load from transient storage.
+
+This was not benchmarked, but aligns with benchmarking and costing for the staking precompile's gas costs, which were calculated from the number of database loads and stores, events, and transfers.
+The reserve balance check produces no events or transfers and is analagous to a load from transient storage instead of database storage and thus uses the cost for a `tload`.
+
+Reverts consuming all gas is consistent with the behavior of Ethereum precompiles, which do not return remaining gas on failure, as opposed to Solidity functions which return unused gas on revert.
+
+### Return value encoding
+
+The return value is encoded consistently with standard Solidity ABI encoding.
+This means callers can invoke the precompile via a normal contract call.
+
+### Precompile vs opcode
 
 A previous design proposed adding a new opcode with similar semantics.
 Since this introspection feature is intended for direct use by smart contract developers (e.g., in bundler entrypoint contracts), a precompile was chosen because it can be called immediately without requiring compiler or toolchain updates.
 
+### Compatibility with other Monad precompiles
+
 The semantics described above (strict calldata validation, ABI-encoded return values, rejecting calls with value, conventions around `*CALL` opcodes & EIP-7702, revert messages, and all-gas-consuming reverts) are chosen for explicit consistency with the existing Monad staking precompile.
+
+### `dippedIntoReserve()` not `view`
+
+The interface method `dippedIntoReserve()` is intentionally not declared `view`, so that a Solidity call site compiles to `CALL` rather than `STATICCALL`.
 
 ## Backwards Compatibility
 
