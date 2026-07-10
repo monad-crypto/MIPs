@@ -45,7 +45,7 @@ Invocations via `STATICCALL`, `DELEGATECALL`, or `CALLCODE` must revert.
 Invocations via [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702) delegations targeting the precompile address must revert.
 
 Calldata must consist of exactly the 4-byte `SELECTOR_DIPPED_INTO_RESERVE`.
-Any other calldata is invalid: if the calldata is shorter than 4 bytes or not equal `SELECTOR_DIPPED_INTO_RESERVE` the precompile must revert with the error message "method not supported".
+Any other calldata is invalid: if the calldata is shorter than 4 bytes or not equal to `SELECTOR_DIPPED_INTO_RESERVE` the precompile must revert with the error message "method not supported".
 If extra calldata is appended beyond the selector, the precompile must revert with the error message "input is invalid".
 
 The method `dippedIntoReserve()` is not payable and must revert with the error message "value is nonzero" when called with a nonzero value.
@@ -89,7 +89,7 @@ Reverts consuming all gas is consistent with the behavior of Ethereum precompile
 The return value is encoded consistently with standard Solidity ABI encoding.
 This means callers can invoke the precompile via a normal contract call.
 
-### Precompile vs opcode
+### Precompile vs. opcode
 
 A previous design proposed adding a new opcode with similar semantics.
 Since this introspection feature is intended for direct use by smart contract developers (e.g., in bundler entrypoint contracts), a precompile was chosen because it can be called immediately without requiring compiler or toolchain updates.
@@ -97,8 +97,6 @@ Since this introspection feature is intended for direct use by smart contract de
 ### Compatibility with other Monad precompiles
 
 The semantics described above (strict calldata validation, ABI-encoded return values, rejecting calls with value, conventions around `*CALL` opcodes & EIP-7702, revert messages, and all-gas-consuming reverts) are chosen for explicit consistency with the existing Monad staking precompile.
-
-### `dippedIntoReserve()` not `view`
 
 The interface method `dippedIntoReserve()` is intentionally not declared `view`, so that a Solidity call site compiles to `CALL` rather than `STATICCALL`.
 
