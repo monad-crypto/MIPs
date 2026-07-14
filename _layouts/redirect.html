@@ -1,0 +1,18 @@
+{% comment %}
+  Dependency-free replacement for the jekyll-redirect-from plugin.
+
+  A page using this layout renders a static HTML stub that redirects the
+  browser to `page.redirect_to`. Used by the files under `redirects/` to keep
+  the pre-#53 `/MIPS/...` (uppercase) URLs alive after the folder was renamed
+  to `MIPs/`. Cool URLs don't change :)
+{% endcomment %}<!DOCTYPE html>
+<html lang="{{ site.lang | default: "en-US" }}">
+  <meta charset="utf-8">
+  <title>Redirecting&hellip;</title>
+  <link rel="canonical" href="{{ page.redirect_to | absolute_url }}">
+  <script>location="{{ page.redirect_to | absolute_url }}"</script>
+  <meta http-equiv="refresh" content="0; url={{ page.redirect_to | absolute_url }}">
+  <meta name="robots" content="noindex">
+  <h1>Redirecting&hellip;</h1>
+  <a href="{{ page.redirect_to | absolute_url }}">Click here if you are not redirected.</a>
+</html>
