@@ -1,0 +1,52 @@
+name: Link Check
+
+# Job 1 — per-PR gate (deterministic; blocks merge).
+# Builds the Jekyll site and checks that every link in the MIP/MRC pages
+# resolves, so a proposal can't merge with a broken cross-reference.
+#   * HTMLProofer runs against the *built* site, so it catches links that only
+#     break after rendering (e.g. `./MIP-3.md`, which 404s because
+#     `permalink: /:path` serves extension-less URLs).
+#   * A small offline check verifies in-repo github.com/monad-crypto/MIPs file
+#     links point at paths that actually exist, case-sensitively (catches
+#     `MIPS/` vs `MIPs/`) with no network calls.
+# External links are intentionally NOT checked here — they belong in the
+# scheduled monitor (link-monitor.yml) so third-party flakiness can't block PRs.
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Build site
+        run: bundle exec jekyll build
+        env:
+          JEKYLL_ENV: production
+
+      - name: Check internal links (HTMLProofer)
+        run: |
+          gem install html-proofer --no-document
+          htmlproofer ./_site/MIPs ./_site/MRCs \
+            --root-dir ./_site \
+            --disable-external \
+            --allow-hash-href
+
+      - name: Validate in-repo GitHub file links (offline, case-sensitive)
+        run: python3 .github/scripts/check_repo_file_links.py

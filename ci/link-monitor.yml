@@ -1,0 +1,37 @@
+name: Link Monitor
+
+# Job 2 — scheduled monitor (reports; does NOT block PRs).
+# Crawls the Monad forum threads that discuss each MIP/MRC and status-checks
+# every link back to mips.monad.xyz / github.com/monad-crypto/MIPs, and also
+# re-checks the target links in the repo's own markdown against the live site.
+# Findings are written to the job summary and opened/updated as a tracking issue.
+#
+# This is deliberately separate from the per-PR gate: forum posts aren't part of
+# any PR and can't be fixed by a PR author, and external HTTP checks are flaky —
+# so this runs on a schedule and reports rather than gating merges.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC (weekly)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run link monitor
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/link_monitor.py
