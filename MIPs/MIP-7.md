@@ -1,5 +1,8 @@
 ---
 mip: 7
+redirect_from:
+  - /MIPS/MIP-7
+  - /MIPS/MIP-7/
 title: Extension opcodes
 description: Add a reserved opcode for implementation-defined extension opcodes
 author: Category Labs

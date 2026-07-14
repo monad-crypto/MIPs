@@ -13,6 +13,14 @@ markdown: kramdown
 highlighter: none
 permalink: /:path
 
+plugins:
+  - jekyll-redirect-from
+
+# `safe: true` only loads whitelisted plugins, so the redirect plugin must be
+# listed here as well as under `plugins` above.
+whitelist:
+  - jekyll-redirect-from
+
 kramdown:
   input: GFM
   math_engine: mathjax

@@ -1,5 +1,8 @@
 ---
 mip: 4
+redirect_from:
+  - /MIPS/MIP-4
+  - /MIPS/MIP-4/
 title: Reserve Balance Introspection
 description: Add reserve balance precompile to query reserve balance violation state during transaction execution
 author: Category Labs

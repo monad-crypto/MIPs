@@ -1,5 +1,8 @@
 ---
 mip: 12
+redirect_from:
+  - /MIPS/MIP-12
+  - /MIPS/MIP-12/
 title: Decrease Block Time
 description: Decrease consensus vote pace from 400ms to 300ms
 author: Category Labs

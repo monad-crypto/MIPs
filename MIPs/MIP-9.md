@@ -1,5 +1,8 @@
 ---
 mip: 9
+redirect_from:
+  - /MIPS/MIP-9
+  - /MIPS/MIP-9/
 title: Active Set Increase
 description: Increase the `ACTIVE_VALSET_SIZE` from 200 to 300.
 author: Jackson Lewis (@jacksononchain)

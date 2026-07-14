@@ -1,5 +1,8 @@
 ---
 mip: 1
+redirect_from:
+  - /MIPS/MIP-1
+  - /MIPS/MIP-1/
 title: MIP Purpose and Guidelines
 description: Guidelines and procedures for the Monad Improvement Proposal process
 author: QEDK (@qedk)

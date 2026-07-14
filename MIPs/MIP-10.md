@@ -1,5 +1,8 @@
 ---
 mip: 10
+redirect_from:
+  - /MIPS/MIP-10
+  - /MIPS/MIP-10/
 title: Deterministic RaptorCast 
 description: Introduces a canonical encoding scheme for RaptorCast that closes asymmetric liveness and equivocation attack surfaces and reduces dissemination latency
 author: Category Labs

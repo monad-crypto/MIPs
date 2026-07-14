@@ -1,5 +1,8 @@
 ---
 mip: 3
+redirect_from:
+  - /MIPS/MIP-3
+  - /MIPS/MIP-3/
 title: Linear Memory
 description: Redefine memory expansion cost to be linear and enforce an explicit maximum memory usage per transaction
 author: Category Labs

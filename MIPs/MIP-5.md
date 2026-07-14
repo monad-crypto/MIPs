@@ -1,5 +1,8 @@
 ---
 mip: 5
+redirect_from:
+  - /MIPS/MIP-5
+  - /MIPS/MIP-5/
 title: Fusaka EIP Activation
 description: Activate EIP-7823, EIP-7883, and EIP-7939 from Ethereum's Fusaka upgrade.
 author: Category Labs

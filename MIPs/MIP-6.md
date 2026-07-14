@@ -1,5 +1,8 @@
 ---
 mip: 6
+redirect_from:
+  - /MIPS/MIP-6
+  - /MIPS/MIP-6/
 title: MONAD_NINE Network Upgrade
 description: Meta MIP for the `MONAD_NINE` network upgrade
 author: Category Labs

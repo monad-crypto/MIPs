@@ -1,5 +1,8 @@
 ---
 mip: 11
+redirect_from:
+  - /MIPS/MIP-11
+  - /MIPS/MIP-11/
 title: Automatic Priority Fee Distribution
 description: Automatically distribute priority fees to delegators.
 author: Category Labs

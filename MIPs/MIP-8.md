@@ -1,5 +1,8 @@
 ---
 mip: 8
+redirect_from:
+  - /MIPS/MIP-8
+  - /MIPS/MIP-8/
 title: Page-ified Storage State
 description: Partition EVM storage to align with database pages
 author: Category Labs
