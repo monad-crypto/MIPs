@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Offline validator for links that point at files inside THIS repo via GitHub
-(part of Job 1, the per-PR gate).
+Offline validator for links that point at files inside THIS repo.
 
 For every `github.com/monad-crypto/MIPs/blob|tree/<ref>/<path>` (and the
 equivalent `raw.githubusercontent.com/...`) link found in the repo's markdown,
 assert that `<path>` actually exists in the checked-out tree, matching case
 exactly. This catches wrong-case references such as `.../MIPS/MIP-4.md` (the
-folder is `MIPs`) deterministically — no network, no GitHub rate-limits — and
-validates against the PR's own tree rather than production.
+folder is `MIPs`) deterministically.
 
-Exit code is non-zero if any referenced path is missing, so it can gate a PR.
+Exit code is non-zero if any referenced path is missing.
 """
 import os
 import re

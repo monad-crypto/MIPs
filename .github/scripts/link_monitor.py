@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Scheduled link monitor for the MIPs repo (Job 2).
+Scheduled link monitor for the MIPs repo.
 
 Scope: the MIPs repo content and the Monad forum threads that discuss each
-proposal (NOT the wider internet). It:
+proposal. It:
 
   1. discovers every MIP/MRC forum thread (from `discussions-to:` front matter
      and from the forum's MIPs category listing),
@@ -14,9 +14,6 @@ proposal (NOT the wider internet). It:
 
 and writes a report. When run in GitHub Actions with a token it opens/updates a
 tracking issue; otherwise it just prints the report.
-
-This job is a MONITOR: it never fails the build. Forum posts are not part of any
-PR and cannot be fixed by a PR author, so this must not gate merges.
 """
 import json
 import os
@@ -75,10 +72,6 @@ def status_only(url):
 
 def is_dead(status):
     return isinstance(status, int) and status in (404, 410)
-
-
-def is_unreachable(status):
-    return (not isinstance(status, int)) or status >= 500 or status == 429
 
 
 # --------------------------------------------------------------------------- #
@@ -175,18 +168,18 @@ def scan_thread(tid):
         cand = set(HREF_RE.findall(cooked))
         cand |= {u.rstrip(".,);'\"") for u in URL_RE.findall(cooked)}
         for raw in cand:
-            absu = urllib.parse.urldefrag(
+            absolute_url = urllib.parse.urldefrag(
                 urllib.parse.urljoin(f"{FORUM}/t/{tid}", raw)
             )[0]
-            if not TARGET_RE.search(absu):
+            if not TARGET_RE.search(absolute_url):
                 continue
-            key = (p.get("post_number"), absu)
+            key = (p.get("post_number"), absolute_url)
             if key in seen:
                 continue
             seen.add(key)
-            st = status_only(absu)
+            st = status_only(absolute_url)
             if is_dead(st):
-                dead.append((p.get("post_number"), p.get("username"), absu, st))
+                dead.append((p.get("post_number"), p.get("username"), absolute_url, st))
         time.sleep(0.05)
     return title, dead, None
 
@@ -229,7 +222,7 @@ def scan_repo_markdown(root="."):
 # --------------------------------------------------------------------------- #
 # Reporting
 # --------------------------------------------------------------------------- #
-def build_report(forum_dead, repo_dead, unreachable):
+def build_report(forum_dead, repo_dead):
     lines = []
     total = sum(len(v[1]) for v in forum_dead.values()) + len(repo_dead)
     when = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
@@ -255,11 +248,6 @@ def build_report(forum_dead, repo_dead, unreachable):
         lines.append(f"- **{title}** ({FORUM}/t/{tid})")
         for pn, user, url, st in dead:
             lines.append(f"    - post #{pn} (@{user}): {url} — {st}")
-    if unreachable:
-        lines.append("")
-        lines.append("### ⚠️ Unverified (timeout / 5xx / rate-limited — not counted as dead)")
-        for ctx, url, st in unreachable:
-            lines.append(f"- {ctx}: {url} — {st}")
     return "\n".join(lines), total
 
 
@@ -322,7 +310,7 @@ def main():
     repo_dead = scan_repo_markdown(root)
     print(f"  {len(repo_dead)} dead target links in repo markdown")
 
-    report, total = build_report(forum_dead, repo_dead, [])
+    report, total = build_report(forum_dead, repo_dead)
     print("\n" + "=" * 70 + "\n" + report + "\n" + "=" * 70)
 
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
