@@ -40,13 +40,13 @@ The max memory usage is capped at 8 MB.  Memory allocation is bounded across cal
  remaining_memory = 8 * 1024 * 1024 - j - k
 ```
 3. Once a call returns, the memory is returned to the pool.
-4. If a call exceeds the remaining memory limit, it reverts.
+4. If a call exceeds the remaining memory limit, it halts exceptionally, consuming all gas remaining in that call frame.
 
 ## Backwards Compatibility
 
 This proposal is highly compatible with existing contracts. Almost all standard EVM operations remain valid and ERC-4337 contracts continue to function correctly, as child call memory is released upon completion. Replay testing of historical Ethereum transactions will be used to quantify compatibility.
 
-However, contracts that allocate more than 8 MB of memory will now revert.
+However, contracts that allocate more than 8 MB of memory will now halt exceptionally.
 
 ## Security Considerations
 
