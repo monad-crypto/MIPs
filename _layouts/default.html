@@ -217,12 +217,8 @@
         transition: opacity 0.12s ease, transform 0.12s ease;
         pointer-events: none;
       }
-      /* The index tables live in horizontally scrollable panels, and a scroll
-         container clips on both axes, so a tooltip positioned inside it gets
-         cropped on the bottom rows. Fix those tooltips to the viewport
-         instead; the pill-tooltip script mirrors the pill's position into the
-         custom properties on hover, flipping the bubble above the pill when
-         the viewport bottom would crop it. */
+      /* The index's scrollable panels clip on both axes, so their tooltips
+         are fixed to the viewport instead, positioned on hover by script. */
       .proposal-table .status-pill.has-tip::after,
       .proposal-table .type-pill.has-tip::after {
         position: fixed;
@@ -390,47 +386,21 @@
           tagTip(el, typeTips[(el.textContent || "").trim().toLowerCase()]);
         });
 
-        // Tooltips inside the index's proposal tables are fixed-positioned
-        // (see the .proposal-table overrides in the stylesheet), so their
-        // coordinates must be computed from the pill: right-aligned with the
-        // pill and below it, flipped above when the viewport bottom would
-        // crop the bubble. Delegated listeners so rows re-rendered by the
-        // index's filter keep working without re-binding.
-        var activeTipPill = null;
-        function placeTip(pill) {
-          var rect = pill.getBoundingClientRect();
-          var tip = window.getComputedStyle(pill, "::after");
-          var tipHeight = parseFloat(tip.height) || 0;
-          var tipWidth = parseFloat(tip.width) || 0;
-          var gap = 7;
-          var margin = 4;
-          var top = rect.bottom + gap;
-          if (top + tipHeight > window.innerHeight - margin && rect.top - gap - tipHeight >= margin) {
-            top = rect.top - gap - tipHeight;
-          }
-          var right = Math.max(margin, window.innerWidth - rect.right);
-          right = Math.min(right, Math.max(margin, window.innerWidth - margin - tipWidth));
-          pill.style.setProperty("--tip-top", top + "px");
-          pill.style.setProperty("--tip-right", right + "px");
-        }
+        // Place the index tables' fixed tooltips: below the pill, right-aligned,
+        // flipped above when the viewport bottom would crop them.
         document.addEventListener("pointerover", function (event) {
           var pill = event.target.closest(".proposal-table .has-tip");
-          if (pill) {
-            activeTipPill = pill;
-            placeTip(pill);
+          if (!pill) return;
+          var rect = pill.getBoundingClientRect();
+          var tip = window.getComputedStyle(pill, "::after");
+          var top = rect.bottom + 7;
+          if (top + parseFloat(tip.height) > window.innerHeight) {
+            top = rect.top - 7 - parseFloat(tip.height);
           }
+          var right = Math.min(Math.max(4, window.innerWidth - rect.right), window.innerWidth - parseFloat(tip.width) - 4);
+          pill.style.setProperty("--tip-top", top + "px");
+          pill.style.setProperty("--tip-right", right + "px");
         });
-        document.addEventListener("pointerout", function (event) {
-          if (activeTipPill && event.target === activeTipPill) {
-            activeTipPill = null;
-          }
-        });
-        window.addEventListener("resize", function () {
-          if (activeTipPill) placeTip(activeTipPill);
-        });
-        document.addEventListener("scroll", function () {
-          if (activeTipPill) placeTip(activeTipPill);
-        }, true);
 
         var mipContent = document.querySelector(".mip-content");
         if (mipContent) {
