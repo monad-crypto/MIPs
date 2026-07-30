@@ -1,6 +1,7 @@
 ---
 layout: default
 title: MIPs
+description: Monad Improvement Proposals (MIPs) describe standards for the Monad ecosystem, such as protocol specifications.
 ---
 
 # Monad Improvement Proposals

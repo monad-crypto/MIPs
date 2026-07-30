@@ -8,6 +8,19 @@
     <meta name="description" content="{{ meta_description | truncate: 160 | escape }}" />
     <link rel="icon" type="image/svg+xml" href="{{ '/favicon.svg' | relative_url }}" />
     <title>Monad Improvement Proposals (MIPs)</title>
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="{{ page.title | default: 'Monad Improvement Proposals' | escape }}">
+    <meta property="og:description" content="{{ meta_description | truncate: 160 | escape }}">
+    <meta property="og:url" content="{{ page.url | absolute_url }}">
+    <meta property="og:site_name" content="Monad Improvement Proposals">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://mips.monad.xyz/og.webp">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/webp">
+    <meta property="og:image:alt" content="Monad Improvement Proposals">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@monad">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerpolicy="no-referrer" onload="this.onload=null;this.rel='stylesheet'" />
     <link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha512-HiD3V4nv8fcjtouznjT9TqDNDm1EXngV331YGbfVGeKUoH+OLkRTCMzA34ecjlgSQZpdHZupdSrqHY+Hz3l6uQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
