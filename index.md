@@ -42,7 +42,7 @@ title: MIPs
 		{% for p in mips %}
 			<tr class="proposal-row" data-href="{{ p.url | relative_url }}">
 				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
-				<td>{{ p.title | escape }}<span class="row-open" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></span></td>
+				<td>{{ p.title | escape }}<svg class="row-open" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
 				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 				<td>
@@ -80,7 +80,7 @@ title: MIPs
 		{% for p in mrcs %}
 			<tr class="proposal-row" data-href="{{ p.url | relative_url }}">
 				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
-				<td>{{ p.title | escape }}<span class="row-open" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></span></td>
+				<td>{{ p.title | escape }}<svg class="row-open" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
 				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 				<td>
@@ -250,11 +250,10 @@ title: MIPs
 		.proposal-table th:nth-child(4), .proposal-table td:nth-child(4) { width: 15%; }  /* Type   */
 		.proposal-table th:nth-child(5), .proposal-table td:nth-child(5) { width: 15%; }  /* Status */
 	}
-	/* Rows navigate to their proposal on click (see the script below). */
+	/* Rows are clickable (see the script); tint and arrow fade in on hover. */
 	.proposal-row {
 		cursor: pointer;
 	}
-	/* Both the row tint and the open icon fade in and back out together. */
 	.proposal-row td {
 		transition: background-color 0.18s ease;
 	}
@@ -263,17 +262,11 @@ title: MIPs
 		background-color: var(--bg-soft);
 	}
 	.row-open {
-		display: inline-flex;
 		margin-left: 0.35rem;
 		color: var(--muted);
 		vertical-align: middle;
 		opacity: 0;
 		transition: opacity 0.18s ease;
-	}
-	.row-open svg {
-		display: block;
-		width: 0.85rem;
-		height: 0.85rem;
 	}
 	.proposal-row:hover .row-open,
 	.proposal-row:focus-within .row-open {
@@ -477,15 +470,13 @@ title: MIPs
 			});
 		});
 
-		// A click anywhere in a row opens its proposal. Links inside the row
-		// (the number, author handles and emails) keep their own targets, and a
-		// click that just ended a text selection is left alone.
+		// Clicking a row opens its proposal. Links inside it keep their targets,
+		// and a click that ended a drag-selection in the row is ignored.
 		document.addEventListener("click", function (e) {
-			var target = e.target;
-			if (!(target instanceof Element)) return;
-			var row = target.closest("tr[data-href]");
-			if (!row || target.closest("a[href]")) return;
-			if (String(window.getSelection() || "")) return;
+			var row = e.target.closest("tr[data-href]");
+			if (!row || e.target.closest("a[href]")) return;
+			var selection = window.getSelection();
+			if (!selection.isCollapsed && row.contains(selection.anchorNode)) return;
 			if (e.metaKey || e.ctrlKey || e.shiftKey) {
 				window.open(row.dataset.href, "_blank", "noopener");
 			} else {
