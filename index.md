@@ -471,12 +471,13 @@ title: MIPs
 		});
 
 		// Clicking a row opens its proposal. Links inside it keep their targets,
-		// and a click that ended a drag-selection in the row is ignored.
+		// and a click is ignored while a text selection touches the row, so
+		// drag-selecting across rows doesn't navigate.
 		document.addEventListener("click", function (e) {
 			var row = e.target.closest("tr[data-href]");
 			if (!row || e.target.closest("a[href]")) return;
-			var selection = window.getSelection();
-			if (!selection.isCollapsed && row.contains(selection.anchorNode)) return;
+			var selection = window.getSelection ? window.getSelection() : null;
+			if (selection && !selection.isCollapsed && selection.containsNode(row, true)) return;
 			if (e.metaKey || e.ctrlKey || e.shiftKey) {
 				window.open(row.dataset.href, "_blank", "noopener");
 			} else {
