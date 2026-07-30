@@ -7,14 +7,23 @@
     {% assign meta_description = meta_description | markdownify | strip_html | normalize_whitespace | strip %}
     <meta name="description" content="{{ meta_description | truncate: 160 | escape }}" />
     <link rel="icon" type="image/svg+xml" href="{{ '/favicon.svg' | relative_url }}" />
-    <title>Monad Improvement Proposals (MIPs)</title>
+    {% if page.mip %}
+      {% if page.layout == "mrc" %}{% assign doc_kind = "MRC-" %}{% else %}{% assign doc_kind = "MIP-" %}{% endif %}
+      {% assign page_title = doc_kind | append: page.mip | append: ": " | append: page.title %}
+      {% assign document_title = page_title | append: " | " | append: site.title %}
+    {% else %}
+      {% assign page_title = site.title %}
+      {% if page.title %}{% assign page_title = site.title | append: " (" | append: page.title | append: ")" %}{% endif %}
+      {% assign document_title = page_title %}
+    {% endif %}
+    <title>{{ document_title | escape }}</title>
     <meta property="og:locale" content="en_US">
-    <meta property="og:title" content="{{ page.title | default: 'Monad Improvement Proposals' | escape }}">
+    <meta property="og:title" content="{{ page_title | escape }}">
     <meta property="og:description" content="{{ meta_description | truncate: 160 | escape }}">
     <meta property="og:url" content="{{ page.url | absolute_url }}">
-    <meta property="og:site_name" content="Monad Improvement Proposals">
+    <meta property="og:site_name" content="{{ site.title | escape }}">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://mips.monad.xyz/og.webp">
+    <meta property="og:image" content="{{ '/og.webp' | absolute_url }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:type" content="image/webp">
