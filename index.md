@@ -40,9 +40,9 @@ title: MIPs
 	</thead>
 	<tbody>
 		{% for p in mips %}
-			<tr>
-				<td><a href="{{ p.url | relative_url }}" data-prefetch-on-hover="true">{{ p.mip | escape }}</a></td>
-				<td><a class="proposal-title" href="{{ p.url | relative_url }}" data-prefetch-on-hover="true">{{ p.title | escape }}</a></td>
+			<tr class="proposal-row" data-href="{{ p.url | relative_url }}">
+				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
+				<td>{{ p.title | escape }}<span class="row-open" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></span></td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
 				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 				<td>
@@ -78,9 +78,9 @@ title: MIPs
 	</thead>
 	<tbody>
 		{% for p in mrcs %}
-			<tr>
-				<td><a href="{{ p.url | relative_url }}" data-prefetch-on-hover="true">{{ p.mip | escape }}</a></td>
-				<td><a class="proposal-title" href="{{ p.url | relative_url }}" data-prefetch-on-hover="true">{{ p.title | escape }}</a></td>
+			<tr class="proposal-row" data-href="{{ p.url | relative_url }}">
+				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
+				<td>{{ p.title | escape }}<span class="row-open" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></span></td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
 				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 				<td>
@@ -250,9 +250,34 @@ title: MIPs
 		.proposal-table th:nth-child(4), .proposal-table td:nth-child(4) { width: 15%; }  /* Type   */
 		.proposal-table th:nth-child(5), .proposal-table td:nth-child(5) { width: 15%; }  /* Status */
 	}
-	/* The title links to its proposal; make the whole cell the click target. */
-	.proposal-table td .proposal-title {
+	/* Rows navigate to their proposal on click (see the script below). */
+	.proposal-row {
+		cursor: pointer;
+	}
+	/* Both the row tint and the open icon fade in and back out together. */
+	.proposal-row td {
+		transition: background-color 0.18s ease;
+	}
+	.proposal-row:hover td,
+	.proposal-row:focus-within td {
+		background-color: var(--bg-soft);
+	}
+	.row-open {
+		display: inline-flex;
+		margin-left: 0.35rem;
+		color: var(--muted);
+		vertical-align: middle;
+		opacity: 0;
+		transition: opacity 0.18s ease;
+	}
+	.row-open svg {
 		display: block;
+		width: 0.85rem;
+		height: 0.85rem;
+	}
+	.proposal-row:hover .row-open,
+	.proposal-row:focus-within .row-open {
+		opacity: 1;
 	}
 	.proposal-table mark {
 		background: #fef3c7;
@@ -450,6 +475,22 @@ title: MIPs
 				var next = tabs[(i + dir + tabs.length) % tabs.length];
 				activate(next.dataset.panel, true);
 			});
+		});
+
+		// A click anywhere in a row opens its proposal. Links inside the row
+		// (the number, author handles and emails) keep their own targets, and a
+		// click that just ended a text selection is left alone.
+		document.addEventListener("click", function (e) {
+			var target = e.target;
+			if (!(target instanceof Element)) return;
+			var row = target.closest("tr[data-href]");
+			if (!row || target.closest("a[href]")) return;
+			if (String(window.getSelection() || "")) return;
+			if (e.metaKey || e.ctrlKey || e.shiftKey) {
+				window.open(row.dataset.href, "_blank", "noopener");
+			} else {
+				location.assign(row.dataset.href);
+			}
 		});
 
 		// Press "/" anywhere to jump to the search box.
