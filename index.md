@@ -41,8 +41,8 @@ title: MIPs
 	<tbody>
 		{% for p in mips %}
 			<tr>
-				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
-				<td>{{ p.title | escape }}</td>
+				<td><a href="{{ p.url | relative_url }}" data-prefetch-on-hover="true">{{ p.mip | escape }}</a></td>
+				<td><a class="proposal-title" href="{{ p.url | relative_url }}" data-prefetch-on-hover="true">{{ p.title | escape }}</a></td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
 				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 				<td>
@@ -79,8 +79,8 @@ title: MIPs
 	<tbody>
 		{% for p in mrcs %}
 			<tr>
-				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
-				<td>{{ p.title | escape }}</td>
+				<td><a href="{{ p.url | relative_url }}" data-prefetch-on-hover="true">{{ p.mip | escape }}</a></td>
+				<td><a class="proposal-title" href="{{ p.url | relative_url }}" data-prefetch-on-hover="true">{{ p.title | escape }}</a></td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
 				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 				<td>
@@ -249,6 +249,10 @@ title: MIPs
 		.proposal-table th:nth-child(3), .proposal-table td:nth-child(3) { width: 25%; }  /* Author */
 		.proposal-table th:nth-child(4), .proposal-table td:nth-child(4) { width: 15%; }  /* Type   */
 		.proposal-table th:nth-child(5), .proposal-table td:nth-child(5) { width: 15%; }  /* Status */
+	}
+	/* The title links to its proposal; make the whole cell the click target. */
+	.proposal-table td .proposal-title {
+		display: block;
 	}
 	.proposal-table mark {
 		background: #fef3c7;

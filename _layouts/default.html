@@ -468,14 +468,45 @@
         document.head.appendChild(prefetchLink);
       }
 
-      ["mouseover", "focusin"].forEach(function (eventName) {
-        document.addEventListener(eventName, function (e) {
-          var target = e.target;
-          if (!(target instanceof Element)) return;
-          var link = target.closest("a[href]");
-          if (!link) return;
+      // Hovers wait a beat: the index's title column is a tall stack of wide
+      // link targets, so sweeping the cursor down it would otherwise prefetch
+      // every proposal it passes over. Keyboard focus prefetches immediately.
+      var hoverLink = null;
+      var hoverTimer = null;
+      function cancelHoverPrefetch() {
+        if (hoverTimer !== null) {
+          clearTimeout(hoverTimer);
+          hoverTimer = null;
+        }
+        hoverLink = null;
+      }
+
+      document.addEventListener("mouseover", function (e) {
+        var target = e.target;
+        if (!(target instanceof Element)) return;
+        var link = target.closest("a[href]");
+        if (!link || link === hoverLink) return;
+        cancelHoverPrefetch();
+        hoverLink = link;
+        hoverTimer = setTimeout(function () {
+          hoverTimer = null;
           maybePrefetchLink(link);
-        });
+        }, 120);
+      });
+
+      document.addEventListener("mouseout", function (e) {
+        var target = e.target;
+        if (!(target instanceof Element)) return;
+        if (hoverLink && target.closest("a[href]") === hoverLink) {
+          cancelHoverPrefetch();
+        }
+      });
+
+      document.addEventListener("focusin", function (e) {
+        var target = e.target;
+        if (!(target instanceof Element)) return;
+        var link = target.closest("a[href]");
+        if (link) maybePrefetchLink(link);
       });
     </script>
   </body>
