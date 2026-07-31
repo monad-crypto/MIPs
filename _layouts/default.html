@@ -257,6 +257,169 @@
         outline: 2px solid var(--link);
         outline-offset: 2px;
       }
+      /* Section headings are permalinks to themselves. The "#" sits outside the
+         link so the landing highlight tracks the title text exactly. */
+      .mip-content h2, .mip-content h3, .mip-content h4, h2[id] {
+        scroll-margin-top: 1.5rem;
+      }
+      .heading-anchor, .heading-anchor:hover {
+        color: inherit;
+        text-decoration: none;
+      }
+      .heading-anchor:focus-visible {
+        outline: 2px solid var(--link);
+        outline-offset: 3px;
+        border-radius: 4px;
+      }
+      /* A second link to the same section, kept out of the title link so the
+         landing highlight tracks the text alone. */
+      .heading-anchor-mark {
+        margin-left: 0.4rem;
+        color: var(--muted);
+        font-weight: 400;
+        text-decoration: none;
+        opacity: 0;
+        transition: opacity 0.12s ease, color 0.12s ease;
+      }
+      /* :where() keeps the reveal from outranking the mark's own hover below. */
+      :where(h2, h3, h4):hover .heading-anchor-mark,
+      .heading-anchor:focus-visible ~ .heading-anchor-mark {
+        opacity: 0.6;
+      }
+      .heading-anchor-mark:hover {
+        color: var(--link);
+        text-decoration: none;
+        opacity: 1;
+      }
+      @keyframes anchor-flash {
+        from { background: #fef08a; }
+        to { background: transparent; }
+      }
+      .anchor-flash {
+        animation: anchor-flash 1.4s ease-out;
+        border-radius: 4px;
+      }
+      /* Floating ToC: one dash per section, pinned to the right gutter, doubling
+         as a length and position indicator. Hover or focus reveals the names. */
+      .page-toc {
+        /* Rows are sized explicitly so the expanded height is just a row count:
+           collapsed leaves the dashes alone, open fits one line of label. */
+        --toc-row: 9px;
+        --toc-row-open: 24px;
+        position: fixed;
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
+        z-index: 30;
+        display: flex;
+        justify-content: flex-end;
+        font-size: 0.8rem;
+        line-height: 1.35;
+      }
+      .page-toc[hidden] {
+        display: none;
+      }
+      /* The panel carries the surface; the list inside it scrolls, so neither
+         clips the other. */
+      .page-toc-panel {
+        padding: 0.5rem 0.9rem 0.5rem 0.8rem;
+        border: 1px solid transparent;
+        border-right-width: 0;
+        border-radius: 10px 0 0 10px;
+        transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      }
+      .page-toc-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-height: 76vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        scrollbar-width: none;
+      }
+      .page-toc-list::-webkit-scrollbar {
+        display: none;
+      }
+      /* On documents too long to fit, fade the cut edges so a clipped name reads
+         as more-below rather than broken. */
+      .page-toc:hover .page-toc-list.is-scrollable,
+      .page-toc:focus-within .page-toc-list.is-scrollable {
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+        mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+      }
+      .page-toc a, .page-toc a:hover {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.55rem;
+        height: var(--toc-row);
+        overflow: hidden;
+        color: var(--muted);
+        text-decoration: none;
+        transition: height 0.18s ease;
+      }
+      .page-toc:hover a,
+      .page-toc:focus-within a {
+        height: var(--toc-row-open);
+      }
+      .page-toc a:hover .toc-dash,
+      .page-toc a:focus-visible .toc-dash {
+        background: var(--link);
+      }
+      .page-toc a:focus-visible {
+        outline: 2px solid var(--link);
+        outline-offset: 1px;
+        border-radius: 4px;
+      }
+      .toc-label {
+        max-width: 0;
+        opacity: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        text-align: right;
+        transition: max-width 0.18s ease, opacity 0.18s ease;
+      }
+      .toc-dash {
+        flex: none;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--border);
+        transition: width 0.15s ease, background 0.15s ease;
+      }
+      .toc-item--h2 > a > .toc-dash { width: 17px; }
+      .toc-item--h3 > a > .toc-dash { width: 11px; }
+      .toc-item--h4 > a > .toc-dash { width: 7px; }
+      .toc-item.is-active > a { color: var(--text); }
+      .toc-item.is-active > a > .toc-dash { background: var(--link); }
+      .page-toc:hover .page-toc-panel,
+      .page-toc:focus-within .page-toc-panel {
+        background: rgba(255, 255, 255, 0.94);
+        border-color: var(--border);
+        box-shadow: 0 8px 28px rgba(17, 24, 39, 0.16);
+        backdrop-filter: blur(6px);
+      }
+      .page-toc:hover .toc-label,
+      .page-toc:focus-within .toc-label {
+        max-width: 13rem;
+        opacity: 1;
+      }
+      /* The stack needs the right gutter, so the text column reserves one rather
+         than running under it. Below 1000px there is none to spare. */
+      @media (min-width: 1001px) {
+        body.has-page-toc { padding-right: 3.25rem; }
+      }
+      @media (max-width: 1000px) {
+        .page-toc { display: none; }
+      }
+      @media print {
+        .page-toc { display: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .page-toc a, .toc-label, .toc-dash, .page-toc-panel, .heading-anchor-mark { transition: none; }
+        .anchor-flash { animation: none; }
+      }
     </style>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js" integrity="sha512-HiD3V4nv8fcjtouznjT9TqDNDm1EXngV331YGbfVGeKUoH+OLkRTCMzA34ecjlgSQZpdHZupdSrqHY+Hz3l6uQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-python.min.js" integrity="sha512-AKaNmg8COK0zEbjTdMHJAPJ0z6VeNqvRvH4/d5M4sHJbQQUToMBtodq4HaV4fa+WV2UTfoperElm66c9/8cKmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -266,6 +429,11 @@
     <main class="page-wrap">
       {{ content }}
     </main>
+    <nav class="page-toc" id="page-toc" aria-label="On this page" hidden>
+      <div class="page-toc-panel">
+        <ul class="page-toc-list" id="page-toc-list"></ul>
+      </div>
+    </nav>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         if (window.Prism && typeof Prism.highlightElement === "function") {
@@ -468,6 +636,196 @@
             node.parentNode.replaceChild(replacement, node);
           });
         }
+
+        // Section headings become permalinks and feed the floating ToC. Only the
+        // MIP/MRC pages have prose sections, so the index is left alone.
+        var tocNav = document.getElementById("page-toc");
+        var tocList = document.getElementById("page-toc-list");
+        var tocItems = [];
+        var headings = mipContent
+          ? Array.prototype.slice.call(document.querySelectorAll(".page-wrap h2[id], .page-wrap h3[id], .page-wrap h4[id]"))
+          : [];
+
+        headings.forEach(function (heading) {
+          var label = (heading.textContent || "").trim();
+
+          // Anchors can't nest, so a heading that already links out is left be.
+          if (!heading.querySelector("a")) {
+            var permalink = document.createElement("a");
+            permalink.className = "heading-anchor";
+            permalink.href = "#" + heading.id;
+            while (heading.firstChild) {
+              permalink.appendChild(heading.firstChild);
+            }
+            // Clickable too, but hidden from assistive tech and the tab order:
+            // the title link above already carries the section name.
+            var mark = document.createElement("a");
+            mark.className = "heading-anchor-mark";
+            mark.href = "#" + heading.id;
+            mark.textContent = "#";
+            mark.setAttribute("aria-hidden", "true");
+            mark.setAttribute("tabindex", "-1");
+            heading.appendChild(permalink);
+            heading.appendChild(mark);
+          }
+
+          if (headings.length < 3) {
+            return;
+          }
+
+          var item = document.createElement("li");
+          item.className = "toc-item toc-item--" + heading.tagName.toLowerCase();
+          var link = document.createElement("a");
+          link.href = "#" + heading.id;
+          var text = document.createElement("span");
+          text.className = "toc-label";
+          text.textContent = label;
+          var dash = document.createElement("span");
+          dash.className = "toc-dash";
+          dash.setAttribute("aria-hidden", "true");
+          link.appendChild(text);
+          link.appendChild(dash);
+          item.appendChild(link);
+          tocList.appendChild(item);
+          tocItems.push({ item: item, link: link, heading: heading });
+        });
+
+        var activeIndex = -1;
+        function syncActive() {
+          if (!tocItems.length) {
+            return;
+          }
+          // A section is current once its heading nears the top edge. Keep the
+          // band tight: a deeper one hands "current" straight to the subheading
+          // below whenever a section opens without any prose of its own.
+          var next = 0;
+          for (var i = 0; i < tocItems.length; i++) {
+            if (tocItems[i].heading.getBoundingClientRect().top > 56) {
+              break;
+            }
+            next = i;
+          }
+
+          // At the foot of the page the last section is current even if its
+          // heading never crossed the band.
+          if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+            next = tocItems.length - 1;
+          }
+
+          if (next === activeIndex) {
+            return;
+          }
+          if (activeIndex >= 0) {
+            tocItems[activeIndex].item.classList.remove("is-active");
+            tocItems[activeIndex].link.removeAttribute("aria-current");
+          }
+          activeIndex = next;
+          var active = tocItems[activeIndex];
+          active.item.classList.add("is-active");
+          active.link.setAttribute("aria-current", "true");
+
+          // Keep the marker in view when the stack scrolls.
+          if (tocList.scrollHeight > tocList.clientHeight) {
+            var top = active.item.offsetTop;
+            var bottom = top + active.item.offsetHeight;
+            if (top < tocList.scrollTop) {
+              tocList.scrollTop = top - 8;
+            } else if (bottom > tocList.scrollTop + tocList.clientHeight) {
+              tocList.scrollTop = bottom - tocList.clientHeight + 8;
+            }
+          }
+        }
+
+        // Whether the open panel scrolls can't be read off the collapsed stack,
+        // but it is just the row count against the panel's cap.
+        function checkOverflow() {
+          var open = parseFloat(getComputedStyle(tocNav).getPropertyValue("--toc-row-open"));
+          var cap = parseFloat(getComputedStyle(tocList).maxHeight);
+          tocList.classList.toggle("is-scrollable", tocItems.length * open > cap);
+        }
+
+        var syncQueued = false;
+        function queueSync() {
+          if (syncQueued) {
+            return;
+          }
+          syncQueued = true;
+          window.requestAnimationFrame(function () {
+            syncQueued = false;
+            checkOverflow();
+            syncActive();
+          });
+        }
+
+        if (tocItems.length) {
+          document.body.classList.add("has-page-toc");
+          tocNav.hidden = false;
+          window.addEventListener("scroll", queueSync, { passive: true });
+          window.addEventListener("resize", queueSync);
+          checkOverflow();
+          syncActive();
+        }
+
+        function hashTarget() {
+          var raw = location.hash.slice(1);
+          if (!raw) {
+            return null;
+          }
+          try {
+            raw = decodeURIComponent(raw);
+          } catch (_) {
+            /* keep the raw fragment */
+          }
+          return document.getElementById(raw);
+        }
+
+        function flash(target) {
+          var el = target.querySelector(".heading-anchor") || target;
+          el.classList.remove("anchor-flash");
+          void el.offsetWidth;
+          el.classList.add("anchor-flash");
+        }
+
+        // The browser lands on the fragment before highlighting and images
+        // settle, leaving the section off-screen; realign here and after load
+        // unless the reader has taken over. Never animate: "auto" defers to CSS
+        // scroll-behavior, which would crawl the length of a long MIP.
+        function alignToHash() {
+          var target = hashTarget();
+          if (!target) {
+            return;
+          }
+          var root = document.documentElement;
+          var previous = root.style.scrollBehavior;
+          root.style.scrollBehavior = "auto";
+          target.scrollIntoView({ block: "start" });
+          root.style.scrollBehavior = previous;
+          flash(target);
+          syncActive();
+        }
+
+        var readerMoved = false;
+        ["wheel", "touchstart", "pointerdown", "keydown"].forEach(function (name) {
+          window.addEventListener(name, function () { readerMoved = true; }, { passive: true, once: true });
+        });
+
+        alignToHash();
+        window.addEventListener("load", function () {
+          if (!readerMoved) {
+            alignToHash();
+          }
+          queueSync();
+        });
+
+        // The browser handles the scroll on a heading or stack click; only the
+        // highlight and the marker need catching up.
+        window.addEventListener("hashchange", function () {
+          var target = hashTarget();
+          if (target) {
+            flash(target);
+          }
+          queueSync();
+        });
       });
 
       // Prefetch selected internal links on hover or focus
@@ -478,7 +836,7 @@
       }
       function maybePrefetchLink(link) {
         var href = link.getAttribute("data-href") || link.getAttribute("href");
-        if (!href || href === "#") return;
+        if (!href || href.charAt(0) === "#") return;
         if (!link.hasAttribute("data-prefetch-on-hover") && !/(MIP|MRC)-\d+/.test(href)) return;
         try {
           var url = new URL(href, location.href);
