@@ -1,6 +1,7 @@
 ---
 layout: default
 title: MIPs
+description: Monad Improvement Proposals (MIPs) describe standards for the Monad ecosystem, such as protocol specifications.
 ---
 
 # Monad Improvement Proposals
@@ -40,9 +41,9 @@ title: MIPs
 	</thead>
 	<tbody>
 		{% for p in mips %}
-			<tr>
+			<tr class="proposal-row" data-href="{{ p.url | relative_url }}">
 				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
-				<td>{{ p.title | escape }}</td>
+				<td>{{ p.title | escape }}<svg class="row-open" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
 				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 				<td>
@@ -78,9 +79,9 @@ title: MIPs
 	</thead>
 	<tbody>
 		{% for p in mrcs %}
-			<tr>
+			<tr class="proposal-row" data-href="{{ p.url | relative_url }}">
 				<td><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
-				<td>{{ p.title | escape }}</td>
+				<td>{{ p.title | escape }}<svg class="row-open" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></td>
 				<td class="author-value">{{ p.author | default: "-" | escape }}</td>
 				<td>{% if p.type and p.type != "" %}<span class="type-pill type-pill--{{ p.type | slugify }}">{{ p.type | escape }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 				<td>
@@ -249,6 +250,28 @@ title: MIPs
 		.proposal-table th:nth-child(3), .proposal-table td:nth-child(3) { width: 25%; }  /* Author */
 		.proposal-table th:nth-child(4), .proposal-table td:nth-child(4) { width: 15%; }  /* Type   */
 		.proposal-table th:nth-child(5), .proposal-table td:nth-child(5) { width: 15%; }  /* Status */
+	}
+	/* Rows are clickable (see the script); tint and arrow fade in on hover. */
+	.proposal-row {
+		cursor: pointer;
+	}
+	.proposal-row td {
+		transition: background-color 0.18s ease;
+	}
+	.proposal-row:hover td,
+	.proposal-row:focus-within td {
+		background-color: var(--bg-soft);
+	}
+	.row-open {
+		margin-left: 0.35rem;
+		color: var(--muted);
+		vertical-align: middle;
+		opacity: 0;
+		transition: opacity 0.18s ease;
+	}
+	.proposal-row:hover .row-open,
+	.proposal-row:focus-within .row-open {
+		opacity: 1;
 	}
 	.proposal-table mark {
 		background: #fef3c7;
@@ -446,6 +469,21 @@ title: MIPs
 				var next = tabs[(i + dir + tabs.length) % tabs.length];
 				activate(next.dataset.panel, true);
 			});
+		});
+
+		// Clicking a row opens its proposal. Links inside it keep their targets,
+		// and a click is ignored while a text selection touches the row, so
+		// drag-selecting across rows doesn't navigate.
+		document.addEventListener("click", function (e) {
+			var row = e.target.closest("tr[data-href]");
+			if (!row || e.target.closest("a[href]")) return;
+			var selection = window.getSelection ? window.getSelection() : null;
+			if (selection && !selection.isCollapsed && selection.containsNode(row, true)) return;
+			if (e.metaKey || e.ctrlKey || e.shiftKey) {
+				window.open(row.dataset.href, "_blank", "noopener");
+			} else {
+				location.assign(row.dataset.href);
+			}
 		});
 
 		// Press "/" anywhere to jump to the search box.
