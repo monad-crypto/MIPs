@@ -37,6 +37,7 @@ description: Monad Improvement Proposals (MIPs) describe standards for the Monad
 			<th>Author</th>
 			<th>Type</th>
 			<th>Status</th>
+			<th>Discussion</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -53,6 +54,11 @@ description: Monad Improvement Proposals (MIPs) describe standards for the Monad
 					{% else %}
 						<span class="muted">-</span>
 					{% endif %}
+				</td>
+				<td>
+					{% assign discussion_url = p['discussions-to'] %}
+					{% if discussion_url == nil or discussion_url == "" %}{% assign discussion_url = "https://forum.monad.xyz/c/mips/8" %}{% endif %}
+					<a class="discussion-link" href="{{ discussion_url }}" target="_blank" rel="noopener noreferrer">Forum<svg class="discussion-link__icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
 				</td>
 			</tr>
 		{% endfor %}
@@ -75,6 +81,7 @@ description: Monad Improvement Proposals (MIPs) describe standards for the Monad
 			<th>Author</th>
 			<th>Type</th>
 			<th>Status</th>
+			<th>Discussion</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -91,6 +98,11 @@ description: Monad Improvement Proposals (MIPs) describe standards for the Monad
 					{% else %}
 						<span class="muted">-</span>
 					{% endif %}
+				</td>
+				<td>
+					{% assign discussion_url = p['discussions-to'] %}
+					{% if discussion_url == nil or discussion_url == "" %}{% assign discussion_url = "https://forum.monad.xyz/c/mips/8" %}{% endif %}
+					<a class="discussion-link" href="{{ discussion_url }}" target="_blank" rel="noopener noreferrer">Forum<svg class="discussion-link__icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></a>
 				</td>
 			</tr>
 		{% endfor %}
@@ -222,7 +234,7 @@ description: Monad Improvement Proposals (MIPs) describe standards for the Monad
 		font-size: 0.875rem;
 	}
 	.proposal-table {
-		min-width: 900px;
+		min-width: 1000px;
 	}
 	.proposal-table tr.is-hidden {
 		display: none;
@@ -245,11 +257,12 @@ description: Monad Improvement Proposals (MIPs) describe standards for the Monad
 		.proposal-table td {
 			box-sizing: border-box;
 		}
-		.proposal-table th:nth-child(1), .proposal-table td:nth-child(1) { width: 7%; }   /* Number */
-		.proposal-table th:nth-child(2), .proposal-table td:nth-child(2) { width: 38%; }  /* Title  */
-		.proposal-table th:nth-child(3), .proposal-table td:nth-child(3) { width: 25%; }  /* Author */
-		.proposal-table th:nth-child(4), .proposal-table td:nth-child(4) { width: 15%; }  /* Type   */
-		.proposal-table th:nth-child(5), .proposal-table td:nth-child(5) { width: 15%; }  /* Status */
+		.proposal-table th:nth-child(1), .proposal-table td:nth-child(1) { width: 7%; }   /* Number     */
+		.proposal-table th:nth-child(2), .proposal-table td:nth-child(2) { width: 33%; }  /* Title      */
+		.proposal-table th:nth-child(3), .proposal-table td:nth-child(3) { width: 22%; }  /* Author     */
+		.proposal-table th:nth-child(4), .proposal-table td:nth-child(4) { width: 12%; }  /* Type       */
+		.proposal-table th:nth-child(5), .proposal-table td:nth-child(5) { width: 13%; }  /* Status     */
+		.proposal-table th:nth-child(6), .proposal-table td:nth-child(6) { width: 13%; }  /* Discussion */
 	}
 	/* Rows are clickable (see the script); tint and arrow fade in on hover. */
 	.proposal-row {
@@ -272,6 +285,18 @@ description: Monad Improvement Proposals (MIPs) describe standards for the Monad
 	.proposal-row:hover .row-open,
 	.proposal-row:focus-within .row-open {
 		opacity: 1;
+	}
+	/* The Discussion cell links out to each proposal's forum thread. Keep the
+	   label and its external-link glyph on one line and vertically centered. */
+	.discussion-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		white-space: nowrap;
+	}
+	.discussion-link__icon {
+		flex-shrink: 0;
+		opacity: 0.7;
 	}
 	.proposal-table mark {
 		background: #fef3c7;
