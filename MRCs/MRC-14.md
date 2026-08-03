@@ -12,22 +12,22 @@ created: 2026-07-21
 
 ## Abstract
 
-This MRC specifies an on-chain registry contract where an account, authorized by control of the address, files self-attestations about facts that cannot be read from the chain, such as the key-management scheme behind the address (for example MPC, TSS, a TEE-held key, or an off-chain multisig) and the identity of whoever operates it. Every metadata entry is keyed by `(account, topic, index)` and holds a single non-empty `data` field: by convention a UTF-8 JSON object of the topic's fields, which the registry stores verbatim and never parses. Authority to write an entry is the account itself (proof-of-control).
+This MRC defines an on-chain registry where an account can publish facts about itself that the chain does not otherwise show, for example the key-management scheme behind the address (MPC, TSS, a TEE-held key, or an off-chain multisig) or who operates it. Only the account can write its own entries, and it proves that by writing from the address it controls.
 
-The registry is deliberately narrow: a verbatim, per-account key-value attestation store. It defines no topic vocabulary and grades no claim. Any service that needs to know something about an address it cannot learn from the chain (a risk dashboard, a wallet or custodian directory, a validator explorer, a compliance tool) can read the same metadata without standing up a second identity system.
+Each entry is stored under a topic the account chooses, kept exactly as written (by convention a small JSON object) and never interpreted by the registry, so the registry fixes no list of topics and judges no claim. Any service that needs to know something about an address it cannot read from the chain (a risk dashboard, a wallet or custodian directory, a validator explorer, a compliance tool) can read these entries directly, without a separate identity system.
 
 ## Motivation
 
-Many on-chain accounts present as a plain externally-owned account: one address, no code, controlled by one key. On-chain, that is all they ever appear to be. In practice the single address is often the front for a key-management scheme that produces one ordinary signature yet is invisible on-chain:
+Many onchain accounts present as a plain externally-owned account: one address, no code, controlled by one key. On-chain, that is all they ever appear to be. In practice the single address is often the front for a key-management scheme that produces one ordinary signature yet is invisible on-chain:
 
 - an MPC wallet, where the key is split across parties and never reconstructed;
 - a TSS (threshold-signature) wallet, where an m-of-n quorum jointly produces one signature;
 - a key held inside a TEE, an attested secure enclave;
 - an off-chain multisig, where an m-of-n approval is coordinated off-chain and settled as a single signature.
 
-Each produces a standard ECDSA signature that encodes none of this structure, so the address is byte-for-byte indistinguishable from a single-key EOA. None of the backing is observable from outside: there is no code to inspect, and the quorum, enclave, or approval policy leaves no on-chain trace. The strongest fact provable on-chain is control of the address itself, demonstrated trivially by signing or transacting from it. Everything else (which scheme backs the address, its threshold, who operates it) lives off-chain, and every integrator reconstructs it independently from scattered, unauthenticated sources.
+Each produces a standard ECDSA signature that encodes none of this structure, so the address is byte-for-byte indistinguishable from a single-key EOA. None of the backing is observable from outside: there is no code to inspect, and the quorum, enclave, or approval policy leaves no on-chain trace. The strongest fact provable on-chain is control of the address itself, demonstrated trivially by signing or transacting from it.
 
-This registry anchors writes to the one identity an account demonstrably controls: the address itself. It moves those off-chain facts onto public, on-chain metadata, so a consumer depends only on the chain and the account's own statements. Because the subject is always the writing account, authorization reduces to a local `msg.sender` check (direct control of the address) with no external identity resolution, which keeps the contract small enough to be reused by any service rather than owned by one.
+This registry keys writes to the address itself: because the writer is always the subject, a write needs only a local `msg.sender` check with no external identity lookup, which keeps the contract minimal and reusable by any service.
 
 ## Specification
 
@@ -94,13 +94,13 @@ The check is a single equality against `msg.sender`, which holds whether the acc
 
 ### Write Preconditions
 
-`setMetadata` MUST revert when `data` is empty, and MUST revert when `topic` is empty. A stored entry is therefore always non-empty, so `hasMetadata(subject)` is `true` exactly for a subject that `setMetadata` has written. To correct or retract an attestation the account overwrites `data` with a new value; the registry defines no separate delete.
+`setMetadata` MUST revert when `data` or `topic` is empty. A stored entry is therefore always non-empty, so `hasMetadata(subject)` is `true` exactly for a subject that `setMetadata` has written. To correct or retract an attestation the account overwrites `data` with a new value; this MRC defines no separate deletion function.
 
 ### Events
 
 Exactly one `MetadataUpdated` MUST be emitted on every successful `setMetadata`, signalling that the metadata entry for `metadataId` changed. The event carries the entry's `topic` and `index` but not its `data`; a consumer reads the contents via `getMetadata`, which MUST return the entry as of that write. Because `metadataId` is a one-way hash of `(account, topic, index)`, emitting `topic` and `index` lets a consumer reconstruct the full subject of the changed entry directly from the log, with no need to brute-force `metadataId` over candidate indices.
 
-The event indexes `metadataId`, `account`, and `topicKey` (= `keccak256(bytes(topic))`) — the three indexed topics the EVM permits besides the event signature. Indexing `account` lets a consumer stream every change for an address; indexing `topicKey` lets it filter by `(account, topic)` without scanning unrelated entries. The human-readable `topic` is emitted unindexed alongside `topicKey`, because an indexed dynamic type would be logged only as its hash and lost to readers.
+The event indexes `metadataId`, `account`, and `topicKey` (= `keccak256(bytes(topic))`), the three indexed topics the EVM permits besides the event signature. Indexing `account` lets a consumer stream every change for an address; indexing `topicKey` lets it filter by `(account, topic)` without scanning unrelated entries.
 
 ### Read Semantics
 
@@ -140,9 +140,9 @@ A registry contract conforming to this MRC is deployed at an ordinary contract a
 
 - **ERC-780 (Ethereum Claims Registry)** keys every claim by `(issuer, subject, key)`. It does support self-attestation (`setSelfClaim`), but even a self-claim stores the issuer in the key (`registry[issuer][subject][key]`), so the issuer dimension is always present. This MRC has no issuer dimension: an entry is keyed by the subject alone, and authority is proof-of-control of that address.
 - **EAS (Ethereum Attestation Service)** is a general attestation layer with an on-chain schema registry, arbitrary attester→recipient attestations, resolver hooks, and revocation. This MRC is intentionally narrower: no schema registry (the single `data` field is an opaque, unparsed convention), no attester/recipient split (the subject is always the writer), and no resolver extension points. The "why not just use EAS" answer is that a consumer here depends only on the chain and the account's own statements, not on a schema registry or an attester graph, which keeps the contract small enough to be reused by any service.
-- **ENS text records** store key→value strings under a *name*, resolving identity through the ENS namespace and its registrar/ownership model. This MRC keys metadata directly on the account address — the one identity provable on-chain without an external name-resolution system — so a reader resolves attestations against an address it already tracks rather than through a separate namespace.
+- **ENS text records** store key→value strings under a *name*, resolving identity through the ENS namespace and its ownership model. This MRC keys metadata directly on the account address, the one identity provable on-chain without a name-resolution system, so a reader resolves attestations against an address it already tracks.
 
-The common thread is that authority in this MRC is proof-of-control of the subject address (not an issuer, attester, or name owner), and it carries no schema registry and no external identity resolution — which is what keeps the contract minimal and reusable.
+The common thread is that authority in this MRC is proof-of-control of the subject address (not an issuer, attester, or name owner), and it carries no schema registry and no external identity resolution, which is what keeps the contract minimal and reusable.
 
 ## Backwards Compatibility
 
@@ -166,7 +166,7 @@ The normative artifact of this MRC is the interface and behavioural spec in [§ 
 
 ## Security Considerations
 
-Every value in the registry is a self-attestation authorized only by control of the subject address, not a proof of the fact it asserts: a consumer MUST treat each value as a claim, weigh it against off-chain evidence, and MUST NOT render it as a verified fact or let it override anything it can read from the chain or observe independently. Because the sole authority is the account key, a compromised key can post false attestations for that address — which matters most for the funds-less signing keys this registry also serves (validator, operator, custodian addresses), where the attestation itself is the asset; a plain single-key EOA cannot rotate its key, so its only recovery is to abandon the compromised address and re-file under a new one.
+Every value is a self-attestation authorized only by control of the subject address, not a proof of the fact it asserts. A consumer MUST treat each value as a claim, weigh it against off-chain evidence, and MUST NOT render it as verified fact or let it override anything observable on-chain. Whoever controls the account's key can change its metadata unilaterally, so the integrity of an entry rests on that account's own key-security assumptions.
 
 ## Copyright
 
