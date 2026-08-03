@@ -146,7 +146,7 @@ The common thread is that authority in this MRC is proof-of-control of the subje
 
 ## Backwards Compatibility
 
-This MRC is purely additive: it specifies a new application-layer contract and changes no precompile, EVM, or consensus behaviour. Tools that consume off-chain metadata MAY continue to do so, and SHOULD use off-chain sources for accounts that have not yet filed and to corroborate the self-attestations of those that have.
+This MRC is purely additive: it specifies a new application-layer contract and changes no precompile, EVM, or consensus behaviour. Tools that consume off-chain metadata MAY continue to do so, both for accounts that have not yet filed and to corroborate the self-attestations of those that have.
 
 ## Test Cases
 
