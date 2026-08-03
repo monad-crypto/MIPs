@@ -53,26 +53,16 @@ metadataId = keccak256(abi.encode(account, topic, index))
 
 ```solidity
 interface IAccountRegistry {
-    /// The account a metadata entry is keyed to and what the entry is about.
-    /// `account` is the address making the statement and the only party
-    /// authorized to write it. `topic` is a service-defined
-    /// label the registry treats as opaque (e.g. "custody", "operator",
-    /// "security-contact"). `index` distinguishes multiple entries under the
-    /// same (account, topic), e.g. successive dated attestations, and MUST be
-    /// 0 for single-valued topics.
+    /// The subject an entry is keyed to: `(account, topic, index)`. See
+    /// Metadata identity.
     struct Subject {
         address account;
         string  topic;
         uint256 index;
     }
 
-    /// Emitted on every successful write to a metadata entry. Carries the
-    /// entry's `topic` and `index` (but not its `data`) so a consumer can
-    /// reconstruct the full `(account, topic, index)` subject from the log
-    /// without brute-forcing `metadataId` over candidate indices. `topicKey`
-    /// is `keccak256(bytes(topic))`, indexed so a consumer can filter the log
-    /// by `(account, topic)`; the readable `topic` is emitted unindexed
-    /// alongside it, since an indexed dynamic type is logged only as its hash.
+    /// Emitted on every write. `topicKey` is `keccak256(bytes(topic))`,
+    /// indexed for `(account, topic)` filtering. See Events.
     event MetadataUpdated(bytes32 indexed metadataId, address indexed account, bytes32 indexed topicKey, string topic, uint256 index);
 
     /// MUST return "MRC-14/1.0.0".
@@ -80,11 +70,8 @@ interface IAccountRegistry {
     /// Pure derivation of the metadata id for a subject.
     function metadataId(Subject calldata subject) external pure returns (bytes32);
 
-    /// Set or replace the metadata entry for a subject. `data` is the entry's
-    /// single field: by convention a UTF-8 JSON object of the topic's fields,
-    /// stored verbatim and never parsed (see Field Semantics). Authorized
-    /// callers and revert conditions are defined in Authorization and Write
-    /// Preconditions.
+    /// Set or replace a subject's entry. `data` is stored verbatim. See
+    /// Authorization, Write Preconditions, and Field Semantics.
     function setMetadata(Subject calldata subject, string calldata data) external;
 
     /// Read the entry's `data` for `subject`, or the empty string if none exists.
