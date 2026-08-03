@@ -35,7 +35,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ### Overview
 
-Compliant implementations MUST deploy a single contract that conforms to the `IAccountRegistry` interface below and expose `string public constant VERSION = "MRC-XX/1.0.0"`. Every metadata entry is identified by a `metadataId` derived from its subject; the contract MUST authorize each write against the subject account (see [Authorization](#authorization)). The contract exposes a write method and read methods for the stored metadata.
+Compliant implementations MUST deploy a single contract that conforms to the `IAccountRegistry` interface below and expose `string public constant VERSION = "MRC-14/1.0.0"`. Every metadata entry is identified by a `metadataId` derived from its subject; the contract MUST authorize each write against the subject account (see [Authorization](#authorization)). The contract exposes a write method and read methods for the stored metadata.
 
 ### Metadata identity
 
@@ -75,7 +75,7 @@ interface IAccountRegistry {
     /// alongside it, since an indexed dynamic type is logged only as its hash.
     event MetadataUpdated(bytes32 indexed metadataId, address indexed account, bytes32 indexed topicKey, string topic, uint256 index);
 
-    /// MUST return "MRC-XX/1.0.0".
+    /// MUST return "MRC-14/1.0.0".
     function VERSION() external view returns (string memory);
     /// Pure derivation of the metadata id for a subject.
     function metadataId(Subject calldata subject) external pure returns (bytes32);
@@ -120,7 +120,7 @@ The event indexes `metadataId`, `account`, and `topicKey` (= `keccak256(bytes(to
 - `getMetadata` and `hasMetadata` MUST NOT call any external contract.
 - `getMetadata(subject)` MUST return the stored `data` for `subject`, or the empty string if no entry exists.
 - `hasMetadata(subject)` MUST return `true` iff a metadata entry has been written for `subject` (its stored `data` is non-empty).
-- `VERSION()` MUST return `"MRC-XX/1.0.0"`.
+- `VERSION()` MUST return `"MRC-14/1.0.0"`.
 - Implementations MAY expose additional view functions but MUST NOT alter the semantics of any function defined here.
 
 ### Example topics
@@ -170,7 +170,7 @@ This MRC is purely additive: it specifies a new application-layer contract and c
 5. A second `setMetadata` for the same subject overwrites `data` and emits `MetadataUpdated`.
 6. Metadata entries under the same account with different `(topic, index)` are independent: a write to one changes neither the `metadataId` nor the contents of another.
 7. `hasMetadata(subject)` returns `false` for a subject with no entry and `true` after a successful `setMetadata`.
-8. `VERSION()` returns `"MRC-XX/1.0.0"`.
+8. `VERSION()` returns `"MRC-14/1.0.0"`.
 9. `setMetadata` with an empty `topic` reverts.
 
 ## Reference Implementation
