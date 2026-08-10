@@ -26,12 +26,12 @@ defaults:
     scope:
       path: "MIPs"
     values:
-      layout: "mip"
+      layout: "proposal"
   -
     scope:
       path: "MRCs"
     values:
-      layout: "mrc"
+      layout: "proposal"
 
 exclude:
   - .github
@@ -44,6 +44,8 @@ include:
   - LICENSE.md
 
 sass:
+  style: compressed
+  sourcemap: never
   quiet_deps: true
   silence_deprecations:
     - import

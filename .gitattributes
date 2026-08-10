@@ -5,3 +5,6 @@
 # Force Linux line endings on all files
 # Necessary for running eipw locally
 * text=auto eol=lf
+
+# Fonts are binary
+*.woff2 binary

@@ -1,0 +1,90 @@
+---
+layout: default
+---
+
+{% assign github_repo = "https://github.com/monad-crypto/MIPs" %}
+{% assign source_path = page.path | replace: " ", "%20" %}
+{% assign source_url = github_repo | append: "/blob/main/" | append: source_path %}
+{% if page.category == "MRC" %}{% assign kind = "MRC" %}{% else %}{% assign kind = "MIP" %}{% endif %}
+{% assign discussions_url = page["discussions-to"] %}
+{% assign discussions_safe = "" %}
+{% if discussions_url %}
+  {% assign discussions_scheme = discussions_url | strip | split: ":" | first | downcase %}
+  {% if discussions_scheme == "http" or discussions_scheme == "https" %}
+    {% assign discussions_safe = discussions_url | strip %}
+  {% endif %}
+{% endif %}
+
+<main class="shell page">
+  <div class="detail">
+    <div class="doc-head">
+      {% if kind == "MRC" %}{% assign index_url = "/#mrcs" %}{% else %}{% assign index_url = "/" %}{% endif %}
+      <a class="backlink" href="{{ index_url | relative_url }}" data-prefetch-on-hover="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5m6 6-6-6 6-6"/></svg>All {{ kind }}s</a>
+      <div class="kicker">
+        {% if page.status %}<span class="chip tip" data-st="{{ page.status | slugify }}"><span class="dot"></span>{{ page.status | escape }}</span>
+        <span class="rule"></span>{% endif %}
+        <span class="refline eyebrow">{{ kind }}-{{ page.mip }}{% if page.type %}<span class="sep">·</span><span class="tip">{{ page.type | escape }}</span>{% endif %}{% if page.category %}<span class="sep">·</span><span class="tip">{{ page.category | escape }}</span>{% endif %}</span>
+      </div>
+      <h1>{{ page.title | escape }}</h1>
+      {% if page.description %}<p class="lede">{{ page.description | escape }}</p>{% endif %}
+      <div class="doc-actions">
+        {% if discussions_safe != "" %}
+          <a class="action" href="{{ discussions_safe | escape }}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5Z"/></svg>Discussion</a>
+        {% endif %}
+        <a class="action" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>View source</a>
+      </div>
+    </div>
+
+    <aside class="metarail">
+      <div class="card">
+        <span class="corner tl"></span><span class="corner tr"></span>
+        <span class="corner bl"></span><span class="corner br"></span>
+        <dl>
+          <dt>Author</dt>
+          <dd class="author-value">{{ page.author | default: "-" | escape }}</dd>
+          {% if page.status %}
+            <dt>Status</dt>
+            <dd data-st="{{ page.status | slugify }}"><span class="chip tip"><span class="dot"></span>{{ page.status | escape }}</span></dd>
+          {% endif %}
+          <dt>Type</dt>
+          <dd>{% if page.type %}<span class="tip">{{ page.type | escape }}</span>{% else %}-{% endif %}</dd>
+          {% if page.category %}
+            <dt>Category</dt>
+            <dd><span class="tip">{{ page.category | escape }}</span></dd>
+          {% endif %}
+          {% if page.requires %}
+            <dt>Requires</dt>
+            <dd>{{ page.requires | escape }}</dd>
+          {% endif %}
+          {% if page.created %}
+            <dt>Created</dt>
+            <dd class="date">{{ page.created | date: "%B %-d, %Y" }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </aside>
+
+    <div>
+      <article class="prose">
+        {{ content }}
+      </article>
+
+      <div class="cite">
+        <div class="head">
+          <div class="label">Citation</div>
+          <button type="button" class="cbtn" id="copy-citation" aria-label="Copy citation" title="Copy citation">
+            <svg class="ic-copy" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+            <svg class="ic-done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg>
+          </button>
+        </div>
+        <p id="citation-text"><span class="author-value">{{ page.author | default: "-" | escape }}</span>, "{{ kind }}-{{ page.mip }}: {{ page.title | escape }}," <em>Monad Improvement Proposals</em>, no. {{ page.mip }}, {{ page.created | date: "%B %Y" }}. [Online serial]. Available: <a href="{{ page.url | absolute_url }}">{{ page.url | absolute_url }}</a>.</p>
+      </div>
+
+      <footer class="site-footer">
+        <a href="{{ github_repo }}" target="_blank" rel="noopener noreferrer">monad-crypto/MIPs</a>
+        <a href="https://forum.monad.xyz/c/mips/8" target="_blank" rel="noopener noreferrer">Discussions</a>
+        <a href="{{ '/LICENSE.md' | relative_url }}">License</a>
+      </footer>
+    </div>
+  </div>
+</main>

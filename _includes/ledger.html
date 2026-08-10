@@ -1,0 +1,22 @@
+<table class="ledger">
+  <thead>
+    <tr>
+      <th style="width: 6%">№</th>
+      <th style="width: 41%">Title</th>
+      <th style="width: 22%" class="desk-only">Author</th>
+      <th style="width: 17%" class="desk-only">Type</th>
+      <th style="width: 14%">Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in include.rows %}
+      <tr class="row" data-href="{{ p.url | relative_url }}" data-status="{{ p.status | escape }}">
+        <td class="num"><a href="{{ p.url | relative_url }}">{{ p.mip | escape }}</a></td>
+        <td><div class="title">{{ p.title | escape }}</div></td>
+        <td class="author author-value desk-only">{{ p.author | default: "-" | escape }}</td>
+        <td class="desk-only">{% if p.type %}<span class="type tip">{{ p.type | escape }}</span>{% else %}<span class="type">-</span>{% endif %}</td>
+        <td data-st="{{ p.status | slugify }}">{% if p.status %}<span class="chip tip"><span class="dot"></span>{{ p.status | escape }}</span>{% else %}<span class="chip">-</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

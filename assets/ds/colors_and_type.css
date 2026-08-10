@@ -1,0 +1,246 @@
+/* Monad Design System tokens (MDS-2026).
+   Hierarchy: brand primitives, then semantic tokens, then components.
+   Components reference semantic tokens only. No hardcoded values.
+
+   Vendored from the mf-websites-apps design system. Upstream pulls Inter and
+   Roboto Mono from Google Fonts through an @import placed after @font-face,
+   which browsers drop; both are served from assets/fonts here instead. */
+
+@font-face {
+  font-family: 'Britti Sans';
+  src: url('../fonts/britti-sans-variable.woff2') format('woff2-variations'),
+       url('../fonts/britti-sans-variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/inter-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/inter-latin-ext.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Roboto Mono';
+  src: url('../fonts/roboto-mono-latin.woff2') format('woff2');
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Roboto Mono';
+  src: url('../fonts/roboto-mono-latin-ext.woff2') format('woff2');
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  /* ━━━ BRAND · Monad Purple ramp (10 steps, no 950) ━━━ */
+  --mds-purple-50:  #F0EEFF;
+  --mds-purple-100: #DDD7FE;
+  --mds-purple-200: #BFB5FF;
+  --mds-purple-300: #A294FF;
+  --mds-purple-400: #8270FF;
+  --mds-purple-500: #6E54FF;  /* brand color */
+  --mds-purple-600: #5740D6;
+  --mds-purple-700: #4230AA;
+  --mds-purple-800: #2E2178;
+  --mds-purple-900: #1C1449;
+
+  /* ━━━ BRAND · Grey ramp (12 steps, fine-grain at dark end) ━━━ */
+  --mds-grey-50:   #FBFAF9;
+  --mds-grey-100:  #F4F4F8;
+  --mds-grey-200:  #E9E9F5;
+  --mds-grey-300:  #DADAE8;
+  --mds-grey-400:  #C7C7D6;
+  --mds-grey-500:  #AAAABF;
+  --mds-grey-600:  #727285;
+  --mds-grey-700:  #565666;
+  --mds-grey-800:  #353542;
+  --mds-grey-900:  #26262B;
+  --mds-grey-925:  #16161A;
+  --mds-grey-950:  #0F0F12;
+
+  /* ━━━ BRAND · Named ━━━ */
+  --mds-white:     #FFFFFF;
+  --mds-black:     #000000;
+
+  /* ━━━ BRAND · Alpha overlays ━━━ */
+  --alpha-white-4:  rgba(255,255,255,0.04);
+  --alpha-white-6:  rgba(255,255,255,0.06);
+  --alpha-white-8:  rgba(255,255,255,0.08);
+  --alpha-white-10: rgba(255,255,255,0.10);
+  --alpha-white-12: rgba(255,255,255,0.12);
+  --alpha-white-20: rgba(255,255,255,0.20);
+  --alpha-white-40: rgba(255,255,255,0.40);
+  --alpha-white-60: rgba(255,255,255,0.60);
+  --alpha-black-4:  rgba(0,0,0,0.04);
+  --alpha-black-8:  rgba(0,0,0,0.08);
+  --alpha-black-10: rgba(0,0,0,0.10);
+  --alpha-black-12: rgba(0,0,0,0.12);
+  --alpha-black-20: rgba(0,0,0,0.20);
+  --alpha-black-40: rgba(0,0,0,0.40);
+  --alpha-black-60: rgba(0,0,0,0.60);
+  --alpha-purple-40: rgba(110,84,255,0.40);
+  --alpha-purple-60: rgba(110,84,255,0.60);
+
+  /* ━━━ STATUS · backgrounds (baked per-mode) ━━━ */
+  --status-success-bg-light: #EBF8F0;
+  --status-warning-bg-light: #FFF8EC;
+  --status-error-bg-light:   #FFF3F4;
+  --status-info-bg-light:    #EEECFE;
+  --status-neutral-bg-light: #E9EBEE;
+  --status-success-bg-dark:  #0E1F14;
+  --status-warning-bg-dark:  #201A11;
+  --status-error-bg-dark:    #1C1213;
+  --status-info-bg-dark:     #171624;
+  --status-neutral-bg-dark:  #16171B;
+
+  /* ━━━ STATUS · foregrounds (Tailwind-published values) ━━━ */
+  --tw-green-500:  #22C55E;
+  --tw-green-600:  #16A34A;
+  --tw-yellow-500: #EAB308;
+  --tw-yellow-600: #CA8A04;
+  --tw-red-500:    #EF4444;
+  --tw-red-600:    #DC2626;
+
+  /* ━━━ SEMANTIC · LIGHT (default) ━━━ */
+  --bg:            var(--mds-grey-50);
+  --bg-subtle:     var(--mds-grey-100);
+  --bg-elevated:   var(--mds-white);
+  --bg-hover:      var(--alpha-black-4);
+  --bg-pressed:    var(--alpha-black-8);
+
+  --border:        var(--mds-grey-200);
+  --border-hover:  var(--mds-grey-300);
+  --border-strong: var(--mds-grey-400);
+  --border-focus:  var(--mds-purple-500);
+  --border-accent-subtle: var(--alpha-purple-40);
+
+  --fg:            var(--mds-grey-900);
+  --fg-secondary:  var(--mds-grey-600);
+  --fg-tertiary:   var(--mds-grey-500);
+  --fg-disabled:   var(--mds-grey-400);
+  --fg-accent:     var(--mds-purple-500);
+  --fg-inverse:    var(--mds-white);
+
+  --accent:         var(--mds-purple-500);
+  --accent-hover:   var(--mds-purple-400);
+  --accent-pressed: var(--mds-purple-600);
+  --accent-subtle:  var(--mds-purple-50);
+
+  --status-success-bg: var(--status-success-bg-light);
+  --status-warning-bg: var(--status-warning-bg-light);
+  --status-error-bg:   var(--status-error-bg-light);
+  --status-info-bg:    var(--status-info-bg-light);
+  --status-neutral-bg: var(--status-neutral-bg-light);
+  --status-success-fg: var(--tw-green-600);
+  --status-warning-fg: var(--tw-yellow-600);
+  --status-error-fg:   var(--tw-red-600);
+  --status-info-fg:    var(--mds-purple-500);
+
+  /* ━━━ SPACING · 4px base, scale gaps intentional ━━━ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 96px;
+
+  /* ━━━ RADIUS ━━━ */
+  --radius-none: 0;
+  --radius-sm:   4px;   /* default for interactive surfaces */
+  --radius-md:   8px;   /* reserved */
+  --radius-lg:   12px;  /* reserved */
+  --radius-xl:   16px;  /* reserved */
+  --radius-full: 999px;
+
+  /* ━━━ TYPE FAMILIES ━━━ */
+  --font-display: 'Britti Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-body:    'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Display weight: Britti Sans Medium (500) */
+  --font-display-weight: 500;
+
+  /* Display / heading scale */
+  --font-display-size:    112px; --font-display-lh: 108px; --font-display-tracking: -0.02em;
+  --font-h1-size:         64px;  --font-h1-lh: 72px;       --font-h1-tracking: -0.02em;
+  --font-h2-size:         48px;  --font-h2-lh: 56px;       --font-h2-tracking: -0.015em;
+  --font-h3-size:         36px;  --font-h3-lh: 44px;       --font-h3-tracking: -0.010em;
+  --font-h4-size:         30px;  --font-h4-lh: 38px;       --font-h4-tracking: -0.005em;
+  --font-h5-size:         24px;  --font-h5-lh: 32px;       --font-h5-tracking: -0.0025em;
+  --font-h6-size:         20px;  --font-h6-lh: 28px;       --font-h6-tracking: 0;
+
+  /* Body (Inter) */
+  --font-body-lg:  18px;  --font-body-lg-lh: 28px;
+  --font-body-md:  16px;  --font-body-md-lh: 24px;
+  --font-body-sm:  14px;  --font-body-sm-lh: 20px;
+  --font-body-xs:  12px;  --font-body-xs-lh: 16px;
+
+  /* Mono (Roboto Mono) */
+  --font-mono-md:  14px;  --font-mono-md-lh: 20px;
+  --font-mono-sm:  12px;  --font-mono-sm-lh: 16px;
+  --font-mono-xs:  11px;  --font-mono-xs-lh: 14px;
+  --font-mono-tracking: 0.08em;
+
+  /* Motion */
+  --ease-out:   cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms; --dur-med: 220ms; --dur-slow: 380ms;
+}
+
+/* ━━━ SEMANTIC · DARK (calibrated, not inverted) ━━━ */
+:root[data-theme="dark"], .mds-dark {
+  --bg:            var(--mds-black);   /* spec default; see "Dark mode is not inverted Light mode" */
+  --bg-subtle:     var(--mds-grey-950);
+  --bg-elevated:   var(--mds-grey-925);
+  --bg-hover:      var(--alpha-white-6);
+  --bg-pressed:    var(--alpha-white-10);
+
+  --border:        var(--mds-grey-900);
+  --border-hover:  var(--mds-grey-800);
+  --border-strong: var(--mds-grey-700);
+  --border-focus:  var(--mds-purple-400);
+  --border-accent-subtle: var(--alpha-purple-60);
+
+  --fg:            var(--mds-grey-50);
+  --fg-secondary:  var(--mds-grey-400);
+  --fg-tertiary:   var(--mds-grey-600);
+  --fg-disabled:   var(--mds-grey-700);
+  --fg-accent:     var(--mds-purple-400);
+  --fg-inverse:    var(--mds-black);
+
+  --accent:         var(--mds-purple-400);
+  --accent-hover:   var(--mds-purple-300);
+  --accent-pressed: var(--mds-purple-500);
+  --accent-subtle:  var(--mds-purple-900);
+
+  --status-success-bg: var(--status-success-bg-dark);
+  --status-warning-bg: var(--status-warning-bg-dark);
+  --status-error-bg:   var(--status-error-bg-dark);
+  --status-info-bg:    var(--status-info-bg-dark);
+  --status-neutral-bg: var(--status-neutral-bg-dark);
+  --status-success-fg: var(--tw-green-500);
+  --status-warning-fg: var(--tw-yellow-500);
+  --status-error-fg:   var(--tw-red-500);
+  --status-info-fg:    var(--mds-purple-400);
+}
