@@ -40,8 +40,7 @@ function legacyCopy(text) {
 }
 
 function copyText(text, button) {
-  var payload = (text || "").trim();
-  // only tick when the text is actually on the clipboard
+  var payload = text.trim();
   var done = function () {
     button.dataset.done = "true";
     clearTimeout(button.copyTimer);
@@ -352,8 +351,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function alignToHash() {
     var target = hashTarget();
     if (!target) return;
-    // behavior:auto defers to html { scroll-behavior: smooth }, which would
-    // animate the reader down the whole document; suppress it for this call
+    // behavior:auto defers to html { scroll-behavior: smooth }, so suppress it
     var root = document.documentElement;
     root.style.scrollBehavior = "auto";
     target.scrollIntoView({ block: "start", behavior: "auto" });

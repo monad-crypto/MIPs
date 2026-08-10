@@ -4,8 +4,7 @@
 
    Vendored from the mf-websites-apps design system. Upstream pulls Inter and
    Roboto Mono from Google Fonts through an @import placed after @font-face,
-   which browsers drop; both are served from assets/fonts here instead. Latin
-   subset only: nothing in the MIPs reaches Latin Extended. */
+   which browsers drop; both are served from assets/fonts here instead. */
 
 @font-face {
   font-family: 'Britti Sans';
