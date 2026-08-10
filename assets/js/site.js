@@ -23,17 +23,37 @@ var COPY_ICONS =
   '<svg class="ic-copy" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>' +
   '<svg class="ic-done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg>';
 
+// no async clipboard outside a secure context, and some WebViews never expose it
+function legacyCopy(text) {
+  var field = document.createElement("textarea");
+  field.value = text;
+  field.setAttribute("readonly", "");
+  field.style.cssText = "position:fixed;top:-9999px";
+  document.body.appendChild(field);
+  field.select();
+  var copied = false;
+  try {
+    copied = document.execCommand("copy");
+  } catch (_) {}
+  field.remove();
+  return copied;
+}
+
 function copyText(text, button) {
+  var payload = (text || "").trim();
+  // only tick when the text is actually on the clipboard
   var done = function () {
     button.dataset.done = "true";
     clearTimeout(button.copyTimer);
     button.copyTimer = setTimeout(function () { button.dataset.done = "false"; }, 1800);
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText((text || "").trim()).then(done, done);
-  } else {
-    done();
+    navigator.clipboard.writeText(payload).then(done, function () {
+      if (legacyCopy(payload)) done();
+    });
+    return;
   }
+  if (legacyCopy(payload)) done();
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -332,8 +352,12 @@ document.addEventListener("DOMContentLoaded", function () {
   function alignToHash() {
     var target = hashTarget();
     if (!target) return;
-    // instant, or the page's smooth scrolling animates the whole way down
-    target.scrollIntoView({ block: "start", behavior: "instant" });
+    // behavior:auto defers to html { scroll-behavior: smooth }, which would
+    // animate the reader down the whole document; suppress it for this call
+    var root = document.documentElement;
+    root.style.scrollBehavior = "auto";
+    target.scrollIntoView({ block: "start", behavior: "auto" });
+    root.style.scrollBehavior = "";
     flash(target);
     syncActive();
   }
