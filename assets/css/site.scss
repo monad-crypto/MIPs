@@ -364,7 +364,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 .backlink:hover { color: var(--fg); text-decoration: none; }
 .backlink svg { flex: none; margin-left: -3px; transition: transform var(--dur-med) var(--ease-out); }
 .backlink:hover svg { transform: translateX(-3px); }
-.detail { display: grid; grid-template-columns: minmax(0, 920px); justify-content: center; gap: 34px; }
+.detail { display: grid; grid-template-columns: minmax(0, 660px); justify-content: center; gap: 34px; }
 .doc-head .kicker { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
 .doc-head .kicker .rule { width: 1px; height: 12px; background: var(--bd2); }
 .doc-head .kicker .refline { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); }
@@ -378,7 +378,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   margin: 0 0 14px;
   text-wrap: pretty;
 }
-.doc-head .lede { margin: 0 0 18px; font-size: 18px; line-height: 1.5; color: var(--muted); max-width: 640px; text-wrap: pretty; }
+.doc-head .lede { margin: 0 0 18px; font-size: 18px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
 .doc-actions { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; }
 .action {
   display: inline-flex;
