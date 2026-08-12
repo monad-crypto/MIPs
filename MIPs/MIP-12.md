@@ -4,7 +4,7 @@ title: Decrease Block Time
 description: Decrease consensus vote pace from 400ms to 300ms
 author: Category Labs
 discussions-to: https://forum.monad.xyz/t/mip-12-decrease-vote-pace/488
-status: Draft
+status: Final
 type: Standards Track
 category: Core
 created: 2026-06-01
