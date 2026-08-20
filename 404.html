@@ -6,6 +6,26 @@ permalink: /404.html
 buttons: true
 ---
 
+<script>
+  // GitHub Pages serves paths case-sensitively, so a mis-cased collection
+  // segment (e.g. "/MIPS/MIP-12" instead of "/MIPs/MIP-12") lands here as a
+  // 404. Normalise the leading segment to the canonical directory casing and
+  // redirect, preserving the rest of the path, the query string, and the hash.
+  (function () {
+    var canonical = { mips: "MIPs", mrcs: "MRCs" };
+    var path = window.location.pathname.replace(/^\/+/, "");
+    var slash = path.indexOf("/");
+    if (slash === -1) return;
+    var segment = path.slice(0, slash);
+    var fixed = canonical[segment.toLowerCase()];
+    if (fixed && fixed !== segment) {
+      window.location.replace(
+        "/" + fixed + path.slice(slash) + window.location.search + window.location.hash
+      );
+    }
+  })();
+</script>
+
 <main class="shell notfound">
   <div class="code">404</div>
   <h1>No proposal at this address.</h1>
