@@ -53,11 +53,11 @@ Let `P` be a 4096-byte page. Then note the following:
     2. **Seal Phase**: The resulting subtree root is hashed alongside the 128-bit slot bitmap. This uniquely binds the data to the exact geometric positions and prevents spatial collisions.
 5. Execution and proof size scale with occupancy. The **merge phase** costs exactly `k - 1` compressions, where `k` is the number of active pairs.
 
-The resulting root is the **page commitment**. A Python pseudocode implementation of this commitment is shown below. A full breakdown of this commitment function can be found in the paper titled Merkle Commitments via Induced Subtrees.
+The resulting root is the **page commitment**. A pseudocode implementation of this commitment is shown below. A full breakdown of this commitment function can be found in the paper titled Merkle Commitments via Induced Subtrees.
 
 **Reference implementation**
 
-```python
+```text
 Function ISMC_Commit(page, slot_bitmap):
     // Inputs:
     // page: 4096-byte array (64 pairs of 64 bytes)
@@ -266,7 +266,7 @@ During execution, if a call reverts, the counters `current_state_growth` and `ne
 
 Contracts that allocate storage in contiguous chunks aligned to page boundaries are economically optimal, benefiting from lower gas costs and highly efficient inclusion proofs. Because the page commitment execution and proof size scale with the number of active pairs, the architecture natively aligns with the EVM’s storage patterns:
 
-1. **Random Sparse State**: The probability of two randomly hashed keys colliding within the same page is approximately 1 in 2**249. A standard mapping slot is therefore likely to be the only populated element in its page, and its page commitment can be reconstructed with zero sibling hashes. Proof sizes for current mapping-based states remain stable outside of the bitmap overhead.
+1. **Random Sparse State**: The probability of two randomly hashed keys colliding within the same page is approximately 1 in 2<sup>249</sup>. A standard mapping slot is therefore likely to be the only populated element in its page, and its page commitment can be reconstructed with zero sibling hashes. Proof sizes for current mapping-based states remain stable outside of the bitmap overhead.
 2. **Contiguous State**: When a page contains a densely packed, contiguous set of words, a multi-word inclusion requires only the sibling hashes along the outer boundary of the data block. This amortizes the proof size per word, making contiguous multi-word inclusion proofs strictly more efficient, again outside of the bitmap overhead.
 3. **Amortized Sparse Reads**: When a page is sparsely populated at random, single-word inclusion proofs incur a small, bounded overhead within the page. Under a uniform distribution, the expected proof size grows logarithmically as `O(log k)`.
 
@@ -299,7 +299,7 @@ The transaction payload format for [EIP-2930](https://eips.ethereum.org/EIPS/eip
 
 ### Page Index Space Size
 
-The current Merkle Patricia Trie uses a 2**256 key space, with keys hashed to determine leaf placement so that the tree remains balanced. Under the paged state scheme, the effective key space is reduced to 2**249. This reduction does not affect the tree structure: the hash still forces a uniform distribution, so the MPT topology and security properties are preserved.
+The current Merkle Patricia Trie uses a 2<sup>256</sup> key space, with keys hashed to determine leaf placement so that the tree remains balanced. Under the paged state scheme, the effective key space is reduced to 2<sup>249</sup>. This reduction does not affect the tree structure: the hash still forces a uniform distribution, so the MPT topology and security properties are preserved.
 
 ### Page Size
 
