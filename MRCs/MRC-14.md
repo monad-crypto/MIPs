@@ -3,7 +3,7 @@ mip: 14
 title: Account Attestation Registry
 description: An on-chain registry where an account publishes self-attestations about itself, authorized by proof-of-control
 author: Mohsen Ahmadvand (@mr-ma)
-discussions-to: <forum-thread>
+discussions-to: https://forum.monad.xyz/t/account-attestation-registry-mrc/513
 status: Draft
 type: Standards Track
 category: MRC
