@@ -4,7 +4,7 @@ title: Active Set Increase
 description: Increase the `ACTIVE_VALSET_SIZE` from 200 to 300.
 author: Jackson Lewis (@jacksononchain)
 discussions-to: https://forum.monad.xyz/t/mip-9-active-set-increase/416
-status: Draft
+status: Withdrawn
 type: Standards Track
 category: Core
 created: 2026-03-19
