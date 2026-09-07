@@ -1,5 +1,5 @@
 ---
-mip: TBD
+mip: 15
 title: Glamsterdam EIP Activation
 description: Activate selected EIPs from Ethereum's Glamsterdam upgrade.
 author: Category Labs
