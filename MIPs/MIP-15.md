@@ -3,8 +3,8 @@ mip: 15
 title: Glamsterdam EIP Activation
 description: Activate selected EIPs from Ethereum's Glamsterdam upgrade.
 author: Category Labs
-discussions-to: TBD
-status: Draft
+discussions-to: https://forum.monad.xyz/t/mip-15-glamsterdam-eip-activation/540
+status: Review
 type: Standards Track
 category: Core
 created: 2026-08-18
