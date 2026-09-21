@@ -479,19 +479,37 @@ Transfer objects are ordered by `(blockNumber, transactionIndex, traceAddress)`,
 
 ## Usage
 
-This section is informative and introduces no requirements of its own.
+This section is informative. It describes the approach clients should take to paginate results and handle reorgs using block references, and introduces no requirements.
 
 ### Pagination
 
-A response with `cursorBlock.number` different from `toBlock.number` is a partial page: the server stopped before the end of the requested range. The next page is retrieved by repeating the request with `fromBlock` set to `cursorBlock.number + 1` in `"asc"` mode, or `cursorBlock.number - 1` in `"desc"` mode, and all other parameters unchanged. A response whose `cursorBlock.number` equals `toBlock.number` is the final page for the requested range.
+Each response includes data from `fromBlock` through `cursorBlock`, inclusive. If `cursorBlock.number` equals `toBlock.number`, the query is complete. Otherwise the server stopped early — because it reached the user-provided `limit` or a server-enforced resource budget — and more data remains.
+
+To fetch the next page, the client should repeat the request with every parameter unchanged except `fromBlock`:
+
+- `"asc"`: `fromBlock` = `cursorBlock.number + 1`
+- `"desc"`: `fromBlock` = `cursorBlock.number - 1`
+
+Because block data is never split across two pages, clients do not need to reconcile partial blocks or handle pagination-related error messages.
 
 ### Reorg detection
 
-The block references in the response include `hash` and `parentHash` fields, which let a client detect a reorganization across requests.
+Blocks near the chain tip can be replaced by a chain reorganization, which may invalidate data that a client has already processed. Clients paging toward the tip in `"asc"` mode can cheaply detect this by comparing each page's `fromBlock.parentHash` with the previous page's `cursorBlock.hash`:
 
-A client retains the last block reference it consumed: `cursorBlock` for a response that stopped before the end of the range, and `toBlock` for a response that reached it — these are the same reference on a final page. When the next query begins at the block after the retained one, its `fromBlock.parentHash` matches the retained hash unless a reorganization has occurred. A client that prefers to re-query the retained block itself compares the new `fromBlock.hash` against the retained hash instead.
+- **Match**: If the hashes match, the chain is unchanged. The client can safely process the new page.
+- **Mismatch**: If the hashes do not match, a reorg has replaced the stored block or one of its ancestors. The client should stop appending and run the recovery procedure below.
 
-To recover, the client re-queries recent requests in descending block-number order. When both `fromBlock` and `toBlock` have matching hashes, `toBlock` is a known safe checkpoint, and data after that checkpoint is discarded and re-fetched. The block range covered by retained checkpoints bounds the supported recovery depth.
+### Reorg recovery
+
+The recovery procedure finds the newest block the client processed that is still canonical, discards the data above it, and resumes paging from there.
+
+This requires the client to retain a `number` and `hash` for every block it has processed at or after the block that `"finalized"` resolves to. Because a reorg cannot replace a finalized block, one of these references always matches, so the procedure always terminates.
+
+1. Query `eth_queryBlocks` with `order: "desc"`, `fromBlock` set to `"latest"`, `toBlock` set to the oldest retained block number, and `fields` set to `{"blocks": ["number", "hash"]}`.
+2. Walk the returned blocks newest to oldest. The first block whose `hash` matches the retained reference at the same block number is the recovery point.
+3. Discard all stored data above the recovery point, drop the retained references above it, and resume paging from `recoveryPoint + 1`.
+
+Setting `fromBlock` to `"latest"` rather than to the block number where detection failed keeps the query valid if the reorg shortened the chain.
 
 ## Rationale
 
@@ -499,7 +517,7 @@ To recover, the client re-queries recent requests in descending block-number ord
 
 **Block range and traversal direction.** Scanning a contiguous block range is the natural primitive for chain history queries. Supporting both `"asc"` and `"desc"` traversal lets clients page through history in either direction — forward for backfill indexing, backward for "show me the most recent N events" patterns — without implementing custom range logic.
 
-**Block-aligned responses.** Splitting the objects from a single block across two pages would create ambiguity: a client receiving a partial block cannot tell whether it has seen all matching objects for that block. Always completing the current block before stopping eliminates this edge case and makes pagination deterministic.
+**Block-aligned responses.** Splitting the objects from a single block across two pages would create ambiguity: a client receiving a partial block cannot tell whether it has seen all matching objects for that block. Always completing the current block before stopping simplifies pagination and reorg detection.
 
 **Flexible limit.** Treating `limit` as a target rather than a hard upper bound allows the server to satisfy block alignment (which may require returning slightly more objects than requested) while still bounding response sizes. Servers can also return fewer objects than requested if an internal constraint such as a response size or execution time limit is reached.
 
