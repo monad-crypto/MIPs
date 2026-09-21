@@ -174,7 +174,7 @@ Related objects use the schema defined in the response section of the correspond
 
 #### Ordering
 
-Each method defines an ordering key over its primary objects; see that method's Response section. Primary objects MUST be sorted by that key — ascending in `"asc"` mode and descending in `"desc"` mode. The sort applies across the entire result array, not only at block granularity: in `"desc"` mode the primary objects within a single block are returned in reverse order as well.
+Each method defines an ordering key over its primary objects; see that method's Ordering section. Primary objects MUST be sorted by that key — ascending in `"asc"` mode and descending in `"desc"` mode. The sort applies across the entire result array, not only at block granularity: in `"desc"` mode the primary objects within a single block are returned in reverse order as well.
 
 #### Field availability
 
