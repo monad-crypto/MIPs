@@ -35,14 +35,6 @@ This proposal aims to address four specific shortcomings.
 
 These shortcomings impose unnecessary compute, memory, and bandwidth costs on both users and node operators.
 
-## Overview
-
-Each of the proposed JSON-RPC methods follows the same request and response shape. Each method takes a single object parameter.
-
-**Request.** Each request specifies a block range with `fromBlock` and `toBlock`, a traversal order (`"asc"` for oldest-first, `"desc"` for newest-first), and a `limit` on how many primary objects to return. Within that range, an optional `filter` narrows which objects are returned (for example, filtering logs by contract address and topic, or transactions by sender). An optional `fields` parameter controls which fields are returned for the primary objects and any related objects to join in the same response.
-
-**Response.** The `data` object contains the matched results, keyed by object type (for example `"logs"` or `"blocks"`). The response also includes three block references (`fromBlock`, `toBlock`, and `cursorBlock`) which record the exact blocks the server used when executing the query. These are used for pagination and reorg detection.
-
 ## Example
 
 This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emitted by the USDC contract on Monad mainnet, including the timestamp of each log's parent block.
@@ -54,7 +46,7 @@ This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emit
   "method": "eth_queryLogs",
   "params": [{
     "filter": {
-      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
       "topics": ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"]
     },
     "fields": {
@@ -62,9 +54,8 @@ This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emit
       "blocks": ["number", "timestamp"]
     },
     "order": "asc",
-    "fromBlock": "0xF4240",
-    "toBlock": "0xF4E20",
-    "limit": "0x1F4"
+    "fromBlock": "0x5E69EC4",
+    "toBlock": "0x5E69ECB"
   }]
 }
 ```
@@ -79,49 +70,49 @@ The response includes the specified fields for each matched log and related bloc
     "data": {
       "logs": [
         {
-          "blockNumber": "0xF4290",
-          "logIndex": "0x3",
-          "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-          "data": "0x000000000000000000000000000000000000000000000000000000003b9aca00",
+          "blockNumber": "0x5E69EC6",
+          "logIndex": "0x4F",
+          "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+          "data": "0x000000000000000000000000000000000000000000000000000000000432d69f",
           "topics": [
             "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
-            "0x000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa96045",
-            "0x000000000000000000000000ab5801a7d398351b8be11c439e05c5b3259aec9b"
+            "0x000000000000000000000000928dc8afe312df45576b15b08c086c5427fd8207",
+            "0x000000000000000000000000d6aeaa631c867347afacf038cb3be58ca5c9cedf"
           ]
         },
         {
-          "blockNumber": "0xF4290",
-          "logIndex": "0x7",
-          "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-          "data": "0x000000000000000000000000000000000000000000000000000000000ee6b280",
+          "blockNumber": "0x5E69EC6",
+          "logIndex": "0x57",
+          "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+          "data": "0x0000000000000000000000000000000000000000000000000000000003f87ab2",
           "topics": [
             "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
-            "0x000000000000000000000000ab5801a7d398351b8be11c439e05c5b3259aec9b",
-            "0x0000000000000000000000004838b106fce9647bdf1e7877bf73ce8b0bad5f97"
+            "0x000000000000000000000000928dc8afe312df45576b15b08c086c5427fd8207",
+            "0x0000000000000000000000009bbc4b5339f7a24ae4548bd923c36aebc5e7c870"
           ]
         }
       ],
       "blocks": [
         {
-          "number": "0xF4290",
-          "timestamp": "0x679b8f20"
+          "number": "0x5E69EC6",
+          "timestamp": "0x6a8d5688"
         }
       ]
     },
     "fromBlock": {
-      "number": "0xF4240",
-      "hash": "0x3d6122660cc824376f11ee842f83addc3525e2dd6756b9bcf0affa6aa88cf741",
-      "parentHash": "0xb4f81f27f56f5059b00e4b9041fbd76dad1d6dc3b7cb1d0a7c58d09f91a1c7e2"
+      "number": "0x5E69EC4",
+      "hash": "0x93c7d639e007fd25626e326ad7a8a20977d6c0e3ab9da32c81ae7ec1d39577d8",
+      "parentHash": "0xcb3a39ea3177e88617c2ad5a48e0922277638fe0ce08f0548b7f639e90894b58"
     },
     "toBlock": {
-      "number": "0xF4E20",
-      "hash": "0xa9f2d63b518e4a55b5982e3c7b33e9f13286b0a4c638b06a1f2a9d0d87b591c4",
-      "parentHash": "0x1c7e4b5d09f281d7e3f19a6b7c8d2e5f7a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d"
+      "number": "0x5E69ECB",
+      "hash": "0x323e8aaf8d9b65afc6d7e3d0d589dac6b2d4050af146b7a1bd7226df604c4587",
+      "parentHash": "0xd1b683ccca914f70da48d36031f3c1332c0d3af8af1dc5a82ecbd19d8e6ec3d8"
     },
     "cursorBlock": {
-      "number": "0xF4E20",
-      "hash": "0xa9f2d63b518e4a55b5982e3c7b33e9f13286b0a4c638b06a1f2a9d0d87b591c4",
-      "parentHash": "0x1c7e4b5d09f281d7e3f19a6b7c8d2e5f7a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d"
+      "number": "0x5E69ECB",
+      "hash": "0x323e8aaf8d9b65afc6d7e3d0d589dac6b2d4050af146b7a1bd7226df604c4587",
+      "parentHash": "0xd1b683ccca914f70da48d36031f3c1332c0d3af8af1dc5a82ecbd19d8e6ec3d8"
     }
   }
 }
@@ -147,8 +138,8 @@ All other types named in this document (`string`, `number`, `boolean`, `object`,
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `filter` | `object` | No | Method-specific filter object. See each method's Filter section. |
-| `fields` | `object` | No | Method-specific fields to include for primary and related objects. See each method's Fields section. |
+| `filter` | `object` | No | Method-specific filter object. See Filters below and each method's Filter section. If omitted, every object of the method's primary type within the block range is returned. |
+| `fields` | `object` | No | Method-specific selection of fields to include and relations to join. See Fields below and each method's Fields section. If omitted, all fields of the primary object are included and no relations are joined. |
 | `order` | `string` | No | Traversal direction. `"asc"` (default): scan from `fromBlock` upward, returning results oldest-first; if `toBlock` is omitted, the scan runs to chain tip. `"desc"`: scan from `fromBlock` downward, returning results newest-first; if `toBlock` is omitted, the scan runs to genesis. |
 | `fromBlock` | `QUANTITY` or `TAG` | No | Inclusive range start. In `"asc"` mode, the lower bound; in `"desc"` mode, the upper bound. Accepts a hex-encoded block number (for example `"0xF4240"`) or a tag: `"latest"`, `"earliest"`, `"safe"`, `"finalized"`. Tags MUST be resolved server-side at query execution time. If omitted, defaults to `"earliest"` in `"asc"` mode or `"latest"` in `"desc"` mode. |
 | `toBlock` | `QUANTITY` or `TAG` | No | Inclusive range end. In `"asc"` mode, the upper bound; in `"desc"` mode, the lower bound. Same value types as `fromBlock`. If omitted, defaults to `"latest"` in `"asc"` mode or `"earliest"` in `"desc"` mode. |
@@ -163,15 +154,27 @@ All other types named in this document (`string`, `number`, `boolean`, `object`,
 | `toBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved ending block at query execution time. If `toBlock` was `"latest"` or omitted in `"asc"` mode, this reflects the block the node considered latest at query execution time. |
 | `cursorBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The last block the server scanned (inclusive). The server MUST complete the current block before stopping, so all matching objects from this block are included in the response. |
 
-#### Ordering
+#### Filters
 
-Each method defines an ordering key over its primary objects; see that method's Response section. Primary objects MUST be sorted by that key — ascending in `"asc"` mode and descending in `"desc"` mode. The sort applies across the entire result array, not only at block granularity: in `"desc"` mode the primary objects within a single block are returned in reverse order as well.
+Each method defines its own set of filter fields; see that method's Filter section. The rules below apply to all of them.
 
-Results MUST be returned in normalized form: primary objects and related objects appear in separate arrays under `data`, and a related object referenced by multiple primary objects MUST appear only once.
+All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). An omitted filter field places no constraint on the result.
+
+#### Fields
+
+The `fields` object selects what the response includes. Each key names an object schema, and each value is either an array of field names to include from that schema or `true` to include every field of that schema. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. See each method's Fields section for the keys it accepts.
 
 #### Relations
 
-Only many-to-one relations are joinable. Each method MUST reject a `fields` key that names a relation it does not support.
+A relation is a reference from a primary object to a single object of another type, joined into the response by naming that type as a key in `fields`. Only many-to-one relations are joinable. Each method MUST reject a `fields` key that names a relation it does not support.
+
+Results MUST be returned in normalized form. Related objects appear under `data` in their own array, keyed by the same name that selected them in `fields`. A related array MUST contain only objects referenced by a primary object in the same response, and a related object referenced by more than one primary object MUST appear only once.
+
+Related objects use the schema defined in the response section of the corresponding method: `blocks` objects as defined under `eth_queryBlocks`, and `transactions` objects as defined under `eth_queryTransactions`.
+
+#### Ordering
+
+Each method defines an ordering key over its primary objects; see that method's Response section. Primary objects MUST be sorted by that key — ascending in `"asc"` mode and descending in `"desc"` mode. The sort applies across the entire result array, not only at block granularity: in `"desc"` mode the primary objects within a single block are returned in reverse order as well.
 
 #### Field availability
 
@@ -196,10 +199,10 @@ The methods use standard JSON-RPC error codes plus application-specific codes th
 
 | Code | Message | Description |
 | --- | --- | --- |
-| `-32602` | Invalid params | Malformed request: unknown `fields` keys, invalid filter fields, a `fields` key naming an unrecognized or unsupported relation for this method, or a block range that is inverted for the requested `order`. |
 | `-32601` | Method not found | The node does not recognize the method, because it runs software that predates this MIP. This is the standard JSON-RPC code and is listed here only to distinguish it from `-32004`. |
 | `-32004` | Method not supported | The node recognizes the method but is not configured to serve it, and so cannot serve it for any block range. A node that does not index traces, for example, returns this code for `eth_queryTraces` and `eth_queryTransfers` while still serving the other three methods. |
-| `-32001` | Resource not found | The node serves this method, but the resolved block range falls partly or wholly outside its availability window for the method. See Block range availability below. |
+| `-32602` | Invalid params | Malformed request: unknown `fields` keys, invalid filter fields, a `fields` key naming an unrecognized or unsupported relation for this method, or a block range that is inverted for the requested `order`. |
+| `-32001` | Resource not found | The node serves this method, but the resolved block range falls partly or wholly outside its availability window for the method. See Block range availability above. |
 | `-32005` | Limit exceeded | The request exceeded a server-imposed resource limit, including the case where completing a single block would exceed that limit. |
 
 Example `-32005` error response:
@@ -216,24 +219,11 @@ Example `-32005` error response:
 }
 ```
 
-
-
 ### `eth_queryBlocks`
 
 Query for block headers.
 
-#### Request
-
-`eth_queryBlocks` accepts all common request parameters (`order`, `fromBlock`, `toBlock`, and `limit`) and the following method-specific parameters.
-
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `filter` | `object` | No | Filter object. See Filter below. If omitted, all blocks in the block range are returned. |
-| `fields` | `object` | No | Fields to include in the response. See Fields below. If omitted, all `blocks` fields are included and no relations are joined. |
-
 #### Filter
-
-All conditions are combined with AND semantics. Each filter field accepts a single value or an array of values; an array matches if the value equals any element (OR within the field).
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
@@ -241,17 +231,13 @@ All conditions are combined with AND semantics. Each filter field accepts a sing
 
 #### Fields
 
-The `fields` object accepts the following keys. The value is an array of field names to include, or `true` to include all fields.
-
 | Key | Type | Description |
 | --- | --- | --- |
-| `blocks` | `string[]` or `true` | Fields to include from the `blocks` schema. |
+| `blocks` | `string[]` or `true` | Primary. Fields to include from the `blocks` schema. |
 
-`eth_queryBlocks` does not support any relations.
+`eth_queryBlocks` supports no relations.
 
 #### Response
-
-`data` contains a single key, `blocks`. Objects are ordered by `number`.
 
 | Field | Type | Description | Availability |
 | --- | --- | --- | --- |
@@ -278,22 +264,15 @@ The `fields` object accepts the following keys. The value is an array of field n
 | `withdrawalsRoot` | `DATA` | Withdrawals root. | Fork-dependent |
 | `parentBeaconBlockRoot` | `DATA` | Parent beacon block root. | Fork-dependent |
 
+#### Ordering
+
+Block objects are ordered by `number`.
+
 ### `eth_queryTransactions`
 
 Query for transactions included in blocks.
 
-#### Request
-
-`eth_queryTransactions` accepts all common request parameters (`order`, `fromBlock`, `toBlock`, and `limit`) and the following method-specific parameters.
-
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `filter` | `object` | No | Filter object. See Filter below. If omitted, all transactions in the block range are returned. |
-| `fields` | `object` | No | Fields to include in the response. See Fields below. If omitted, all `transactions` fields are included and no relations are joined. |
-
 #### Filter
-
-All conditions are combined with AND semantics. Each filter field accepts a single value or an array of values; an array matches if the value equals any element (OR within the field).
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
@@ -303,16 +282,14 @@ All conditions are combined with AND semantics. Each filter field accepts a sing
 
 #### Fields
 
-The `fields` object accepts the following keys. Each value is an array of field names to include from that schema, or `true` to include all fields.
-
 | Key | Type | Description |
 | --- | --- | --- |
-| `transactions` | `string[]` or `true` | Fields to include from the `transactions` schema. |
-| `blocks` | `string[]` or `true` | Fields to include from the `blocks` schema for related objects. |
+| `transactions` | `string[]` or `true` | Primary. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
-The `transactions` objects combine transaction fields with receipt fields. The receipt `logs` field is not included. Objects are ordered by `(blockNumber, transactionIndex)`.
+The `transactions` objects combine transaction fields with receipt fields. The receipt `logs` field is not included.
 
 | Field | Type | Description | Availability |
 | --- | --- | --- | --- |
@@ -349,28 +326,21 @@ The `transactions` objects combine transaction fields with receipt fields. The r
 | `blobGasUsed` | `QUANTITY` | Blob gas used. | Fork-dependent |
 | `blobGasPrice` | `QUANTITY` | Blob gas price. | Fork-dependent |
 
-If requested, each related `blocks` object has the fields listed in the `eth_queryBlocks` response.
+#### Ordering
+
+Transaction objects are ordered by `(blockNumber, transactionIndex)`.
 
 ### `eth_queryLogs`
 
 Query for event logs emitted during transaction execution.
 
-#### Request
-
-`eth_queryLogs` accepts all common request parameters (`order`, `fromBlock`, `toBlock`, and `limit`) and the following method-specific parameters.
-
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `filter` | `object` | No | Filter object. See Filter below. If omitted, all logs in the block range are returned. |
-| `fields` | `object` | No | Fields to include in the response. See Fields below. If omitted, all `logs` fields are included and no relations are joined. |
-
 #### Filter
 
-All conditions are combined with AND semantics.
+`topics` does not follow the general array rule; see below.
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
-| `address` | `DATA` or `DATA[]` | Contract address that emitted the log. Accepts a single address or an array (matches any). |
+| `address` | `DATA` or `DATA[]` | Contract address that emitted the log. |
 | `topics` | see below | Positional topic filter. |
 
 The `topics` filter MUST follow the same matching semantics as `eth_getLogs`. The value is an array of up to 4 positional entries. Each entry may be:
@@ -383,17 +353,13 @@ Trailing `null` entries MAY be omitted.
 
 #### Fields
 
-The `fields` object accepts the following keys. Each value is an array of field names to include from that schema, or `true` to include all fields.
-
 | Key | Type | Description |
 | --- | --- | --- |
-| `logs` | `string[]` or `true` | Fields to include from the `logs` schema. |
-| `transactions` | `string[]` or `true` | Fields to include from the `transactions` schema for related objects. |
-| `blocks` | `string[]` or `true` | Fields to include from the `blocks` schema for related objects. |
+| `logs` | `string[]` or `true` | Primary. Fields to include from the `logs` schema. |
+| `transactions` | `string[]` or `true` | Relation. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
-
-Objects are ordered by `(blockNumber, logIndex)`.
 
 | Field | Type | Description | Availability |
 | --- | --- | --- | --- |
@@ -408,24 +374,17 @@ Objects are ordered by `(blockNumber, logIndex)`.
 | `data` | `DATA` | Non-indexed event data. | Required |
 | `removed` | `boolean` | Whether the log was removed by a reorg. Always `false` in these responses, since results are read from the canonical chain; retained for compatibility with `eth_getLogs` consumers. | Required |
 
-If requested, related `transactions` objects have the fields listed in the `eth_queryTransactions` response, and related `blocks` objects have the fields listed in the `eth_queryBlocks` response.
+#### Ordering
+
+Log objects are ordered by `(blockNumber, logIndex)`.
 
 ### `eth_queryTraces`
 
 Query for internal call traces.
 
-#### Request
-
-`eth_queryTraces` accepts all common request parameters (`order`, `fromBlock`, `toBlock`, and `limit`) and the following method-specific parameters.
-
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `filter` | `object` | No | Filter object. See Filter below. If omitted, all traces in the block range are returned. |
-| `fields` | `object` | No | Fields to include in the response. See Fields below. If omitted, all `traces` fields are included and no relations are joined. |
-
 #### Filter
 
-All conditions are combined with AND semantics. Each filter field except `isTopLevel` accepts a single value or an array of values.
+`isTopLevel` accepts only a single boolean; the other fields follow the general array rule.
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
@@ -436,17 +395,15 @@ All conditions are combined with AND semantics. Each filter field except `isTopL
 
 #### Fields
 
-The `fields` object accepts the following keys. Each value is an array of field names to include from that schema, or `true` to include all fields.
-
 | Key | Type | Description |
 | --- | --- | --- |
-| `traces` | `string[]` or `true` | Fields to include from the `traces` schema. |
-| `transactions` | `string[]` or `true` | Fields to include from the `transactions` schema for related objects. |
-| `blocks` | `string[]` or `true` | Fields to include from the `blocks` schema for related objects. |
+| `traces` | `string[]` or `true` | Primary. Fields to include from the `traces` schema. |
+| `transactions` | `string[]` or `true` | Relation. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
-Trace objects are flattened `callTracer` frames. They omit nested calls and trace logs. Objects are ordered by `(blockNumber, transactionIndex, traceAddress)`, where `traceAddress` is compared element-wise.
+Trace objects are flattened `callTracer` frames, omitting nested calls and trace logs.
 
 | Field | Type | Description | Availability |
 | --- | --- | --- | --- |
@@ -467,24 +424,17 @@ Trace objects are flattened `callTracer` frames. They omit nested calls and trac
 | `traceAddress` | `number[]` | Path through the nested call tree. | Required |
 | `status` | `QUANTITY` | `0x1` for success or `0x0` for reverted. | Required |
 
-If requested, related `transactions` objects have the fields listed in the `eth_queryTransactions` response, and related `blocks` objects have the fields listed in the `eth_queryBlocks` response.
+#### Ordering
+
+Trace objects are ordered by `(blockNumber, transactionIndex, traceAddress)`, where `traceAddress` is compared element-wise.
 
 ### `eth_queryTransfers`
 
 Query for native token transfers. A transfer is any call frame whose `value` is greater than zero. The set of transfers in a block range is therefore exactly the subset of the traces in that range for which `value > 0`, and each transfer object carries the same trace context as the corresponding `eth_queryTraces` object.
 
-#### Request
-
-`eth_queryTransfers` accepts all common request parameters (`order`, `fromBlock`, `toBlock`, and `limit`) and the following method-specific parameters.
-
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `filter` | `object` | No | Filter object. See Filter below. If omitted, all transfers in the block range are returned. |
-| `fields` | `object` | No | Fields to include in the response. See Fields below. If omitted, all `transfers` fields are included and no relations are joined. |
-
 #### Filter
 
-All conditions are combined with AND semantics. Each filter field except `isTopLevel` accepts a single value or an array of values.
+`isTopLevel` accepts only a single boolean; the other fields follow the general array rule.
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
@@ -494,17 +444,15 @@ All conditions are combined with AND semantics. Each filter field except `isTopL
 
 #### Fields
 
-The `fields` object accepts the following keys. Each value is an array of field names to include from that schema, or `true` to include all fields.
-
 | Key | Type | Description |
 | --- | --- | --- |
-| `transfers` | `string[]` or `true` | Fields to include from the `transfers` schema. |
-| `transactions` | `string[]` or `true` | Fields to include from the `transactions` schema for related objects. |
-| `blocks` | `string[]` or `true` | Fields to include from the `blocks` schema for related objects. |
+| `transfers` | `string[]` or `true` | Primary. Fields to include from the `transfers` schema. |
+| `transactions` | `string[]` or `true` | Relation. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
-Transfer objects contain the trace context for a native-token value movement. Objects are ordered by `(blockNumber, transactionIndex, traceAddress)`, where `traceAddress` is compared element-wise.
+Transfer objects have the same fields as the `eth_queryTraces` response, except that `to` and `value` are Required rather than Optional.
 
 | Field | Type | Description | Availability |
 | --- | --- | --- | --- |
@@ -525,13 +473,15 @@ Transfer objects contain the trace context for a native-token value movement. Ob
 | `traceAddress` | `number[]` | Path through the nested call tree. | Required |
 | `status` | `QUANTITY` | `0x1` for success or `0x0` for reverted. | Required |
 
-If requested, related `transactions` objects have the fields listed in the `eth_queryTransactions` response, and related `blocks` objects have the fields listed in the `eth_queryBlocks` response.
+#### Ordering
+
+Transfer objects are ordered by `(blockNumber, transactionIndex, traceAddress)`, where `traceAddress` is compared element-wise.
 
 ## Usage
 
 This section is informative and introduces no requirements of its own.
 
-#### Pagination
+### Pagination
 
 A response with `cursorBlock.number` different from `toBlock.number` is a partial page: the server stopped before the end of the requested range. The next page is retrieved by repeating the request with `fromBlock` set to `cursorBlock.number + 1` in `"asc"` mode, or `cursorBlock.number - 1` in `"desc"` mode, and all other parameters unchanged. A response whose `cursorBlock.number` equals `toBlock.number` is the final page for the requested range.
 
@@ -567,11 +517,11 @@ No backward compatibility issues found. These are five new JSON-RPC methods; no 
 
 ## Security Considerations
 
-These methods increase server-side workload by enabling high-volume historical queries. Implementations SHOULD enforce request limits (max response size or execution time) and apply fair-use controls (rate limiting, per-API-key quotas) to mitigate denial-of-service and cost-amplification risks.
+These methods increase server-side workload by enabling high-volume historical queries. Implementations are expected to enforce request limits, such as a maximum response size or execution time, and to apply fair-use controls such as rate limiting and per-API-key quotas, to mitigate denial-of-service and cost-amplification risks.
 
-Clients MUST NOT assume results are final when querying near the chain tip. Reorgs can invalidate prior pages; clients SHOULD persist and compare the returned block references across pages and re-fetch when mismatches occur.
+Results near the chain tip are not final. A reorganization can invalidate pages a client has already consumed, so a client that persists query results needs a recovery strategy built on the block references in the response; see Reorg detection.
 
-Because the API supports joins and field projection, implementations SHOULD validate the requested relations and fields strictly and bound the worst-case work per request.
+Because the API supports joins and field projection, the worst-case work for a single request depends on the requested relations and fields as well as on the block range. Implementations should validate relations and fields strictly and bound that worst case.
 
 ## Copyright
 
