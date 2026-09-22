@@ -1,5 +1,5 @@
 ---
-mip: XX
+mip: 16
 title: JSON-RPC Query Methods
 description: Five new JSON-RPC methods that enable efficient queries for raw chain history data
 author: Kevin Koste (@typedarray), Kyle Scott (@kyscott18), Jay Miller, Andre Benedito
