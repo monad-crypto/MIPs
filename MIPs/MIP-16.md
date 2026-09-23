@@ -145,7 +145,7 @@ All other types named in this document (`string`, `number`, `boolean`, `object`,
 | `order` | `string` | No | Traversal direction. `asc` (default): scan from `fromBlock` upward, returning results oldest-first; if `toBlock` is omitted, the scan runs to chain tip. `desc`: scan from `fromBlock` downward, returning results newest-first; if `toBlock` is omitted, the scan runs to genesis. |
 | `fromBlock` | `QUANTITY` or `TAG` | No | Inclusive range start. In `asc` mode, the lower bound; in `desc` mode, the upper bound. Accepts a hex-encoded block number (for example `"0xF4240"`) or a tag: `"latest"`, `"earliest"`, `"safe"`, `"finalized"`. Tags MUST be resolved server-side at query execution time. If omitted, defaults to `"earliest"` in `asc` mode or `"latest"` in `desc` mode. |
 | `toBlock` | `QUANTITY` or `TAG` | No | Inclusive range end. In `asc` mode, the upper bound; in `desc` mode, the lower bound. Same value types as `fromBlock`. If omitted, defaults to `"latest"` in `asc` mode or `"earliest"` in `desc` mode. |
-| `limit` | `QUANTITY` | No | Target number of primary objects to return. The server MAY return fewer if an internal constraint such as response size or execution time is reached, and MUST return more when needed to complete the current block. If completing the current block would itself exceed such a constraint, the server MUST fail the request with `-32005` rather than return a partial block. Related objects MUST NOT count toward this limit. |
+| `limit` | `QUANTITY` | No | Target number of primary objects per page. MUST be at least `0x1`. Because pages end on block boundaries, a response MAY contain more or fewer primary objects than `limit`; see [Block-aligned pagination](#block-aligned-pagination). Related objects MUST NOT count toward this limit. If omitted, each page is bounded only by the requested block range and the server's budget. |
 
 #### Response
 
@@ -154,7 +154,7 @@ All other types named in this document (`string`, `number`, `boolean`, `object`,
 | `data` | `object` | Method-specific query result object, keyed by object name. Each value is an array of objects containing the requested fields. |
 | `fromBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved starting block at query execution time. If `fromBlock` in the request was a tag, this reflects the block that tag resolved to. |
 | `toBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved ending block at query execution time. If `toBlock` was `"latest"` or omitted in `asc` mode, this reflects the block the node considered latest at query execution time. |
-| `cursorBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The last block the server scanned (inclusive). The server MUST complete the current block before stopping, so all matching objects from this block are included in the response. |
+| `cursorBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The final block in the page (inclusive). The response contains every matching primary object from `fromBlock` through `cursorBlock`. See [Block-aligned pagination](#block-aligned-pagination). |
 
 #### Filters
 
@@ -177,6 +177,28 @@ Related objects use the schema defined in the response section of the correspond
 #### Ordering
 
 Each method defines an ordering key over its primary objects; see that method's Ordering section. Primary objects MUST be sorted by that key — ascending in `asc` mode and descending in `desc` mode. The sort applies across the entire result array, not only at block granularity: in `desc` mode the primary objects within a single block are returned in reverse order as well.
+
+#### Block-aligned pagination
+
+Each response covers a *page*: a contiguous run of blocks from `fromBlock` through `cursorBlock` in traversal order. Pages are block-aligned: the response contains every matching primary object from every block in the page, and none from blocks outside it. A page never contains part of a block.
+
+The server builds a page by scanning the resolved range one block at a time, starting at `fromBlock`, and ends the page at the first of the following conditions:
+
+1. **Range end.** The scan reaches `toBlock`. `cursorBlock` is `toBlock`, and no blocks remain.
+2. **Limit reached.** The scan reaches a block that brings the page's primary object count to `limit` or greater. `cursorBlock` MUST be set to this final block, and the response MUST include every matching primary object in it, even if the count then exceeds `limit`. This condition does not apply if `limit` is omitted.
+3. **Budget reached.** The server exhausts its *budget* — any server-imposed bound on the work or size of a single response, such as execution time, response size, or number of primary objects — before completing a block. The server MUST discard that block's partial results and end the page at the previous block.
+
+Every successful response MUST include at least the `fromBlock` block, so each page advances by at least one block. If the server exhausts its budget before completing `fromBlock`, no block-aligned page exists, and the server MUST fail the request with `-32005`. Once the server has completed at least one block, it MUST return the page rather than fail with `-32005`.
+
+As a result, `limit` is a target rather than an exact count. A page contains more than `limit` primary objects when the block that reaches the limit holds more matches than needed, and fewer — possibly zero — when the range ends or the budget is reached first. The number of primary objects in a response therefore does not indicate whether more data remains; only `cursorBlock` does.
+
+For example, consider an `asc` request with `fromBlock` 10, `toBlock` 20, and `limit` 100 (decimal for readability), where blocks 10 through 13 contain 40, 0, 55, and 30 matching primary objects:
+
+| Scenario | Ending condition | `cursorBlock` | Primary objects returned |
+| --- | --- | --- | --- |
+| Budget not exhausted | Limit reached at block 13 (40 + 0 + 55 + 30 = 125) | 13 | 125 |
+| Budget exhausted while scanning block 13 | Budget reached | 12 | 95 |
+| Budget exhausted while scanning block 10 | — | — | Request fails with `-32005` |
 
 #### Field availability
 
@@ -203,9 +225,9 @@ The methods use standard JSON-RPC error codes plus application-specific codes th
 | --- | --- | --- |
 | `-32601` | Method not found | The node does not recognize the method, because it runs software that predates this MIP. This is the standard JSON-RPC code and is listed here only to distinguish it from `-32004`. |
 | `-32004` | Method not supported | The node recognizes the method but is not configured to serve it, and so cannot serve it for any block range. A node that does not index traces, for example, returns this code for `eth_queryTraces` and `eth_queryTransfers` while still serving the other three methods. |
-| `-32602` | Invalid params | Malformed request: unknown `fields` keys, invalid filter fields, a `fields` key naming an unrecognized or unsupported relation for this method, or a block range that is inverted for the requested `order`. |
+| `-32602` | Invalid params | Malformed request: unknown `fields` keys, invalid filter fields, a `fields` key naming an unrecognized or unsupported relation for this method, a `limit` of `0x0`, or a block range that is inverted for the requested `order`. |
 | `-32001` | Resource not found | The node serves this method, but the resolved block range falls partly or wholly outside its availability window for the method. See [Block range availability](#block-range-availability) above. |
-| `-32005` | Limit exceeded | The request exceeded a server-imposed resource limit, including the case where completing a single block would exceed that limit. |
+| `-32005` | Limit exceeded | The request exceeded a server-imposed resource limit. For the response budget, this occurs only when `fromBlock` alone exceeds the budget; see [Block-aligned pagination](#block-aligned-pagination). |
 
 Example `-32005` error response:
 
@@ -485,14 +507,14 @@ This section is informative. It describes the approach clients should take to pa
 
 ### Pagination
 
-Each response includes data from `fromBlock` through `cursorBlock`, inclusive. If `cursorBlock.number` equals `toBlock.number`, the query is complete. Otherwise the server stopped early — because it reached the user-provided `limit` or a server-enforced resource budget — and more data remains.
+Each response is a page covering `fromBlock` through `cursorBlock`, inclusive; see [Block-aligned pagination](#block-aligned-pagination). If `cursorBlock.number` equals `toBlock.number`, the query is complete. Otherwise more blocks remain, regardless of how many primary objects the page contains: a page cut short by the server's budget can hold fewer than `limit` objects, or none, and still not be the last.
 
 To fetch the next page, the client should repeat the request with every parameter unchanged except `fromBlock`:
 
 - `asc` mode: `fromBlock` = `cursorBlock.number + 1`
 - `desc` mode: `fromBlock` = `cursorBlock.number - 1`
 
-Because block data is never split across two pages, clients do not need to reconcile partial blocks or handle pagination-related error messages.
+Because pages never split a block, resuming from the block after `cursorBlock` neither repeats nor skips objects, and clients do not need to reconcile partial blocks.
 
 ### Reorg detection
 
@@ -521,9 +543,9 @@ Setting `fromBlock` to `"latest"` rather than to the block number where detectio
 
 **Block range and traversal direction.** Scanning a contiguous block range is the natural primitive for chain history queries. Supporting both `asc` and `desc` traversal lets clients page through history in either direction — forward for backfill indexing, backward for "show me the most recent N events" patterns — without implementing custom range logic.
 
-**Block-aligned responses.** Splitting the objects from a single block across two pages would create ambiguity: a client receiving a partial block cannot tell whether it has seen all matching objects for that block. Always completing the current block before stopping simplifies pagination and reorg detection.
+**Block-aligned pagination.** Splitting a block's objects across two pages would require a cursor that points inside a block, and a client receiving a partial block could not tell whether it had seen every matching object in it. Ending every page on a block boundary lets a single block reference serve as both the pagination cursor and the reorg-detection anchor.
 
-**Flexible limit.** Treating `limit` as a target rather than a hard upper bound allows the server to satisfy block alignment (which may require returning slightly more objects than requested) while still bounding response sizes. Servers can also return fewer objects than requested if an internal constraint such as a response size or execution time limit is reached.
+**Flexible limit.** Treating `limit` as a target rather than a hard upper bound allows the server to satisfy block alignment (which may require returning more objects than requested) while still bounding response sizes. Servers can also return fewer objects than requested if an internal constraint such as a response size or execution time limit is reached.
 
 **Only many-to-one joins.** Allowing one-to-many joins, such as including all transactions for a block, would make response sizes unpredictable — a single block could contain thousands of transactions. Restricting joins to many-to-one relations, such as including the parent block for each log, guarantees that the number of related objects is bounded by the number of primary objects, which keeps response sizes proportional to `limit`.
 
@@ -531,7 +553,7 @@ Setting `fromBlock` to `"latest"` rather than to the block number where detectio
 
 **Normalized vs. denormalized responses.** Results are returned in normalized form: primary objects and related objects in separate arrays, with shared objects, such as a block referenced by multiple logs, deduplicated. This avoids redundant data in the response payload and matches how clients typically store and index the data.
 
-**Block cursors.** The response includes three block references (`fromBlock`, `toBlock`, and `cursorBlock`) rather than an opaque cursor token. `fromBlock` and `toBlock` reflect the resolved block numbers at query execution time, which is necessary when tags like `"latest"` are used. `cursorBlock` identifies the last block scanned so clients can resume pagination and detect reorgs by comparing hashes across requests.
+**Block cursors.** The response includes three block references (`fromBlock`, `toBlock`, and `cursorBlock`) rather than an opaque cursor token. `fromBlock` and `toBlock` reflect the resolved block numbers at query execution time, which is necessary when tags like `"latest"` are used. `cursorBlock` identifies the final block in the page so clients can resume pagination and detect reorgs by comparing hashes across requests.
 
 ## Backwards Compatibility
 
