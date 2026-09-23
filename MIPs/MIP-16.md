@@ -156,6 +156,12 @@ All other types named in this document (`string`, `number`, `boolean`, `object`,
 | `toBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved ending block at query execution time. If `toBlock` was `"latest"` or omitted in `asc` mode, this reflects the block the node considered latest at query execution time. |
 | `cursorBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The final block in the page (inclusive). The response contains every matching primary object from `fromBlock` through `cursorBlock`. See [Block-aligned pagination](#block-aligned-pagination). |
 
+#### Chain consistency
+
+Every object and block reference in a response MUST come from the same canonical chain, as seen by the server at query execution time. A response MUST NOT mix blocks from before and after a reorg.
+
+This guarantee applies within a single response. Consecutive pages MAY reflect different chains if a reorg occurs between requests; see [Reorg detection](#reorg-detection).
+
 #### Filters
 
 Each method defines its own set of filter fields; see that method's Filter section. The rules below apply to all of them.
