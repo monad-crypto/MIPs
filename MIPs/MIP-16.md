@@ -1,7 +1,7 @@
 ---
 mip: 16
 title: JSON-RPC Query Methods
-description: Five new JSON-RPC methods that enable efficient queries for raw chain history data
+description: JSON-RPC methods that enable efficient queries for raw chain history data
 author: Kevin Koste (@typedarray), Kyle Scott (@kyscott18), Jay Miller, Andre Benedito
 discussions-to: https://forum.monad.xyz/t/draft-mip-json-rpc-query-methods/546
 status: Draft
@@ -136,13 +136,15 @@ All other types named in this document (`string`, `number`, `boolean`, `object`,
 
 #### Request
 
+ For all methods, `params` MUST be a single-element array whose first element is the request object defined below.
+
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `filter` | `object` | No | Method-specific filter object. See Filters below and each method's Filter section. If omitted, every object of the method's primary type within the block range is returned. |
 | `fields` | `object` | No | Method-specific selection of fields to include and relations to join. See Fields below and each method's Fields section. If omitted, all fields of the primary object are included and no relations are joined. |
-| `order` | `string` | No | Traversal direction. `"asc"` (default): scan from `fromBlock` upward, returning results oldest-first; if `toBlock` is omitted, the scan runs to chain tip. `"desc"`: scan from `fromBlock` downward, returning results newest-first; if `toBlock` is omitted, the scan runs to genesis. |
-| `fromBlock` | `QUANTITY` or `TAG` | No | Inclusive range start. In `"asc"` mode, the lower bound; in `"desc"` mode, the upper bound. Accepts a hex-encoded block number (for example `"0xF4240"`) or a tag: `"latest"`, `"earliest"`, `"safe"`, `"finalized"`. Tags MUST be resolved server-side at query execution time. If omitted, defaults to `"earliest"` in `"asc"` mode or `"latest"` in `"desc"` mode. |
-| `toBlock` | `QUANTITY` or `TAG` | No | Inclusive range end. In `"asc"` mode, the upper bound; in `"desc"` mode, the lower bound. Same value types as `fromBlock`. If omitted, defaults to `"latest"` in `"asc"` mode or `"earliest"` in `"desc"` mode. |
+| `order` | `string` | No | Traversal direction. `asc` (default): scan from `fromBlock` upward, returning results oldest-first; if `toBlock` is omitted, the scan runs to chain tip. `desc`: scan from `fromBlock` downward, returning results newest-first; if `toBlock` is omitted, the scan runs to genesis. |
+| `fromBlock` | `QUANTITY` or `TAG` | No | Inclusive range start. In `asc` mode, the lower bound; in `desc` mode, the upper bound. Accepts a hex-encoded block number (for example `"0xF4240"`) or a tag: `"latest"`, `"earliest"`, `"safe"`, `"finalized"`. Tags MUST be resolved server-side at query execution time. If omitted, defaults to `"earliest"` in `asc` mode or `"latest"` in `desc` mode. |
+| `toBlock` | `QUANTITY` or `TAG` | No | Inclusive range end. In `asc` mode, the upper bound; in `desc` mode, the lower bound. Same value types as `fromBlock`. If omitted, defaults to `"latest"` in `asc` mode or `"earliest"` in `desc` mode. |
 | `limit` | `QUANTITY` | No | Target number of primary objects to return. The server MAY return fewer if an internal constraint such as response size or execution time is reached, and MUST return more when needed to complete the current block. If completing the current block would itself exceed such a constraint, the server MUST fail the request with `-32005` rather than return a partial block. Related objects MUST NOT count toward this limit. |
 
 #### Response
@@ -151,7 +153,7 @@ All other types named in this document (`string`, `number`, `boolean`, `object`,
 | --- | --- | --- |
 | `data` | `object` | Method-specific query result object, keyed by object name. Each value is an array of objects containing the requested fields. |
 | `fromBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved starting block at query execution time. If `fromBlock` in the request was a tag, this reflects the block that tag resolved to. |
-| `toBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved ending block at query execution time. If `toBlock` was `"latest"` or omitted in `"asc"` mode, this reflects the block the node considered latest at query execution time. |
+| `toBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved ending block at query execution time. If `toBlock` was `"latest"` or omitted in `asc` mode, this reflects the block the node considered latest at query execution time. |
 | `cursorBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The last block the server scanned (inclusive). The server MUST complete the current block before stopping, so all matching objects from this block are included in the response. |
 
 #### Filters
@@ -174,7 +176,7 @@ Related objects use the schema defined in the response section of the correspond
 
 #### Ordering
 
-Each method defines an ordering key over its primary objects; see that method's Ordering section. Primary objects MUST be sorted by that key — ascending in `"asc"` mode and descending in `"desc"` mode. The sort applies across the entire result array, not only at block granularity: in `"desc"` mode the primary objects within a single block are returned in reverse order as well.
+Each method defines an ordering key over its primary objects; see that method's Ordering section. Primary objects MUST be sorted by that key — ascending in `asc` mode and descending in `desc` mode. The sort applies across the entire result array, not only at block granularity: in `desc` mode the primary objects within a single block are returned in reverse order as well.
 
 #### Field availability
 
@@ -426,7 +428,7 @@ Trace objects are flattened `callTracer` frames, omitting nested calls and trace
 
 #### Ordering
 
-Trace objects are ordered by `(blockNumber, transactionIndex, traceAddress)`, where `traceAddress` is compared element-wise.
+ Trace objects are ordered by `(blockNumber, transactionIndex, traceAddress)`, where `traceAddress` is compared lexicographically (element-wise), with shorter arrays sorting before longer arrays when one is a prefix of the other.
 
 ### `eth_queryTransfers`
 
@@ -487,14 +489,14 @@ Each response includes data from `fromBlock` through `cursorBlock`, inclusive. I
 
 To fetch the next page, the client should repeat the request with every parameter unchanged except `fromBlock`:
 
-- `"asc"`: `fromBlock` = `cursorBlock.number + 1`
-- `"desc"`: `fromBlock` = `cursorBlock.number - 1`
+- `asc` mode: `fromBlock` = `cursorBlock.number + 1`
+- `desc` mode: `fromBlock` = `cursorBlock.number - 1`
 
 Because block data is never split across two pages, clients do not need to reconcile partial blocks or handle pagination-related error messages.
 
 ### Reorg detection
 
-Blocks near the chain tip can be replaced by a chain reorganization, which may invalidate data that a client has already processed. Clients paging toward the tip in `"asc"` mode can cheaply detect this by comparing each page's `fromBlock.parentHash` with the previous page's `cursorBlock.hash`:
+Blocks near the chain tip can be replaced by a chain reorganization, which may invalidate data that a client has already processed. Clients paging toward the tip in `asc` mode can cheaply detect this by comparing each page's `fromBlock.parentHash` with the previous page's `cursorBlock.hash`:
 
 - **Match**: If the hashes match, the chain is unchanged. The client can safely process the new page.
 - **Mismatch**: If the hashes do not match, a reorg has replaced the stored block or one of its ancestors. The client should stop appending and run the recovery procedure below.
@@ -515,7 +517,7 @@ Setting `fromBlock` to `"latest"` rather than to the block number where detectio
 
 **JSON-RPC as the message format.** These methods extend the existing JSON-RPC interface rather than introducing a new transport or query language. This keeps the implementation footprint small for both node operators and client library authors, and allows existing tooling (authentication, load balancing, retries) to work without modification.
 
-**Block range and traversal direction.** Scanning a contiguous block range is the natural primitive for chain history queries. Supporting both `"asc"` and `"desc"` traversal lets clients page through history in either direction — forward for backfill indexing, backward for "show me the most recent N events" patterns — without implementing custom range logic.
+**Block range and traversal direction.** Scanning a contiguous block range is the natural primitive for chain history queries. Supporting both `asc` and `desc` traversal lets clients page through history in either direction — forward for backfill indexing, backward for "show me the most recent N events" patterns — without implementing custom range logic.
 
 **Block-aligned responses.** Splitting the objects from a single block across two pages would create ambiguity: a client receiving a partial block cannot tell whether it has seen all matching objects for that block. Always completing the current block before stopping simplifies pagination and reorg detection.
 
@@ -531,7 +533,7 @@ Setting `fromBlock` to `"latest"` rather than to the block number where detectio
 
 ## Backwards Compatibility
 
-No backward compatibility issues found. These are five new JSON-RPC methods; no existing method's request or response shape is changed. Clients that do not support these methods are unaffected, and a node that does not recognize them responds with the standard JSON-RPC "method not found" error (`-32601`). A node that recognizes the methods but is not configured to serve all of them responds with `-32004` for the methods it does not serve; see Errors.
+There are no backwards compatibility issues. These are five new JSON-RPC methods; no existing method's request or response shape is changed. Clients that do not support these methods are unaffected, and a node that does not recognize them responds with the standard JSON-RPC "method not found" error (`-32601`). A node that recognizes the methods but is not configured to serve all of them responds with `-32004` for the methods it does not serve; see Errors.
 
 ## Security Considerations
 
@@ -539,7 +541,7 @@ These methods increase server-side workload by enabling high-volume historical q
 
 Results near the chain tip are not final. A reorganization can invalidate pages a client has already consumed, so a client that persists query results needs a recovery strategy built on the block references in the response; see Reorg detection.
 
-Because the API supports joins and field projection, the worst-case work for a single request depends on the requested relations and fields as well as on the block range. Implementations should validate relations and fields strictly and bound that worst case.
+Because the new RPC methods support joins and field projection, the worst-case work for a single request depends on the requested relations and fields as well as on the block range. Implementations should validate relations and fields strictly and bound that worst case.
 
 ## Copyright
 
