@@ -140,8 +140,8 @@ All other types named in this document (`string`, `number`, `boolean`, `object`,
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `filter` | `object` | No | Method-specific filter object. See Filters below and each method's Filter section. If omitted, every object of the method's primary type within the block range is returned. |
-| `fields` | `object` | No | Method-specific selection of fields to include and relations to join. See Fields below and each method's Fields section. If omitted, all fields of the primary object are included and no relations are joined. |
+| `filter` | `object` | No | Method-specific filter object. See [Filters](#filters) below and each method's Filter section. If omitted, every object of the method's primary type within the block range is returned. |
+| `fields` | `object` | No | Method-specific selection of fields to include and relations to join. See [Fields](#fields) below and each method's Fields section. If omitted, all fields of the primary object are included and no relations are joined. |
 | `order` | `string` | No | Traversal direction. `asc` (default): scan from `fromBlock` upward, returning results oldest-first; if `toBlock` is omitted, the scan runs to chain tip. `desc`: scan from `fromBlock` downward, returning results newest-first; if `toBlock` is omitted, the scan runs to genesis. |
 | `fromBlock` | `QUANTITY` or `TAG` | No | Inclusive range start. In `asc` mode, the lower bound; in `desc` mode, the upper bound. Accepts a hex-encoded block number (for example `"0xF4240"`) or a tag: `"latest"`, `"earliest"`, `"safe"`, `"finalized"`. Tags MUST be resolved server-side at query execution time. If omitted, defaults to `"earliest"` in `asc` mode or `"latest"` in `desc` mode. |
 | `toBlock` | `QUANTITY` or `TAG` | No | Inclusive range end. In `asc` mode, the upper bound; in `desc` mode, the lower bound. Same value types as `fromBlock`. If omitted, defaults to `"latest"` in `asc` mode or `"earliest"` in `desc` mode. |
@@ -204,7 +204,7 @@ The methods use standard JSON-RPC error codes plus application-specific codes th
 | `-32601` | Method not found | The node does not recognize the method, because it runs software that predates this MIP. This is the standard JSON-RPC code and is listed here only to distinguish it from `-32004`. |
 | `-32004` | Method not supported | The node recognizes the method but is not configured to serve it, and so cannot serve it for any block range. A node that does not index traces, for example, returns this code for `eth_queryTraces` and `eth_queryTransfers` while still serving the other three methods. |
 | `-32602` | Invalid params | Malformed request: unknown `fields` keys, invalid filter fields, a `fields` key naming an unrecognized or unsupported relation for this method, or a block range that is inverted for the requested `order`. |
-| `-32001` | Resource not found | The node serves this method, but the resolved block range falls partly or wholly outside its availability window for the method. See Block range availability above. |
+| `-32001` | Resource not found | The node serves this method, but the resolved block range falls partly or wholly outside its availability window for the method. See [Block range availability](#block-range-availability) above. |
 | `-32005` | Limit exceeded | The request exceeded a server-imposed resource limit, including the case where completing a single block would exceed that limit. |
 
 Example `-32005` error response:
@@ -533,13 +533,13 @@ Setting `fromBlock` to `"latest"` rather than to the block number where detectio
 
 ## Backwards Compatibility
 
-There are no backwards compatibility issues. These are five new JSON-RPC methods; no existing method's request or response shape is changed. Clients that do not support these methods are unaffected, and a node that does not recognize them responds with the standard JSON-RPC "method not found" error (`-32601`). A node that recognizes the methods but is not configured to serve all of them responds with `-32004` for the methods it does not serve; see Errors.
+There are no backwards compatibility issues. These are five new JSON-RPC methods; no existing method's request or response shape is changed. Clients that do not support these methods are unaffected, and a node that does not recognize them responds with the standard JSON-RPC "method not found" error (`-32601`). A node that recognizes the methods but is not configured to serve all of them responds with `-32004` for the methods it does not serve; see [Errors](#errors).
 
 ## Security Considerations
 
 These methods increase server-side workload by enabling high-volume historical queries. Implementations are expected to enforce request limits, such as a maximum response size or execution time, and to apply fair-use controls such as rate limiting and per-API-key quotas, to mitigate denial-of-service and cost-amplification risks.
 
-Results near the chain tip are not final. A reorganization can invalidate pages a client has already consumed, so a client that persists query results needs a recovery strategy built on the block references in the response; see Reorg detection.
+Results near the chain tip are not final. A reorganization can invalidate pages a client has already consumed, so a client that persists query results needs a recovery strategy built on the block references in the response; see [Reorg detection](#reorg-detection).
 
 Because the new RPC methods support joins and field projection, the worst-case work for a single request depends on the requested relations and fields as well as on the block range. Implementations should validate relations and fields strictly and bound that worst case.
 
