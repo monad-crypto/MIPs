@@ -4,7 +4,7 @@ title: JSON-RPC Query Methods
 description: JSON-RPC methods that enable efficient queries for raw chain history data
 author: Kevin Koste (@typedarray), Kyle Scott (@kyscott18), Jay Miller, Andre Benedito
 discussions-to: https://forum.monad.xyz/t/draft-mip-json-rpc-query-methods/546
-status: Draft
+status: Review
 type: Standards Track
 category: Interface
 created: 2026-09-21
