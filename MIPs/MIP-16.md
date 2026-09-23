@@ -176,7 +176,7 @@ Related objects use the schema defined in the response section of the correspond
 
 #### Ordering
 
-Each method defines an ordering key over its primary objects; see that method's Ordering section. Primary objects MUST be sorted by that key — ascending in `asc` mode and descending in `desc` mode. The sort applies across the entire result array, not only at block granularity: in `desc` mode the primary objects within a single block are returned in reverse order as well.
+Each object type has an ordering key, defined in the Ordering section of the method that returns it as its primary type. The primary and related object arrays in `data` MUST be sorted by these ordering keys — ascending in `asc` mode and descending in `desc` mode. The sort applies across the entire array, not only at block granularity: in `desc` mode the objects within a single block are returned in reverse order as well.
 
 #### Block-aligned pagination
 
@@ -503,7 +503,7 @@ Transfer objects are ordered by `(blockNumber, transactionIndex, traceAddress)`,
 
 ## Usage
 
-This section is informative. It describes the approach clients should take to paginate results and handle reorgs using block references, and introduces no requirements.
+This section is informative. It describes recommended client behavior for these methods and introduces no requirements.
 
 ### Pagination
 
@@ -534,6 +534,22 @@ This requires the client to retain a `number` and `hash` for every block it has 
 3. Discard all stored data above the recovery point, drop the retained references above it, and resume paging from `recoveryPoint + 1`.
 
 Setting `fromBlock` to `"latest"` rather than to the block number where detection failed keeps the query valid if the reorg shortened the chain.
+
+### Joining relations
+
+To associate a primary object with its related objects, the client should match a *join key* on the primary object against the corresponding field on the related object. The join condition for each supported relation is:
+
+| Primary type | Join `blocks` | Join `transactions` |
+| --- | --- | --- |
+| `blocks` | — | — |
+| `transactions` | `transactions.blockNumber == blocks.number` | — |
+| `logs` | `logs.blockNumber == blocks.number` | `logs.transactionHash == transactions.hash` |
+| `traces` | `traces.blockNumber == blocks.number` | `traces.transactionHash == transactions.hash` |
+| `transfers` | `transfers.blockNumber == blocks.number` | `transfers.transactionHash == transactions.hash` |
+
+Join keys are selected like any other field. A client that requests a relation should include both sides of its join key in `fields`; otherwise, the response has no way to indicate which related object belongs to which primary object.
+
+The [Example](#example) request selects `blockNumber` on logs and `number` on blocks for this reason. Both returned logs have a `blockNumber` of `0x5E69EC6`, so both join to the single `blocks` object whose `number` is `0x5E69EC6`, and both logs have a block timestamp of `0x6a8d5688`. The block appears once even though two logs reference it. Blocks in the range that contain no matching logs, such as `0x5E69EC4`, do not appear at all.
 
 ## Rationale
 
