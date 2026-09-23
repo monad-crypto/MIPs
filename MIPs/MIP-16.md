@@ -515,7 +515,9 @@ Setting `fromBlock` to `"latest"` rather than to the block number where detectio
 
 ## Rationale
 
-**JSON-RPC as the message format.** These methods extend the existing JSON-RPC interface rather than introducing a new transport or query language. This keeps the implementation footprint small for both node operators and client library authors, and allows existing tooling (authentication, load balancing, retries) to work without modification.
+**JSON-RPC message format.** These methods extend the existing JSON-RPC interface rather than introducing a new transport or query language. This keeps the implementation footprint small for both node operators and client library authors, and allows existing tooling (authentication, load balancing, retries) to work without modification.
+
+**`eth_` namespace.** The methods use the `eth_` namespace rather than a Monad-specific namespace because nothing about the interface is specific to Monad. They query objects common to every EVM chain — blocks, transactions, logs, and traces — and reuse the value types, block tags, and error codes of existing `eth_` methods.
 
 **Block range and traversal direction.** Scanning a contiguous block range is the natural primitive for chain history queries. Supporting both `asc` and `desc` traversal lets clients page through history in either direction — forward for backfill indexing, backward for "show me the most recent N events" patterns — without implementing custom range logic.
 
