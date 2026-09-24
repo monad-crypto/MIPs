@@ -28,7 +28,7 @@ The standard Ethereum JSON-RPC interface provides inadequate primitives for quer
 
 This proposal aims to address four specific shortcomings.
 
-- **Filtering.** The `eth_getLogs` method supports log filtering, but there is no way to filter transactions or traces. To query all transactions sent to a specific address, the user must fetch entire blocks and filter client-side.
+- **Filtering.** The `eth_getLogs` method supports log filtering, but there is no efficient way to filter transactions or traces. To query all transactions sent to a specific address, the user must fetch entire blocks and filter client-side.
 - **Relations.** There is no way to join related objects in a single request. To fetch a set of logs and related transaction inputs, the user must make N+1 RPC requests (one to fetch logs, then one per unique transaction).
 - **Field selection.** Every RPC method returns a fixed object schema. Users that only need block number and timestamp have no choice but to fetch large unrelated fields like `logsBloom`, only to immediately discard them.
 - **Pagination.** The `eth_getLogs` pagination design causes frequent timeouts and client-side workarounds. The RPC methods for blocks, transactions, and traces don't support range queries at all.
