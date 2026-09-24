@@ -128,9 +128,11 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 This document uses the value type conventions of the Ethereum JSON-RPC interface:
 
-- `QUANTITY` — an unsigned integer, encoded as a `0x`-prefixed, big-endian hexadecimal string with no leading zeroes. Zero MUST be encoded as `"0x0"`.
-- `DATA` — a byte sequence, encoded as a `0x`-prefixed hexadecimal string with two hex digits per byte, and therefore an even number of digits. The empty byte sequence MUST be encoded as `"0x"`.
-- `TAG` — one of the block tag strings accepted by `fromBlock` and `toBlock`; see [Block range](#block-range).
+| Type | Encoding | Examples |
+| --- | --- | --- |
+| `QUANTITY` | An unsigned integer, encoded as a `0x`-prefixed, big-endian hexadecimal string with no leading zeroes. Zero MUST be encoded as `"0x0"`. | `"0x0"`, `"0x5E69EC6"` |
+| `DATA` | A byte sequence, encoded as a `0x`-prefixed hexadecimal string with two hex digits per byte, and therefore an even number of digits. The empty byte sequence MUST be encoded as `"0x"`. | `"0x"`, `"0x0f3a"` |
+| `TAG` | One of the block tag strings accepted by `fromBlock` and `toBlock`; see [Block range](#block-range). | `"latest"`, `"finalized"` |
 
 All other types named in this document (`string`, `number`, `boolean`, `object`, and array forms such as `DATA[]`, `number[]`, and `string[]`) are the corresponding JSON types.
 
