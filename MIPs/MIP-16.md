@@ -224,7 +224,7 @@ All conditions within a `filter` object are combined with AND semantics. Except 
 
 #### Fields and relations
 
-The `fields` object selects what the response includes. Each key names an object schema, and each value is either an array of field names to include from that schema or `true` to include every field of that schema. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. See each method's Fields section for the keys it accepts.
+The `fields` object selects what the response includes. Each key names an object schema, and each value is either an array of field names to include from that schema or the string `"all"` to include every field of that schema. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. See each method's Fields section for the keys it accepts.
 
 A relation is a reference from a primary object to a single object of another type. Only many-to-one relations are joinable. Each method MUST reject a `fields` key that names a relation it does not support.
 
@@ -250,7 +250,7 @@ Query for block headers.
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `blocks` | `string[]` or `true` | Primary. Fields to include from the `blocks` schema. |
+| `blocks` | `string[]` or `"all"` | Primary. Fields to include from the `blocks` schema. |
 
 `eth_queryBlocks` supports no relations.
 
@@ -301,8 +301,8 @@ Query for transactions included in blocks.
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `transactions` | `string[]` or `true` | Primary. Fields to include from the `transactions` schema. |
-| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
+| `transactions` | `string[]` or `"all"` | Primary. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `"all"` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
@@ -372,9 +372,9 @@ Trailing `null` entries MAY be omitted.
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `logs` | `string[]` or `true` | Primary. Fields to include from the `logs` schema. |
-| `transactions` | `string[]` or `true` | Relation. Fields to include from the `transactions` schema. |
-| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
+| `logs` | `string[]` or `"all"` | Primary. Fields to include from the `logs` schema. |
+| `transactions` | `string[]` or `"all"` | Relation. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `"all"` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
@@ -414,9 +414,9 @@ Query for internal call traces.
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `traces` | `string[]` or `true` | Primary. Fields to include from the `traces` schema. |
-| `transactions` | `string[]` or `true` | Relation. Fields to include from the `transactions` schema. |
-| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
+| `traces` | `string[]` or `"all"` | Primary. Fields to include from the `traces` schema. |
+| `transactions` | `string[]` or `"all"` | Relation. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `"all"` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
@@ -463,9 +463,9 @@ Query for native token transfers. A transfer is any call frame whose `value` is 
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `transfers` | `string[]` or `true` | Primary. Fields to include from the `transfers` schema. |
-| `transactions` | `string[]` or `true` | Relation. Fields to include from the `transactions` schema. |
-| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
+| `transfers` | `string[]` or `"all"` | Primary. Fields to include from the `transfers` schema. |
+| `transactions` | `string[]` or `"all"` | Relation. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `"all"` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
