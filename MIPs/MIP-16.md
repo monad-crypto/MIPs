@@ -20,7 +20,7 @@ This MIP introduces five new JSON-RPC methods that enable efficient queries for 
 - `eth_queryTraces`
 - `eth_queryTransfers`
 
-All five methods share a common request and response shape. A request specifies a block range, a traversal order, a target page size, an optional filter, and an optional field selection that also controls which related objects are joined into the response. A response returns normalized, deduplicated result arrays keyed by object type, along with three block references that clients use for pagination and reorg detection.
+Each method scans a contiguous block range, oldest-first or newest-first, and returns the objects that match a server-side filter, such as sender, recipient, function selector, or event topic. A request can select exactly which fields to return, and can join each result's block and transaction into the same response. Results are paginated by block: a page never splits a block, and each response reports the last block it covers as `cursorBlock`, so clients resume from the next block without repeating or skipping results. Every response also includes the hash and parent hash of its boundary blocks, which lets clients detect reorgs without extra requests.
 
 ## Motivation
 
