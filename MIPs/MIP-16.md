@@ -222,7 +222,7 @@ This guarantee applies within a single response. Consecutive pages MAY reflect d
 
 Each method defines its own set of filter fields; see that method's Filter section. The rules below apply to all of them.
 
-All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). An omitted filter field places no constraint on the result. If `filter` is omitted, every object of the method's primary type within the block range is returned.
+All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). An omitted filter field places no constraint on the result, unless the method's Filter section defines a default for that field. If `filter` is omitted, every object of the method's primary type within the block range is returned, subject to those defaults.
 
 #### Fields and relations
 
@@ -403,14 +403,14 @@ Query for internal call traces.
 
 #### Filter
 
-`isTopLevel` accepts only a single boolean; the other fields follow the general array rule.
+`includeReverted` accepts only a single boolean; the other fields follow the general array rule.
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
 | `from` | `DATA` or `DATA[]` | Sender address. |
 | `to` | `DATA` or `DATA[]` | Recipient address. |
 | `selector` | `DATA` or `DATA[]` | 4-byte function selector (first 4 bytes of `input`). Traces with `input` shorter than 4 bytes MUST NOT match a `selector` filter. |
-| `isTopLevel` | `boolean` | If `true`, only top-level traces (those with an empty `traceAddress`) are returned; if `false`, only traces made by an internal call (those with a non-empty `traceAddress`). If omitted, both are returned. |
+| `includeReverted` | `boolean` | If `true`, traces with `reverted: true` are also returned. If omitted or `false`, the server MUST NOT return traces with `reverted: true`. |
 
 #### Fields
 
@@ -434,14 +434,15 @@ Trace objects are flattened `callTracer` frames, omitting nested calls and trace
 | `gasUsed` | `QUANTITY` | Gas used during the call. | Required |
 | `input` | `DATA` | Call data. | Required |
 | `output` | `DATA` | Return data. | Optional |
-| `error` | `string` | Call failure information. | Optional |
-| `revertReason` | `string` | Solidity revert reason. | Optional |
+| `error` | `string` | Failure of this call frame itself, such as a revert, out of gas, or an invalid opcode. Absent if this frame returned normally. To get revert data, decode `output`. | Optional |
+| `reverted` | `boolean` | `true` if the state changes of this call were discarded. This happens when the call itself reverted or when one of its parent calls reverted. | Required |
 | `blockHash` | `DATA` | Hash of the containing block. | Required |
 | `blockNumber` | `QUANTITY` | Number of the containing block. | Required |
 | `transactionHash` | `DATA` | Hash of the containing transaction. | Required |
 | `transactionIndex` | `QUANTITY` | Transaction index in the block. | Required |
 | `traceAddress` | `number[]` | Path through the nested call tree. | Required |
-| `status` | `QUANTITY` | `0x1` for success or `0x0` for reverted. | Required |
+
+`error` and `reverted` answer different questions: `error` indicates that this frame failed, and `reverted` indicates that this frame's effects did not persist. Every frame with `error` has `reverted: true`, but the converse does not hold.
 
 #### Ordering
 
@@ -453,13 +454,13 @@ Query for native token transfers. A transfer is any call frame whose `value` is 
 
 #### Filter
 
-`isTopLevel` accepts only a single boolean; the other fields follow the general array rule.
+`includeReverted` accepts only a single boolean; the other fields follow the general array rule.
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
 | `from` | `DATA` or `DATA[]` | Address initiating the transfer. |
 | `to` | `DATA` or `DATA[]` | Address receiving the transfer. |
-| `isTopLevel` | `boolean` | If `true`, only top-level transfers (those with an empty `traceAddress`) are returned; if `false`, only transfers made by an internal call (those with a non-empty `traceAddress`). If omitted, both are returned. |
+| `includeReverted` | `boolean` | If `true`, transfers with `reverted: true` are also returned. If omitted or `false`, the server MUST NOT return transfers with `reverted: true`. |
 
 #### Fields
 
@@ -483,14 +484,15 @@ Transfer objects have the same fields as the `eth_queryTraces` response, except 
 | `gasUsed` | `QUANTITY` | Gas used during the call. | Required |
 | `input` | `DATA` | Call data. | Required |
 | `output` | `DATA` | Return data. | Optional |
-| `error` | `string` | Call failure information. | Optional |
-| `revertReason` | `string` | Solidity revert reason. | Optional |
+| `error` | `string` | Failure of this call frame itself, such as a revert, out of gas, or an invalid opcode. Absent if this frame returned normally. To get revert data, decode `output`. | Optional |
+| `reverted` | `boolean` | `true` if the state changes of this call were discarded. This happens when the call itself reverted or when one of its parent calls reverted. | Required |
 | `blockHash` | `DATA` | Hash of the containing block. | Required |
 | `blockNumber` | `QUANTITY` | Number of the containing block. | Required |
 | `transactionHash` | `DATA` | Hash of the containing transaction. | Required |
 | `transactionIndex` | `QUANTITY` | Transaction index in the block. | Required |
 | `traceAddress` | `number[]` | Path through the nested call tree. | Required |
-| `status` | `QUANTITY` | `0x1` for success or `0x0` for reverted. | Required |
+
+For a transfer, `reverted: true` means the value did not move.
 
 #### Ordering
 
