@@ -4,7 +4,7 @@ title: JSON-RPC Query Methods
 description: JSON-RPC methods that enable efficient queries for raw chain history data
 author: Kevin Koste (@typedarray), Kyle Scott (@kyscott18), Jay Miller, Andre Benedito
 discussions-to: https://forum.monad.xyz/t/draft-mip-json-rpc-query-methods/546
-status: Draft
+status: Review
 type: Standards Track
 category: Interface
 created: 2026-09-21
@@ -20,7 +20,7 @@ This MIP introduces five new JSON-RPC methods that enable efficient queries for 
 - `eth_queryTraces`
 - `eth_queryTransfers`
 
-All five methods share a common request and response shape. A request specifies a block range, a traversal order, a target page size, an optional filter, and an optional field selection that also controls which related objects are joined into the response. A response returns normalized, deduplicated result arrays keyed by object type, along with three block references that clients use for pagination and reorg detection.
+Each method scans a contiguous block range, oldest-first or newest-first, and returns the objects that match a server-side filter, such as sender, recipient, function selector, or event topic. A request can select exactly which fields to return, and can join each result's block and transaction into the same response. Results are paginated by block: a page never splits a block, and each response reports the last block it covers as `cursorBlock`, so clients resume from the next block without repeating or skipping results. Every response also includes the hash and parent hash of its boundary blocks, which lets clients detect reorgs without extra requests.
 
 ## Motivation
 
@@ -28,7 +28,7 @@ The standard Ethereum JSON-RPC interface provides inadequate primitives for quer
 
 This proposal aims to address four specific shortcomings.
 
-- **Filtering.** The `eth_getLogs` method supports log filtering, but there is no way to filter transactions or traces. To query all transactions sent to a specific address, the user must fetch entire blocks and filter client-side.
+- **Filtering.** The `eth_getLogs` method supports log filtering, but there is no efficient way to filter transactions or traces. To query all transactions sent to a specific address, the user must fetch entire blocks and filter client-side.
 - **Relations.** There is no way to join related objects in a single request. To fetch a set of logs and related transaction inputs, the user must make N+1 RPC requests (one to fetch logs, then one per unique transaction).
 - **Field selection.** Every RPC method returns a fixed object schema. Users that only need block number and timestamp have no choice but to fetch large unrelated fields like `logsBloom`, only to immediately discard them.
 - **Pagination.** The `eth_getLogs` pagination design causes frequent timeouts and client-side workarounds. The RPC methods for blocks, transactions, and traces don't support range queries at all.
@@ -128,9 +128,11 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 This document uses the value type conventions of the Ethereum JSON-RPC interface:
 
-- `QUANTITY` — an unsigned integer, encoded as a `0x`-prefixed, big-endian hexadecimal string with no leading zeroes. Zero MUST be encoded as `"0x0"`.
-- `DATA` — a byte sequence, encoded as a `0x`-prefixed hexadecimal string with two hex digits per byte, and therefore an even number of digits. The empty byte sequence MUST be encoded as `"0x"`.
-- `TAG` — one of the block tag strings accepted by `fromBlock` and `toBlock`; see [Block range](#block-range).
+| Type | Encoding | Examples |
+| --- | --- | --- |
+| `QUANTITY` | An unsigned integer, encoded as a `0x`-prefixed, big-endian hexadecimal string with no leading zeroes. Zero MUST be encoded as `"0x0"`. | `"0x0"`, `"0x5E69EC6"` |
+| `DATA` | A byte sequence, encoded as a `0x`-prefixed hexadecimal string with two hex digits per byte, and therefore an even number of digits. The empty byte sequence MUST be encoded as `"0x"`. | `"0x"`, `"0x0f3a"` |
+| `TAG` | One of the block tag strings accepted by `fromBlock` and `toBlock`; see [Block range](#block-range). | `"latest"`, `"finalized"` |
 
 All other types named in this document (`string`, `number`, `boolean`, `object`, and array forms such as `DATA[]`, `number[]`, and `string[]`) are the corresponding JSON types.
 
@@ -220,11 +222,11 @@ This guarantee applies within a single response. Consecutive pages MAY reflect d
 
 Each method defines its own set of filter fields; see that method's Filter section. The rules below apply to all of them.
 
-All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). An omitted filter field places no constraint on the result. If `filter` is omitted, every object of the method's primary type within the block range is returned.
+All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). An omitted filter field places no constraint on the result, unless the method's Filter section defines a default for that field. If `filter` is omitted, every object of the method's primary type within the block range is returned, subject to those defaults.
 
 #### Fields and relations
 
-The `fields` object selects what the response includes. Each key names an object schema, and each value is either an array of field names to include from that schema or `true` to include every field of that schema. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. See each method's Fields section for the keys it accepts.
+The `fields` object selects what the response includes. Each key names an object schema, and each value is either an array of field names to include from that schema or the string `"all"` to include every field of that schema. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. See each method's Fields section for the keys it accepts.
 
 A relation is a reference from a primary object to a single object of another type. Only many-to-one relations are joinable. Each method MUST reject a `fields` key that names a relation it does not support.
 
@@ -250,7 +252,7 @@ Query for block headers.
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `blocks` | `string[]` or `true` | Primary. Fields to include from the `blocks` schema. |
+| `blocks` | `string[]` or `"all"` | Primary. Fields to include from the `blocks` schema. |
 
 `eth_queryBlocks` supports no relations.
 
@@ -301,8 +303,8 @@ Query for transactions included in blocks.
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `transactions` | `string[]` or `true` | Primary. Fields to include from the `transactions` schema. |
-| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
+| `transactions` | `string[]` or `"all"` | Primary. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `"all"` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
@@ -372,9 +374,9 @@ Trailing `null` entries MAY be omitted.
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `logs` | `string[]` or `true` | Primary. Fields to include from the `logs` schema. |
-| `transactions` | `string[]` or `true` | Relation. Fields to include from the `transactions` schema. |
-| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
+| `logs` | `string[]` or `"all"` | Primary. Fields to include from the `logs` schema. |
+| `transactions` | `string[]` or `"all"` | Relation. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `"all"` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
@@ -401,22 +403,22 @@ Query for internal call traces.
 
 #### Filter
 
-`isTopLevel` accepts only a single boolean; the other fields follow the general array rule.
+`includeReverted` accepts only a single boolean; the other fields follow the general array rule.
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
 | `from` | `DATA` or `DATA[]` | Sender address. |
 | `to` | `DATA` or `DATA[]` | Recipient address. |
 | `selector` | `DATA` or `DATA[]` | 4-byte function selector (first 4 bytes of `input`). Traces with `input` shorter than 4 bytes MUST NOT match a `selector` filter. |
-| `isTopLevel` | `boolean` | If `true`, only top-level traces (those with an empty `traceAddress`) are returned; if `false`, only traces made by an internal call (those with a non-empty `traceAddress`). If omitted, both are returned. |
+| `includeReverted` | `boolean` | If `true`, traces with `reverted: true` are also returned. If omitted or `false`, the server MUST NOT return traces with `reverted: true`. |
 
 #### Fields
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `traces` | `string[]` or `true` | Primary. Fields to include from the `traces` schema. |
-| `transactions` | `string[]` or `true` | Relation. Fields to include from the `transactions` schema. |
-| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
+| `traces` | `string[]` or `"all"` | Primary. Fields to include from the `traces` schema. |
+| `transactions` | `string[]` or `"all"` | Relation. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `"all"` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
@@ -432,14 +434,15 @@ Trace objects are flattened `callTracer` frames, omitting nested calls and trace
 | `gasUsed` | `QUANTITY` | Gas used during the call. | Required |
 | `input` | `DATA` | Call data. | Required |
 | `output` | `DATA` | Return data. | Optional |
-| `error` | `string` | Call failure information. | Optional |
-| `revertReason` | `string` | Solidity revert reason. | Optional |
+| `error` | `string` | Failure of this call frame itself, such as a revert, out of gas, or an invalid opcode. Absent if this frame returned normally. To get revert data, decode `output`. | Optional |
+| `reverted` | `boolean` | `true` if the state changes of this call were discarded. This happens when the call itself reverted or when one of its parent calls reverted. | Required |
 | `blockHash` | `DATA` | Hash of the containing block. | Required |
 | `blockNumber` | `QUANTITY` | Number of the containing block. | Required |
 | `transactionHash` | `DATA` | Hash of the containing transaction. | Required |
 | `transactionIndex` | `QUANTITY` | Transaction index in the block. | Required |
 | `traceAddress` | `number[]` | Path through the nested call tree. | Required |
-| `status` | `QUANTITY` | `0x1` for success or `0x0` for reverted. | Required |
+
+`error` and `reverted` answer different questions: `error` indicates that this frame failed, and `reverted` indicates that this frame's effects did not persist. Every frame with `error` has `reverted: true`, but the converse does not hold.
 
 #### Ordering
 
@@ -451,21 +454,21 @@ Query for native token transfers. A transfer is any call frame whose `value` is 
 
 #### Filter
 
-`isTopLevel` accepts only a single boolean; the other fields follow the general array rule.
+`includeReverted` accepts only a single boolean; the other fields follow the general array rule.
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
 | `from` | `DATA` or `DATA[]` | Address initiating the transfer. |
 | `to` | `DATA` or `DATA[]` | Address receiving the transfer. |
-| `isTopLevel` | `boolean` | If `true`, only top-level transfers (those with an empty `traceAddress`) are returned; if `false`, only transfers made by an internal call (those with a non-empty `traceAddress`). If omitted, both are returned. |
+| `includeReverted` | `boolean` | If `true`, transfers with `reverted: true` are also returned. If omitted or `false`, the server MUST NOT return transfers with `reverted: true`. |
 
 #### Fields
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `transfers` | `string[]` or `true` | Primary. Fields to include from the `transfers` schema. |
-| `transactions` | `string[]` or `true` | Relation. Fields to include from the `transactions` schema. |
-| `blocks` | `string[]` or `true` | Relation. Fields to include from the `blocks` schema. |
+| `transfers` | `string[]` or `"all"` | Primary. Fields to include from the `transfers` schema. |
+| `transactions` | `string[]` or `"all"` | Relation. Fields to include from the `transactions` schema. |
+| `blocks` | `string[]` or `"all"` | Relation. Fields to include from the `blocks` schema. |
 
 #### Response
 
@@ -481,14 +484,15 @@ Transfer objects have the same fields as the `eth_queryTraces` response, except 
 | `gasUsed` | `QUANTITY` | Gas used during the call. | Required |
 | `input` | `DATA` | Call data. | Required |
 | `output` | `DATA` | Return data. | Optional |
-| `error` | `string` | Call failure information. | Optional |
-| `revertReason` | `string` | Solidity revert reason. | Optional |
+| `error` | `string` | Failure of this call frame itself, such as a revert, out of gas, or an invalid opcode. Absent if this frame returned normally. To get revert data, decode `output`. | Optional |
+| `reverted` | `boolean` | `true` if the state changes of this call were discarded. This happens when the call itself reverted or when one of its parent calls reverted. | Required |
 | `blockHash` | `DATA` | Hash of the containing block. | Required |
 | `blockNumber` | `QUANTITY` | Number of the containing block. | Required |
 | `transactionHash` | `DATA` | Hash of the containing transaction. | Required |
 | `transactionIndex` | `QUANTITY` | Transaction index in the block. | Required |
 | `traceAddress` | `number[]` | Path through the nested call tree. | Required |
-| `status` | `QUANTITY` | `0x1` for success or `0x0` for reverted. | Required |
+
+For a transfer, `reverted: true` means the value did not move.
 
 #### Ordering
 
@@ -585,6 +589,8 @@ The [Example](#example) request selects `blockNumber` on logs and `number` on bl
 **Many-to-one relations only.** One-to-many relations, such as all transactions in a block, would make response sizes unpredictable, since a single block can contain thousands of transactions. Restricting relations to many-to-one, such as each log's parent block, guarantees that a response never contains more related objects of a given type than primary objects. For the same reason, related objects do not count toward `target`: their number is already bounded by the primary count, and counting them would make page boundaries depend on which relations the client requested.
 
 **Normalized responses.** Related objects are returned in their own arrays, and each appears once even when several primary objects reference it. Embedding them instead would repeat the same block once for every log it contains. Separate arrays also match how clients typically store and index the data.
+
+**Merged transactions and receipts.** `eth_queryTransactions` returns each transaction and its receipt as a single object. The standard interface splits them across `eth_getTransactionByHash` and `eth_getTransactionReceipt` because receipts are produced by execution rather than stored in the block body, a distinction that does not matter to clients. Many common queries need fields from both, such as filtering transactions by `to` and reading `status` to skip reverted calls.
 
 ## Backwards Compatibility
 
