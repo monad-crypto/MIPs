@@ -1,7 +1,7 @@
 ---
 mip: 10
-title: Deterministic RaptorCast 
-description: Introduces a canonical encoding scheme for RaptorCast that closes asymmetric liveness and equivocation attack surfaces and reduces dissemination latency
+title: Deterministic RaptorCast
+description: Canonical RaptorCast encoding that removes author control over chunk placement and binds each proposal to a per-round commitment
 author: Category Labs
 discussions-to: https://forum.monad.xyz/t/mip-10-deterministic-raptorcast/453
 status: Draft
@@ -12,94 +12,245 @@ created: 2026-04-28
 
 ## Abstract
 
-This MIP proposes Deterministic RaptorCast (v1), a new broadcast mode for the RaptorCast dissemination layer that fixes the Raptor encoding via a publicly derivable seed and enforces per-round equivocation detection by recording the first valid (Merkle root, leader signature) pair seen for each round, referred to as an ``EncodingCommitment``.
+Deterministic RaptorCast (v1) pins each canonical encoded symbol to a fixed position in a single Merkle tree spanning the whole message, derives the assignment of chunks to validators from a publicly recomputable seed, and binds the author to a per-round `EncodingCommitment` covering the message-level Merkle root `R`, encoding scheme, payload length, and timestamp.
 
-The change delivers three benefits: (1) it can enable validators to vote directly on the Merkle root commitment upon receiving a verified chunk without decoding, saving one message delay on the critical path; (2) it closes asymmetric liveness attacks in which a Byzantine leader selectively withholds singleton Encoding Symbol Identifiers (ESIs) from targeted validators, causing reconstruction delays of several hundred milliseconds; and (3) it closes mixed-commitment equivocation, in which a leader constructs a single Merkle root from chunks encoding multiple distinct payloads. Note that benefit (3) is contingent on the consensus protocol being revised to vote on the Merkle root commitment rather than the decoded payload; without that change, the equivocation attack surface does not arise in the first place.
+A validator authenticates the packet header and author identity, recomputes the seed, derives the same assignment from its view of the epoch validator set, verifies each chunk against the message-level root, and rejects any chunk whose commitment conflicts with the one already recorded for that round. Having reconstructed the payload, the validator re-encodes it and checks that the resulting Merkle root matches the committed root. Given the payload, author, round metadata, and epoch validator set, v1 deterministically fixes the encoding, root, and chunk assignment; each correct validator accepts at most one `EncodingCommitment` per round.
+
+Throughout this MIP, v0 refers to the existing RaptorCast proposal format (see [RaptorCast: Designing a Messaging Layer](https://www.category.xyz/blogs/raptorcast-designing-a-messaging-layer)) and v1 to the deterministic proposal format introduced by this MIP.
 
 ## Motivation
 
-MonadBFT uses RaptorCast to disseminate block proposals across the validator set. The current protocol (v0) (see [RaptorCast: Designing a Messaging Layer](https://www.category.xyz/blogs/raptorcast-designing-a-messaging-layer)) places no constraint on which ESI the leader assigns to which position in the Merkle tree, nor on which ESIs are delivered to which validator. This delivery freedom has three consequences that Deterministic RaptorCast addresses.
+MonadBFT uses RaptorCast to disseminate block proposals across the validator set. The implementation distinguishes Primary RaptorCast, which carries a proposal within the validator set, from Secondary RaptorCast, which carries it onward to full nodes. This MIP specifies Primary RaptorCast. Secondary RaptorCast also uses the deterministic encoding introduced here, but its routing and assignment logic is outside the scope of this specification. The author is the validator selected for the round that constructs, signs, and disseminates the RaptorCast proposal.
 
-- **Latency** A natural optimization is to overlap block propagation with consensus voting. Rather than waiting to fully reconstruct a block before casting a vote, a validator that receives a chunk and can verify it against the block's Merkle root could vote immediately—saving one message delay on the consensus critical path. Under v0, however, this is unsafe. Because the leader has freedom over ESI assignment, the same Merkle root can be consistent with multiple distinct payloads; a vote on the root therefore does not unambiguously certify a single block. A canonical (deterministic) encoding removes this ambiguity: since the Merkle root now commits to exactly one possible payload, opening the opportunity for validators to vote on the root as soon as they receive a verified chunk.
+An Encoding Symbol ID (ESI) is the integer identifier of a Raptor-encoded symbol. Under v0 an ESI may sit at any position in the Merkle tree. The author also chooses which chunks go to which validator and writes that choice into each chunk. No node can check the choice, because there is no other answer to compare it against. In v1, ESI `i` is also the canonical chunk index and determines that symbol's position in the Merkle tree.
 
-- **Attack 1: Asymmetric liveness** Raptor codes decode most efficiently when the decoder receives at least some degree-1 ([singleton](https://www.category.xyz/blogs/raptorcast-designing-a-messaging-layer#2-encoding-system)) ESIs, since these are the entry point for the Belief Propagation peeling decoder. Without any singletons the decoder stalls immediately and must fall back to Gaussian elimination, which is substantially more expensive. A Byzantine leader can exploit v0's delivery freedom to selectively deprive targeted validators of singletons while supplying adversarially chosen high-degree repair chunks that maximize Gaussian elimination cost. The result is that targeted validators reconstruct upto several hundred milliseconds later (depending on the number of source symbols) than the rest of the set which is enough of a delay to starve them of votes in the current view. This gives the leader discretion to force future view failures.
+**A canonical root.** In v0, the encoded chunks of a message are grouped into batches of up to `32`; each batch has its own Merkle tree, and the author signs each batch root separately. That authenticates a chunk on arrival, which is what dissemination needs, but it does not name the message: the batches stand alone, and the chunk header carries the ESI and the leaf index separately, so one block can be encoded in more than one way. In v1, the payload, encoding scheme, and corresponding validator set determine one canonical encoding and hence one root; the authenticated round metadata and elected author additionally determine the canonical chunk assignment.
 
-- **Attack 2: Mixed-commitment equivocation** Lowering the latency by voting on the merkle root of encoded chunks involves decode-re-encode consistency check to make sure encoding is valid. Without a fixed ESI-to-position mapping, the decode-re-encode consistency check cannot be correctly defined for rateless codes. A leader can construct a single Merkle root whose leaves are drawn from encodings of multiple distinct payloads. Every chunk passes Merkle verification, but validators collecting different subsets decode to different payloads. If validators vote on the root without decoding, they believe they are certifying the same block while certifying different ones.
+One effect is immediate: the message-level root is carried in the signed packet header, while individual chunk contents are authenticated by their Merkle proofs against that root. Implementations can cache successful packet-header authentication and reuse it across chunks carrying the same authenticated header, avoiding redundant signature verification. In contrast, v0 requires authentication of each independently signed batch.
 
+A canonical encoding also enables further improvements. With further protocol changes, beyond those proposed here, validators could vote on the root after verifying a single chunk, avoiding reconstruction on the critical path. Historical blocks could be synchronized as verifiable chunks regenerated by any node holding the block, rather than fetched as whole payloads from one source. And because the commitment is bound to the round, two incompatible commitments signed by the elected author provide direct evidence of equivocation. These extensions are described under Future directions.
+
+**Preventing temporary asymmetric liveness.** Raptor codes decode most efficiently when the decoder receives at least some degree-1 (singleton) ESIs, since these provide useful starting points for the Belief Propagation decoder. Without a deterministic assignment, a Byzantine author can exploit its control over chunk placement to give targeted validators a deliberately unfavorable set of ESIs while giving others an easier set, creating a significant difference in reconstruction time.
+
+This proposal removes that direct source of asymmetry by deriving the chunk assignment deterministically from public information, so the author no longer chooses which ESIs are assigned to which validators but has only a limited choice among the small number of timestamp buckets permitted by the admission window. A Byzantine author may still selectively deliver useful chunks to some validators, but this provides a substantially weaker timing advantage than directly constructing pathological assigned sets. Temporary asymmetric liveness will allow Byzantine leaders to deliberately slow some validators but it doesn't affect the protocol's eventual liveness guarantee.
 
 ## Specification
 
-### Seed Derivation
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://www.ietf.org/rfc/rfc2119.html) and [RFC 8174](https://www.ietf.org/rfc/rfc8174.html).
 
-The canonical seed (also called encoding seed) is computed by the leader at proposal time. It consists of the hash of (round number, leader identity, and proposal time). The chunk header contains all necessary data for validators to deterministically recompute this seed, which they do upon receiving the chunk. Validators also check that the proposal time falls within an acceptable range of their local clock before accepting the seed as valid.
+### Parameters
+
+The broadcast-mode/depth field and `encoding_scheme_variant` are each one byte. The encoding scheme is the parameter set that determines the canonical encoding, and `encoding_scheme_variant = 0x1` names the scheme defined by this MIP: R10 encoding, segment length, redundancy factor, permitted depth range, chunk assignment procedure, and assignment seed derivation. The v1 packet version separately fixes the packet-format parameters. Because `symbol_len` is the space a segment leaves after the packet header, chunk header, and Merkle proof, the canonical encoding depends on both the scheme and the packet format: a change to either changes every canonical root, so a new scheme variant or packet version is REQUIRED for either.
+
+| Encoding scheme parameter | Value |
+| --- | --- |
+| `encoding_scheme_variant` | `0x1` |
+| Encoding | Raptor 10 (monad-raptor) |
+| Redundancy | 2.5 |
+| Segment length | 1,440 bytes |
+| Seed timestamp bucket | 2048 ms |
+| Permitted Merkle tree depth | 3–15 |
+
+| V1 packet-format parameter | Value |
+| --- | --- |
+| Packet header length | 117 bytes |
+| Chunk header length | 4 bytes |
+| Merkle hash size | 20 bytes |
+
+The reference implementation also applies local admission limits of a 10,000 ms timestamp tolerance and a ±100-round acceptance window. These are implementation-policy defaults rather than canonical encoding or packet-format parameters; implementations MAY vary them without changing the v1 encoding or wire format.
 
 ### Encoding
 
-The leader encodes payload `B` as:
+The author encodes payload `B` into `n` chunks, where `n` denotes the total number of encoded chunks produced for this proposal:
 
+$$
+\begin{aligned}
+c_i    &= \mathrm{RaptorEnc}(B).\mathrm{symbol}(i), \qquad 0 \le i < n \\
+\ell_i &= H(\mathtt{chunk\_header}_i \,\|\, c_i) \\
+R      &= \mathrm{MerkleRoot}(\ell_0, \ldots, \ell_{n-1})
+\end{aligned}
+$$
+
+`RaptorEnc` is the R10 encoder of monad-raptor.
+
+The 4-byte chunk header consists of two reserved bytes followed by the ESI encoded as an unsigned 16-bit little-endian integer:
+
+$$
+\mathtt{chunk\_header}_i = \mathtt{0x00} \,\|\, \mathtt{0x00} \,\|\, \mathrm{LE16}(i)
+$$
+
+The reserved bytes MUST be zero in v1.
+
+Leaf `i` of the Merkle tree MUST hold the chunk with `ESI = i`.
+
+Every populated leaf and every internal node of the tree is a BLAKE3 digest truncated to its first 20 bytes. A leaf is `H(chunk_header_i ‖ c_i)` — the 4-byte chunk header and the symbol, excluding the packet header and the proof — and an internal node is `H(left ‖ right)`. The tree has a fixed `2^(d-1)` leaf slots, where `d` is the Merkle tree depth derived below; the slots beyond `n` hold the literal 20-byte zero value, inserted as raw leaves, and a re-encoder MUST reproduce this leaf padding exactly.
+
+The symbol length and the chunk count both follow from the payload length, the validator set, and the tree depth, where `r` is the redundancy factor:
+
+$$
+\begin{aligned}
+\mathrm{symbol\_len}(d) &= \mathrm{segment\_len} - \mathrm{header\_len} - \mathrm{chunk\_header\_len} - 20\,(d-1) \\
+K(d) &= \left\lceil \frac{\mathrm{app\_message\_len}}{\mathrm{symbol\_len}(d)} \right\rceil \\
+N(d) &= \left\lceil K(d) \cdot r \right\rceil
+\end{aligned}
+$$
+
+Source-block padding: the encoder input is the payload zero-padded to `K(d) × symbol_len(d)` bytes. Every encoded symbol is therefore exactly `symbol_len(d)` bytes, so every populated leaf hashes the same `chunk_header_len + symbol_len(d)` bytes and no short chunk is carried on the wire. This padding is distinct from the leaf padding above, which fills the unused leaf slots of the tree.
+
+The depth is the smallest `d ∈ [3,15]` such that `2^(d-1) ≥ N(d) + |V|`, where `V` is the epoch validator set excluding the proposal author. The `+|V|` term reserves space for the surplus introduced by rounding each validator's stake-proportional chunk allocation upward; the assignment below guarantees `N(d) ≤ n < N(d) + |V|`. Once `d` is fixed, the assignment below determines the exact chunk count `n`. Each chunk carries a Merkle proof of `20 × (d − 1)` bytes, at most `280` bytes. A v1 packet MUST be rejected if `app_message_len` is zero or exceeds the maximum proposal size fixed by the consensus protocol, if its depth is outside `[3,15]`, if its depth is not the smallest permitted value satisfying the condition above, or if no depth in `[3,15]` satisfies that condition.
+
+**Packet-header canonicalization.** A packet accepted as Primary v1 MUST carry the v1 packet version and Primary RaptorCast mode. The two reserved bits of the broadcast-mode/depth byte MUST be zero. The epoch MUST equal the epoch derived from the round, and the Merkle tree depth MUST equal the deterministically derived depth. A packet violating any of these conditions MUST be rejected.
+
+**Packet authentication.** Let `P` be the RaptorCast-chunk signing-domain prefix `0x19 || "monad/raptorcast-chunk/1\n"`. Let `header` be the 52-byte packet header excluding the signature field, serialized in wire order. Its fields are, in order: version (2 bytes), broadcast-mode/depth (1 byte), encoding-scheme variant (1 byte), round (8 bytes), epoch (8 bytes), Unix timestamp in milliseconds (8 bytes), global Merkle root (20 bytes), and application-message length (4 bytes). All multi-byte integer fields are little-endian. The author signs the full 32-byte BLAKE3 digest `BLAKE3(P ‖ header)`. Thus the packet signature authenticates the complete packet header, including fields that are not part of the `EncodingCommitment`.
+
+**EncodingCommitment.** The `EncodingCommitment` `C` is
+
+$$
+C = R \,\|\, \mathtt{encoding\_scheme\_variant} \,\|\, \mathrm{LE64}(\mathrm{round}) \,\|\, \mathrm{LE32}(\mathrm{app\_message\_len}) \,\|\, \mathrm{LE64}(\mathrm{unix\_ts\_ms})
+$$
+
+The serialization of `C` is defined independently of the packet-header wire layout. Here `R` is the 20-byte message-level Merkle root and `encoding_scheme_variant` is one byte. The round identifies the commitment instance. Together with the elected author and corresponding validator set, these fields identify the signed proposal claim; the timestamp bucket derived from `unix_ts_ms` is used for deterministic chunk assignment, while `R` commits to the resulting encoded chunks.
+
+The packet signature authenticates the header fields from which `C` is constructed. The signature is not part of `C`. Different valid signatures authenticating the same `C` represent the same `EncodingCommitment`.
+
+Two Primary v1 packets are commitment-compatible exactly when their authenticated `EncodingCommitment`s `C` are identical. The elected author MUST NOT authenticate more than one distinct Primary v1 `EncodingCommitment` for the same round. The `EncodingCommitment` identifies the author's signed proposal claim, not only the resulting encoding or chunk assignment. Consequently, two authenticated headers for the same round that differ in `unix_ts_ms` represent distinct `EncodingCommitment`s even if their timestamps fall within the same assignment-seed bucket.
+
+**Encoding context.** The authenticated packet-header fields comprising `C`, together with the elected author for the committed round and the corresponding validator set, constitute the encoding context. The `EncodingCommitment` `C` is the canonical concatenation of those header fields. Fields outside `C` that are part of the packet context, including version, mode, epoch, reserved bits, and Merkle tree depth, MUST satisfy the packet-header canonicalization rules above. Together, the encoding context determines the canonical encoding, chunk count, Merkle tree depth, and first-hop assignment.
+
+### Chunk assignment and seed derivation
+
+The seed determines the canonical first-hop recipient of each chunk.
+
+The seed is deterministically computed from the authenticated packet metadata and elected author. Let `b = floor(unix_ts_ms / 2048)`. The seed is the 32-byte concatenation of `LE64(round)`, `LE64(b)`, and bytes with zero-based indices 1 through 16 of the elected author's 33-byte compressed public key.
+
+The partition takes `K`, the source-symbol count for the chosen depth; the redundancy factor `r` fixed by the encoding scheme; and `V`, the epoch validator set excluding the proposal author, ordered ascending by the validator's 33-byte compressed public key, compared byte-lexicographically.
+
+With `N = ceil(K × r)` and `total_stake` the sum of stakes over `V`, each validator's obligation and the canonical chunk count are
+
+$$
+\mathrm{obligation}(v) = \left\lceil \frac{\mathrm{stake}(v) \cdot N}{\mathrm{total\_stake}} \right\rceil,
+\qquad
+n = \sum_{v \in V} \mathrm{obligation}(v)
+$$
+
+so that $N \le n < N + |V|$. The surplus arises solely from rounding each allocation upward.
+
+`N` and `obligation(v)` MUST equal the exact values of `ceil(K × r)` and `ceil(stake(v) × N / total_stake)`. The redundancy factor `r` is exactly representable in binary, so the product `K × r` is integral. Implementations MUST NOT use floating-point arithmetic, and MUST NOT allow the intermediate product `stake(v) × N` to wrap: a single rounding or wrapping difference changes `n` and therefore the whole assignment.
+
+The canonically ordered validator set is shuffled in place using Fisher–Yates, as in the procedure below, drawing each index uniformly with the ChaCha20 RNG specified here. The RNG uses the 32-byte assignment seed, 20 ChaCha rounds, a 64-bit counter initialized to zero, and a 64-bit stream identifier initialized to zero. `next_u32()` returns successive 32-bit output words from this RNG. The ChaCha output is consumed in block order as successive 32-bit little-endian words. In the procedure below, `m`, `x`, and `z` are unsigned 32-bit integers, `p` is an unsigned 64-bit integer, and `clz32(m)` denotes the number of leading zero bits in the 32-bit representation of `m`. The `z` calculation uses unsigned 32-bit wrapping arithmetic.
+
+```python
+def draw(i, next_u32):
+    """Uniform j in [0, i]; widening-multiply rejection sampling."""
+    m = i + 1
+    z = ((m << clz32(m)) & 0xFFFF_FFFF) - 1   # 32-bit wrapping
+    while True:
+        x = next_u32()
+        p = x * m                              # 64-bit product
+        if (p & 0xFFFF_FFFF) <= z:             # low32(p) <= z
+            return p >> 32                     # high32(p)
+
+for i in range(len(V) - 1, 0, -1):             # i = |V|-1 down to 1
+    j = draw(i, rng.next_u32)
+    V[i], V[j] = V[j], V[i]
 ```
-(c_1, ..., c_n) = RaptorEnc(B, seed)
-R               = MerkleRoot(c_1, ..., c_n)
+
+The shuffle fixes the validator ordering and consumes all randomness used by the assignment. Chunk indices are then dealt in increasing order to the shuffled validators, one at a time, skipping validators whose obligations are exhausted:
+
+```python
+remaining = [obligation(v) for v in V]
+i = 0
+for chunk_index in range(n):
+    while remaining[i] == 0:
+        i = (i + 1) % len(V)
+    assignment[V[i]].add(chunk_index)
+    remaining[i] -= 1
+    i = (i + 1) % len(V)
 ```
 
-In v0, chunks were organized into multiple Merkle trees of `32` chunks each, with each tree independently signed by the leader. v1 replaces this with a 
-single global Merkle root `R` computed over all `n` chunks, providing a unified commitment that binds every chunk to a single canonical encoding of 
-the proposal. The Merkle tree depth is dynamically calculated based on the  number of chunks, up to a maximum depth of 15. Each Merkle proof is 
-`20 × (merkle_tree_depth - 1)` bytes, giving a worst-case proof size of `280` bytes compared to `100` bytes in v0.
+The procedure terminates after exactly `n` assignments, with `|assignment[v]| = obligation(v)` for every `v`. A validator's indices are not generally contiguous: they follow the round-robin order while several validators still have obligations outstanding, and the pattern changes as validators drop out.
 
-Position `i` MUST contain the chunk generated with `ESI = i` under seed. The pair `(R, σ)` where `σ = Sign(round, timestamp, R)` is the ``EncodingCommitment`` for this proposal.
+Every receiver using the same authenticated encoding context derives the same assignment and uses it to determine which chunks it is responsible for rebroadcasting.
 
-### Chunk Validation
+### Chunk validation
 
-A validator accepts a v1 chunk packet `(round, timestamp, R, σ, i, π_i, c_i)`. A validator accepts the chunk if and only if all of the following holds:
+A validator accepts a Primary v1 packet with signed packet header `H` and chunk fields `(chunk_header, π, c)` if and only if all of the following hold:
 
-- **Timeliness** The packet's round is within the accepted round window, and the timestamp is within an acceptable range of the validator's local clock.
+- **Timeliness.** The timestamp MUST be within the timestamp tolerance of the validator's local clock. Once the validator has locally entered its first round, the packet's round MUST also be within the round acceptance window of its current round.
 
-- **Leader authenticity** `σ` is a valid leader signature over round, timestamp and `R` (`σ = Sign(round, timestamp, R)`).
+- **Author authenticity.** The packet signature MUST validly authenticate the signed packet header for the elected author. A validator that does not yet know the elected author for the round rejects the chunk.
 
-- **Encoding commitment consistency** `(R, σ)` matches the encoding commitment already recorded for this round. If no commitment is recorded yet, the validator records this one.
+- **Chunk integrity.** Let `i` be the ESI read from the chunk header; it is both the Raptor ESI and the Merkle leaf index, and no separate index field is carried. The two reserved chunk-header bytes MUST be zero, `i < 2^(d-1)` MUST hold, and the Merkle proof `π` MUST verify the leaf `H(chunk_header ‖ c)` at leaf index `i` against `R`.
 
-- **Chunk integrity** The Merkle proof `π_i` verifies `c_i` at index `i` against `R`.
+- **Encoding commitment consistency.** If a commitment is already recorded for this round, the `EncodingCommitment` `C` constructed from the authenticated packet header MUST equal it.
 
-Chunks failing any check are silently dropped. A conflicting commitment (same round, different `R` or `σ`) is logged as equivocation evidence and the chunk carrying the conflicting commitment is dropped.
+- **Assignment.** The chunk index MUST satisfy `i < n`. After the Merkle proof verifies the chunk at index `i` against the root in the authenticated packet header, the canonical assignment for that encoding context determines its first-hop recipient and rebroadcast responsibility.
 
-### Encoding Verification (Decode-Re-encode Check)
+A validator records `C` for a round on the first packet it accepts for that round. Recording therefore follows acceptance and does not depend on the order in which the checks above are evaluated.
 
-After collecting sufficient chunks and decoding payload B, a validator MUST verify:
-
-```
-MerkleRoot(RaptorEnc(B, seed)) == R
-```
-
-The seed is deterministically recomputed from the values given in the chunk header. If the above check fails, the payload is rejected. This check is well-defined under v1 because seed fixes the ESI-to-position mapping: re-encoding `B` always produces the same chunk set that can be validated against the recorded ``EncodingCommitment``. Under v0 this check cannot be reliably applied.
+Having decoded payload `B`, a validator MUST verify that `|B| = app_message_len`, re-run the canonical encoding above, and reject the payload unless the resulting root equals `R`. A validator that rejects a payload for this reason proceeds as if it had received no proposal for the round.
 
 ## Rationale
 
-Deterministic RaptorCast requires minimal changes to the existing RaptorCast infrastructure. The encoding scheme, Merkle commitments, chunk delivery, and rebroadcast all remain unchanged. The additions are: a canonical seed derived from existing proposal metadata, per-round equivocation detection at each validator. These changes are sufficient to close both attack surfaces and to make voting on the Merkle root commitment safe before decoding, with no changes to the consensus voting protocol, the quorum certificate format, or the execution layer. The resulting protocol satisfies the following properties.
+Deterministic RaptorCast leaves the Raptor code itself unchanged, and derives the seed from metadata the proposal already carries.
+
+The Merkle construction is replaced by a single tree over the whole message, with its root carried in the signed header, which is what allows a chunk to be verified against a message-level commitment. The wire format changes accordingly: the per-chunk recipient field is no longer carried, since first-hop recipients and rebroadcast targets are both derived from the assignment, while the signed packet header carries the round and the message-level root. There are no changes to the consensus voting protocol, the quorum certificate format, or the execution layer.
 
 ### Properties
 
-Deterministic RaptorCast satisfies the following three properties.
+- **Verifiable Chunk Regeneration.** Any party holding a validated block `B`, `app_message_len`, `encoding_scheme_variant`, the epoch validator set, and the elected author for the committed round can deterministically regenerate every canonical chunk and its Merkle proof under the same committed root `R`. This follows from the deterministic canonical encoding and Merkle tree construction and requires no additional cryptographic assumption.
 
-- **Availability** If a Quorum Certificate for a Merkle root `R` exists, every correct validator eventually terminates.
+- **Integrity.** If the author is correct, every correct validator that accepts a reconstructed payload recovers exactly the payload originally dispersed by the author.
 
-- **Integrity** If the leader is correct, every correct validator that decodes a payload recovers exactly the payload originally dispersed by the leader.
+- **Consistency.** Fix an authenticated encoding context with committed root `R`. Assuming correctness of the Raptor encoding/decoding procedure and collision resistance of the Merkle hash, at most one payload `B` has a canonical re-encoding reproducing `R`. Consequently, correct validators that successfully decode from chunks verified under the same authenticated encoding context all reach the same outcome: either they all reject, or they all accept the same `B`.
 
-- **Consistency** Any two correct validators that decode a payload from chunks consistent with `R` recover the same payload. If no valid payload is consistent with `R`, every correct validator returns `⊥`.
+Consistency removes the ambiguity described above: each correct validator admits at most one `EncodingCommitment` per round, and the decode–re-encode check rejects any reconstructed payload whose canonical encoding does not reproduce the committed root.
 
-Consistency is what makes voting on `R` safe prior to decoding. A validator that casts a vote on `R` implicitly vouches for a unique payload: consistency guarantees that every validator that subsequently decodes arrives at the same one. Absent this property, two validators could vote on the same `R` while holding chunks that decode to different payloads, violating consensus safety.
+The `EncodingCommitment` `C` binds the committed root `R` to the round, encoding scheme, payload length, and timestamp. The signed packet header authenticates that commitment for the elected author. The corresponding validator set is derived from the committed round, and the Merkle tree depth is deterministically derived from the encoding parameters and validator set. A party holding `B`, the authenticated packet header, and the corresponding validator set can reconstruct the canonical encoding of `B` and verify that its root equals `R`. This establishes that the elected author authenticated a commitment to `B` for that round; it does not establish that the author disseminated nothing else.
 
-The canonical seed also unlocks a post-consensus validity gate at the execution layer that was not previously applicable. Because the decode-re-encode check produces the same result at every correct validator, it can be applied after consensus has decided a block: any block whose decoded payload fails the check will be independently rejected by every correct validator, with no risk of a split. Under v0 this gate could not be employed without a canonical seed; different validators re-encoding the same payload could produce different roots and reach different conclusions about the same block.
+A quorum certificate is a separate statement. Under the current voting rule, a QC for `B` implies that at least `f+1` correct validators reconstructed and validated `B`. By the Verifiable Chunk Regeneration property, each of those validators can regenerate any canonical chunk and its proof against `R`. Separately, two valid signed packet headers from the elected author for the same round that authenticate distinct `EncodingCommitment`s provide evidence that the author committed twice for that round.
 
-This is enforced by two complementary mechanisms. First, per-round equivocation detection: upon receiving the first valid v1 chunk for a round, each validator records an ``EncodingCommitment`` — the pair (global_merkle_root, signature) — and rejects any subsequent chunk for that round with different fields. Second, the canonical seed fixes the ESI-to-position mapping, making the decode-re-encode check well-defined: re-encoding any decoded payload under the public seed always produces the same chunk set that can be validated against the same ``EncodingCommitment``.
+A successful decode–re-encode check binds the root in the signed header to the reconstructed payload. Merkle proofs bind individual chunks to that root, and the signature binds the header to the author, but neither alone establishes that the committed chunks form the canonical encoding of a single payload. Fixing each ESI to its leaf position specifies the required encoding; re-encoding after reconstruction verifies that the committed root is consistent with that canonical encoding. Without this check, an author could commit to a root whose leaves are drawn from incompatible encodings, and validators decoding different subsets may recover different payloads.
+
+Enforcing the decode–re-encode check from the first v1 proposal ensures that every block accepted under v1 has a reproducible canonical root. This matters for later extensions such as chunk-based synchronization, which rely on historical blocks having reproducible canonical encodings. The cost is one re-encode for each decoded block.
+
+### Future directions
+
+The work done in this proposal is the encoding itself: each ESI fixed to its Merkle leaf index, a single message-level root carried in the signed header, a stake-weighted chunk assignment derived from a public seed, a per-round `EncodingCommitment`, and the decode–re-encode check that holds an author to that encoding. The extensions below will build on this foundation. Root voting will be specified in a forthcoming MIP. Chunk-based synchronization and equivocation accountability are additional protocol directions enabled by the canonical encoding; their specification and integration are outside the scope of this MIP.
+
+**Voting on the root.** This proposal provides the foundation for root voting by giving every proposal a single message-level root and making every verified chunk authenticate against that root. A future extension could therefore allow a validator to vote after receiving a single verified chunk, taking reconstruction off the critical path and saving a message delay. Voting before reconstruction additionally requires a dissemination condition ensuring that a quorum certificate implies enough distinct canonical chunks remain recoverable from correct parties, together with an encoding whose required chunk threshold decodes with certainty. A future voting extension must bind each vote to the `EncodingCommitment` `C`, rather than to the bare Merkle root `R`, because `C` additionally binds the round, encoding scheme, payload length, and timestamp. These additional requirements for root voting are outside the scope of this proposal.
+
+**Chunk-based synchronization.** The Verifiable Chunk Regeneration property above enables a node synchronizing a historical block to recover it as independently verifiable chunks from multiple peers rather than downloading the complete payload from a single source. Any correct validator that has reconstructed and validated the block can use the payload and its encoding context to deterministically regenerate the canonical chunk for any requested ESI together with its Merkle proof, without retaining the originally transmitted chunks. The receiving node verifies each chunk against the committed root, reconstructs the payload once enough verified chunks have been collected, and re-encodes it to confirm the same root. The chunk count and assignment are derived from the encoding context and therefore need not be transmitted separately. Peer discovery, requests, retries, and chunk selection are outside the scope of this MIP.
+
+**Equivocation evidence.** If the elected author authenticates two distinct Primary v1 `EncodingCommitment`s `C1 ≠ C2` for the same round, it has issued conflicting commitments for that round. A portable proof consists of the corresponding two signed packet headers. A verifier checks both signatures, verifies that both headers refer to the same round, recomputes the `EncodingCommitment` from each header, confirms that the signer was the elected author for that round, and verifies that `C1 ≠ C2`. Different valid signatures authenticating the same `C` do not constitute equivocation.
+
+## Backwards Compatibility
+
+The v1 packet header is not interpretable by nodes that understand only v0, and the two versions cannot decode one another's chunks. The v1 format applies only to proposal dissemination: v0-only validators cannot interpret v1 proposal chunks, while v0 remains in use for non-proposal messages such as votes and timeouts.
+
+Deployment therefore proceeds in four stages, each of which must be fully adopted before the next begins:
+
+1. **Accept v0 proposals only.** Nodes publish and accept v0. This is the pre-existing behavior.
+2. **Accept both, publish v0 proposals.** Nodes accept v1 chunks but continue to publish v0, so that v1-capable receivers are in place before any v1 traffic exists.
+3. **Accept both, publish v1 proposals.** Nodes publish v1 while continuing to accept v0 from nodes that have not yet advanced.
+4. **Accept v1 proposals only.** Support for the v0 proposal format is withdrawn.
+
+Nodes at adjacent stages interoperate; nodes two or more stages apart do not. Chunks of an unaccepted version are dropped without further processing.
 
 ## Security Considerations
 
-The attacks motivating this MIP, asymmetric liveness and mixed-commitment equivocation, are closed by the canonical seed and per-round equivocation detection as described in the Properties section.
+**Mixed-payload roots.** An author may commit to a root whose leaves are drawn from the encodings of more than one block. Every chunk verifies against that root, and validators collecting different subsets may recover different payloads, so neither the Merkle proof nor the per-round commitment rejects them. Any reconstructed payload whose canonical re-encoding differs from the committed root is rejected, so a mixed root cannot cause correct validators to accept two distinct payloads under the same signed header, assuming correctness of the Raptor encoding and decoding procedure and collision resistance of the Merkle hash.
 
-- **Seed grinding** The seed construction bounds a Byzantine leader's payload-grinding advantage to negligible within the available window: a leader cannot do better than random chance in selecting a seed that produces a favorable degree distribution within the time bucket.
+**Seed grinding.** The only grindable component is the timestamp bucket, and the timeliness check confines it to the acceptance window. Since the seed uses `floor(unix_ts_ms / 2048)`, the number of distinct seeds an author can reach is the number of buckets the window intersects: 10 or 11 under the default ±10 seconds, depending on alignment. An author can enumerate all of them.
 
-- **Round window** Chunks outside the accepted round window are silently dropped. This prevents unbounded buffering but means a node that falls significantly behind the current round will not receive chunks for rounds outside its window until it catches up.
+Seed choice changes only the first-hop assignment of canonical symbols to recipients, so it cannot alter the global Raptor degree distribution. Changing timestamp/seed cannot evade commitment-conflict detection.
+
+**Round window.** Chunks outside the round acceptance window are silently dropped. This prevents unbounded buffering but means a node that falls significantly behind the current round will not receive chunks for rounds outside its window until it catches up. Before a node has locally entered its first round, no window is applied and admission is bounded instead by a per-author quota on the number of rounds each author may open.
 
 ## Reference Implementation
-The reference implementation can be found at [https://github.com/category-labs/monad-bft/pull/2811](https://github.com/category-labs/monad-bft/pull/2811).
+
+The protocol is implemented in [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811), with chunk assignment refined in [monad-bft#2970](https://github.com/category-labs/monad-bft/pull/2970) and [monad-bft#2978](https://github.com/category-labs/monad-bft/pull/2978), integer stake-partition arithmetic in [monad-bft#3073](https://github.com/category-labs/monad-bft/pull/3073), per-round author validation in [monad-bft#3114](https://github.com/category-labs/monad-bft/pull/3114), packet-header canonicalization of the Merkle tree depth and reserved fields in [monad-bft#3247] and the `EncodingCommitment` definition in [monad-bft#3248](https://github.com/category-labs/monad-bft/pull/3248).
+
+## Copyright
+
+Copyright and related rights waived via [CC0](../LICENSE.md).
