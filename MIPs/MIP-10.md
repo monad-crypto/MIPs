@@ -66,7 +66,7 @@ The author encodes payload `B` into `n` chunks, where `n` denotes the total numb
 $$
 \begin{aligned}
 c_i    &= \mathrm{RaptorEnc}(B).\mathrm{symbol}(i), \qquad 0 \le i < n \\
-\ell_i &= H(\mathtt{chunk\_header}_i \,\|\, c_i) \\
+\ell_i &= H(\mathtt{chunk}\rule{0.5em}{0.06em}\mathtt{header}_i \mathbin{\Vert} c_i) \\
 R      &= \mathrm{MerkleRoot}(\ell_0, \ldots, \ell_{n-1})
 \end{aligned}
 $$
@@ -76,7 +76,7 @@ $$
 The 4-byte chunk header consists of two reserved bytes followed by the ESI encoded as an unsigned 16-bit little-endian integer:
 
 $$
-\mathtt{chunk\_header}_i = \mathtt{0x00} \,\|\, \mathtt{0x00} \,\|\, \mathrm{LE16}(i)
+\mathtt{chunk}\rule{0.5em}{0.06em}\mathtt{header}_i = \mathtt{0x00} \mathbin{\Vert} \mathtt{0x00} \mathbin{\Vert} \mathrm{LE16}(i)
 $$
 
 The reserved bytes MUST be zero in v1.
@@ -89,8 +89,8 @@ The symbol length and the chunk count both follow from the payload length, the v
 
 $$
 \begin{aligned}
-\mathrm{symbol\_len}(d) &= \mathrm{segment\_len} - \mathrm{header\_len} - \mathrm{chunk\_header\_len} - 20\,(d-1) \\
-K(d) &= \left\lceil \frac{\mathrm{app\_message\_len}}{\mathrm{symbol\_len}(d)} \right\rceil \\
+\mathrm{symbol}\rule{0.5em}{0.06em}\mathrm{len}(d) &= \mathrm{segment}\rule{0.5em}{0.06em}\mathrm{len} - \mathrm{header}\rule{0.5em}{0.06em}\mathrm{len} - \mathrm{chunk}\rule{0.5em}{0.06em}\mathrm{header}\rule{0.5em}{0.06em}\mathrm{len} - 20 \cdot (d-1) \\
+K(d) &= \left\lceil \frac{\mathrm{app}\rule{0.5em}{0.06em}\mathrm{message}\rule{0.5em}{0.06em}\mathrm{len}}{\mathrm{symbol}\rule{0.5em}{0.06em}\mathrm{len}(d)} \right\rceil \\
 N(d) &= \left\lceil K(d) \cdot r \right\rceil
 \end{aligned}
 $$
@@ -106,7 +106,7 @@ The depth is the smallest `d ∈ [3,15]` such that `2^(d-1) ≥ N(d) + |V|`, whe
 **EncodingCommitment.** The `EncodingCommitment` `C` is
 
 $$
-C = R \,\|\, \mathtt{encoding\_scheme\_variant} \,\|\, \mathrm{LE64}(\mathrm{round}) \,\|\, \mathrm{LE32}(\mathrm{app\_message\_len}) \,\|\, \mathrm{LE64}(\mathrm{unix\_ts\_ms})
+C = R \mathbin{\Vert} \mathtt{encoding}\rule{0.5em}{0.06em}\mathtt{scheme}\rule{0.5em}{0.06em}\mathtt{variant} \mathbin{\Vert} \mathrm{LE64}(\mathrm{round}) \mathbin{\Vert} \mathrm{LE32}(\mathrm{app}\rule{0.5em}{0.06em}\mathrm{message}\rule{0.5em}{0.06em}\mathrm{len}) \mathbin{\Vert} \mathrm{LE64}(\mathrm{unix}\rule{0.5em}{0.06em}\mathrm{ts}\rule{0.5em}{0.06em}\mathrm{ms})
 $$
 
 The serialization of `C` is defined independently of the packet-header wire layout. Here `R` is the 20-byte message-level Merkle root and `encoding_scheme_variant` is one byte. The round identifies the commitment instance. Together with the elected author and corresponding validator set, these fields identify the signed proposal claim; the timestamp bucket derived from `unix_ts_ms` is used for deterministic chunk assignment, while `R` commits to the resulting encoded chunks.
@@ -128,7 +128,7 @@ The partition takes `K`, the source-symbol count for the chosen depth; the redun
 With `N = ceil(K × r)` and `total_stake` the sum of stakes over `V`, each validator's obligation and the canonical chunk count are
 
 $$
-\mathrm{obligation}(v) = \left\lceil \frac{\mathrm{stake}(v) \cdot N}{\mathrm{total\_stake}} \right\rceil,
+\mathrm{obligation}(v) = \left\lceil \frac{\mathrm{stake}(v) \cdot N}{\mathrm{total}\rule{0.5em}{0.06em}\mathrm{stake}} \right\rceil,
 \qquad
 n = \sum_{v \in V} \mathrm{obligation}(v)
 $$
@@ -249,7 +249,7 @@ Seed choice changes only the first-hop assignment of canonical symbols to recipi
 
 ## Reference Implementation
 
-The protocol is implemented in [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811), with chunk assignment refined in [monad-bft#2970](https://github.com/category-labs/monad-bft/pull/2970) and [monad-bft#2978](https://github.com/category-labs/monad-bft/pull/2978), integer stake-partition arithmetic in [monad-bft#3073](https://github.com/category-labs/monad-bft/pull/3073), per-round author validation in [monad-bft#3114](https://github.com/category-labs/monad-bft/pull/3114), packet-header canonicalization of the Merkle tree depth and reserved fields in [monad-bft#3247] and the `EncodingCommitment` definition in [monad-bft#3248](https://github.com/category-labs/monad-bft/pull/3248).
+The protocol is implemented in [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811), with chunk assignment refined in [monad-bft#2970](https://github.com/category-labs/monad-bft/pull/2970) and [monad-bft#2978](https://github.com/category-labs/monad-bft/pull/2978), integer stake-partition arithmetic in [monad-bft#3073](https://github.com/category-labs/monad-bft/pull/3073), per-round author validation in [monad-bft#3114](https://github.com/category-labs/monad-bft/pull/3114), packet-header canonicalization of the Merkle tree depth and reserved fields in [monad-bft#3247](https://github.com/category-labs/monad-bft/pull/3247) and the `EncodingCommitment` definition in [monad-bft#3248](https://github.com/category-labs/monad-bft/pull/3248).
 
 ## Copyright
 
