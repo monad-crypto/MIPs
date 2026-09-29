@@ -1,6 +1,6 @@
 ---
 mip: 18
-title: CALLSTACKDEPTH and CALLERN Call Stack Introspection Opcodes
+title: Call Stack Introspection Opcodes
 description: Add extension opcodes to inspect the depth and caller chain of the current call stack
 author: Category Labs
 discussions-to: https://forum.monad.xyz/t/mip-18-callstackdepth-and-callern-call-stack-introspection-opcodes/556
