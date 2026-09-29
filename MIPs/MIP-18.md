@@ -1,6 +1,6 @@
 ---
 mip: 18
-title: Call Stack Opcodes
+title: `CALLSTACKDEPTH` and `CALLERN` Call Stack Introspection Opcodes
 description: Add extension opcodes to inspect the depth and caller chain of the current call stack
 author: Category Labs
 discussions-to: TBD
