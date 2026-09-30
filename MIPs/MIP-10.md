@@ -6,7 +6,7 @@ author: Category Labs
 discussions-to: https://forum.monad.xyz/t/mip-10-deterministic-raptorcast/453
 status: Draft
 type: Standards Track
-category: Core
+category: Networking
 created: 2026-04-28
 ---
 
@@ -186,7 +186,7 @@ A validator accepts a Primary v1 packet with signed packet header `H` and chunk 
 
 - **Assignment.** The chunk index MUST satisfy `i < n`. After the Merkle proof verifies the chunk at index `i` against the root in the authenticated packet header, the canonical assignment for that encoding context determines its first-hop recipient and rebroadcast responsibility.
 
-A validator records `C` for a round on the first packet it accepts for that round. Recording therefore follows acceptance and does not depend on the order in which the checks above are evaluated.
+A validator records `C` for a round from the first authenticated Primary v1 header it receives for that round. Acceptance of the associated chunk still requires all applicable packet and chunk validation checks.
 
 Having decoded payload `B`, a validator MUST verify that `|B| = app_message_len`, re-run the canonical encoding above, and reject the payload unless the resulting root equals `R`. A validator that rejects a payload for this reason proceeds as if it had received no proposal for the round.
 
@@ -237,6 +237,10 @@ Deployment therefore proceeds in four stages, each of which must be fully adopte
 
 Nodes at adjacent stages interoperate; nodes two or more stages apart do not. Chunks of an unaccepted version are dropped without further processing.
 
+## Reference Implementation
+
+The protocol is implemented in [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811), with chunk assignment refined in [monad-bft#2970](https://github.com/category-labs/monad-bft/pull/2970) and [monad-bft#2978](https://github.com/category-labs/monad-bft/pull/2978), integer stake-partition arithmetic in [monad-bft#3073](https://github.com/category-labs/monad-bft/pull/3073), per-round author validation in [monad-bft#3114](https://github.com/category-labs/monad-bft/pull/3114), packet-header canonicalization of the Merkle tree depth and reserved fields in [monad-bft#3247](https://github.com/category-labs/monad-bft/pull/3247) and the `EncodingCommitment` definition in [monad-bft#3248](https://github.com/category-labs/monad-bft/pull/3248).
+
 ## Security Considerations
 
 **Mixed-payload roots.** An author may commit to a root whose leaves are drawn from the encodings of more than one block. Every chunk verifies against that root, and validators collecting different subsets may recover different payloads, so neither the Merkle proof nor the per-round commitment rejects them. Any reconstructed payload whose canonical re-encoding differs from the committed root is rejected, so a mixed root cannot cause correct validators to accept two distinct payloads under the same signed header, assuming correctness of the Raptor encoding and decoding procedure and collision resistance of the Merkle hash.
@@ -246,10 +250,6 @@ Nodes at adjacent stages interoperate; nodes two or more stages apart do not. Ch
 Seed choice changes only the first-hop assignment of canonical symbols to recipients, so it cannot alter the global Raptor degree distribution. Changing timestamp/seed cannot evade commitment-conflict detection.
 
 **Round window.** Chunks outside the round acceptance window are silently dropped. This prevents unbounded buffering but means a node that falls significantly behind the current round will not receive chunks for rounds outside its window until it catches up. Before a node has locally entered its first round, no window is applied and admission is bounded instead by a per-author quota on the number of rounds each author may open.
-
-## Reference Implementation
-
-The protocol is implemented in [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811), with chunk assignment refined in [monad-bft#2970](https://github.com/category-labs/monad-bft/pull/2970) and [monad-bft#2978](https://github.com/category-labs/monad-bft/pull/2978), integer stake-partition arithmetic in [monad-bft#3073](https://github.com/category-labs/monad-bft/pull/3073), per-round author validation in [monad-bft#3114](https://github.com/category-labs/monad-bft/pull/3114), packet-header canonicalization of the Merkle tree depth and reserved fields in [monad-bft#3247](https://github.com/category-labs/monad-bft/pull/3247) and the `EncodingCommitment` definition in [monad-bft#3248](https://github.com/category-labs/monad-bft/pull/3248).
 
 ## Copyright
 
