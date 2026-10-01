@@ -101,6 +101,8 @@ Neither opcode needs immediate arguments, so neither uses the argument encodings
 
 Under MIP-7, the extended opcodes `0xAE 0x00` and `0xAE 0x01` currently behave like `INVALID`. Existing code that executes either sequence halts exceptionally today and will execute successfully after this MIP. Such code is not expected to exist in practice, because the sequences have never had defined behavior on Monad or Ethereum.
 
+A trailing `EXTENSION` byte has no selector and MUST halt exceptionally, as [MIP-7](./MIP-7.md) specifies.
+
 `JUMPDEST` analysis is unaffected.
 
 ## Security Considerations
