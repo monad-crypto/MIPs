@@ -133,7 +133,7 @@ $$
 n = \sum_{v \in V} \mathrm{obligation}(v)
 $$
 
-so that $N \le n < N + |V|$. The surplus arises solely from rounding each allocation upward.
+so that $$N \le n < N + \lvert V \rvert$$. The surplus arises solely from rounding each allocation upward.
 
 `N` and `obligation(v)` MUST equal the exact values of `ceil(K × r)` and `ceil(stake(v) × N / total_stake)`. The redundancy factor `r` is exactly representable in binary, so the product `K × r` is integral. Implementations MUST NOT use floating-point arithmetic, and MUST NOT allow the intermediate product `stake(v) × N` to wrap: a single rounding or wrapping difference changes `n` and therefore the whole assignment.
 
