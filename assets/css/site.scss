@@ -484,6 +484,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 .prose code { font-family: var(--font-mono); font-size: .86em; background: var(--sunken); border: 1px solid var(--bd); border-radius: 4px; padding: 1px 5px; }
 .prose pre { background: var(--sunken); border: 1px solid var(--bd); border-radius: 5px; padding: 16px; overflow: auto; margin: 0 0 20px; }
 .prose pre code { background: none; border: 0; padding: 0; font-size: 13px; }
+.prose mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
 .prose blockquote { margin: 20px 0; padding: 14px 20px; border-left: 2px solid var(--brand); background: var(--elev); color: var(--muted); }
 .prose blockquote p:last-child { margin-bottom: 0; }
 .prose img { display: block; max-width: 100%; margin: 28px auto; border: 1px solid var(--bd); border-radius: 5px; }
