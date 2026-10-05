@@ -106,7 +106,7 @@ The depth is the smallest `d ∈ [3,15]` such that `2^(d-1) ≥ N(d) + |V|`, whe
 **EncodingCommitment.** The `EncodingCommitment` `C` is
 
 $$
-C = R \mathbin{\Vert} \mathtt{encoding}\rule{0.5em}{0.06em}\mathtt{scheme}\rule{0.5em}{0.06em}\mathtt{variant} \mathbin{\Vert} \mathrm{LE64}(\mathrm{round}) \mathbin{\Vert} \mathrm{LE32}(\mathrm{app}\rule{0.5em}{0.06em}\mathrm{message}\rule{0.5em}{0.06em}\mathrm{len}) \mathbin{\Vert} \mathrm{LE64}(\mathrm{unix}\rule{0.5em}{0.06em}\mathrm{ts}\rule{0.5em}{0.06em}\mathrm{ms})
+C = R \mathbin{\Vert} \mathtt{encoding}\rule{0.5em}{0.06em}\mathtt{scheme}\rule{0.5em}{0.06em}\mathtt{variant}\ \mathbin{\Vert}\  \mathrm{LE64}(\mathrm{round}) \mathbin{\Vert} \mathrm{LE32}(\mathrm{app}\rule{0.5em}{0.06em}\mathrm{message}\rule{0.5em}{0.06em}\mathrm{len})\newline\mathbin{\Vert}\ \mathrm{LE64}(\mathrm{unix}\rule{0.5em}{0.06em}\mathrm{ts}\rule{0.5em}{0.06em}\mathrm{ms})
 $$
 
 The serialization of `C` is defined independently of the packet-header wire layout. Here `R` is the 20-byte message-level Merkle root and `encoding_scheme_variant` is one byte. The round identifies the commitment instance. Together with the elected author and corresponding validator set, these fields identify the signed proposal claim; the timestamp bucket derived from `unix_ts_ms` is used for deterministic chunk assignment, while `R` commits to the resulting encoded chunks.
