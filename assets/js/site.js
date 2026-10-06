@@ -181,8 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
       acceptNode: function (node) {
         var parent = node.parentElement;
         if (!parent) return NodeFilter.FILTER_REJECT;
-        var tag = parent.tagName;
-        if (tag === "A" || tag === "CODE" || tag === "PRE" || tag === "SCRIPT" || tag === "STYLE") {
+        if (parent.closest("a, code, pre, script, style")) {
           return NodeFilter.FILTER_REJECT;
         }
         if (!node.nodeValue || node.nodeValue.indexOf("@") === -1) return NodeFilter.FILTER_REJECT;
