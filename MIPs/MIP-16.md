@@ -46,7 +46,7 @@ This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emit
   "method": "eth_queryLogs",
   "params": [{
     "filter": {
-      "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+      "address": "0x754704bc059f8c67012fed69bc8a327a5aafb603",
       "topics": ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"]
     },
     "fields": {
@@ -54,8 +54,8 @@ This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emit
       "blocks": ["number", "timestamp"]
     },
     "order": "asc",
-    "fromBlock": "0x5E69EC4",
-    "toBlock": "0x5E69ECB"
+    "fromBlock": "0x5e69ec4",
+    "toBlock": "0x5e69ecb"
   }]
 }
 ```
@@ -70,9 +70,9 @@ The response includes the specified fields for each matched log and related bloc
     "data": {
       "logs": [
         {
-          "blockNumber": "0x5E69EC6",
-          "logIndex": "0x4F",
-          "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+          "blockNumber": "0x5e69ec6",
+          "logIndex": "0x4f",
+          "address": "0x754704bc059f8c67012fed69bc8a327a5aafb603",
           "data": "0x000000000000000000000000000000000000000000000000000000000432d69f",
           "topics": [
             "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
@@ -81,9 +81,9 @@ The response includes the specified fields for each matched log and related bloc
           ]
         },
         {
-          "blockNumber": "0x5E69EC6",
+          "blockNumber": "0x5e69ec6",
           "logIndex": "0x57",
-          "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+          "address": "0x754704bc059f8c67012fed69bc8a327a5aafb603",
           "data": "0x0000000000000000000000000000000000000000000000000000000003f87ab2",
           "topics": [
             "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
@@ -94,23 +94,23 @@ The response includes the specified fields for each matched log and related bloc
       ],
       "blocks": [
         {
-          "number": "0x5E69EC6",
+          "number": "0x5e69ec6",
           "timestamp": "0x6a8d5688"
         }
       ]
     },
     "fromBlock": {
-      "number": "0x5E69EC4",
+      "number": "0x5e69ec4",
       "hash": "0x93c7d639e007fd25626e326ad7a8a20977d6c0e3ab9da32c81ae7ec1d39577d8",
       "parentHash": "0xcb3a39ea3177e88617c2ad5a48e0922277638fe0ce08f0548b7f639e90894b58"
     },
     "toBlock": {
-      "number": "0x5E69ECB",
+      "number": "0x5e69ecb",
       "hash": "0x323e8aaf8d9b65afc6d7e3d0d589dac6b2d4050af146b7a1bd7226df604c4587",
       "parentHash": "0xd1b683ccca914f70da48d36031f3c1332c0d3af8af1dc5a82ecbd19d8e6ec3d8"
     },
     "cursorBlock": {
-      "number": "0x5E69ECB",
+      "number": "0x5e69ecb",
       "hash": "0x323e8aaf8d9b65afc6d7e3d0d589dac6b2d4050af146b7a1bd7226df604c4587",
       "parentHash": "0xd1b683ccca914f70da48d36031f3c1332c0d3af8af1dc5a82ecbd19d8e6ec3d8"
     }
@@ -130,7 +130,7 @@ This document uses the value type conventions of the Ethereum JSON-RPC interface
 
 | Type | Encoding | Examples |
 | --- | --- | --- |
-| `QUANTITY` | An unsigned integer, encoded as a `0x`-prefixed, big-endian hexadecimal string with no leading zeroes. Zero MUST be encoded as `"0x0"`. | `"0x0"`, `"0x5E69EC6"` |
+| `QUANTITY` | An unsigned integer, encoded as a `0x`-prefixed, big-endian hexadecimal string with no leading zeroes. Zero MUST be encoded as `"0x0"`. | `"0x0"`, `"0x5e69ec6"` |
 | `DATA` | A byte sequence, encoded as a `0x`-prefixed hexadecimal string with two hex digits per byte, and therefore an even number of digits. The empty byte sequence MUST be encoded as `"0x"`. | `"0x"`, `"0x0f3a"` |
 | `TAG` | One of the block tag strings accepted by `fromBlock` and `toBlock`; see [Block range](#block-range). | `"latest"`, `"finalized"` |
 
@@ -180,7 +180,7 @@ Each request scans a contiguous, inclusive range of blocks from `fromBlock` to `
 - `asc` (default): scan from `fromBlock` upward, returning results oldest-first. `fromBlock` is the lower bound and `toBlock` the upper bound.
 - `desc`: scan from `fromBlock` downward, returning results newest-first. `fromBlock` is the upper bound and `toBlock` the lower bound.
 
-`fromBlock` and `toBlock` each accept a hex-encoded block number (for example `"0xF4240"`) or a tag: `"latest"`, `"earliest"`, `"safe"`, `"finalized"`. Tags MUST be resolved server-side at query execution time. If omitted, `fromBlock` defaults to `"earliest"` in `asc` mode or `"latest"` in `desc` mode, and `toBlock` defaults to `"latest"` in `asc` mode or `"earliest"` in `desc` mode. An `asc` scan with `toBlock` omitted therefore runs to chain tip, and a `desc` scan with `toBlock` omitted runs to genesis.
+`fromBlock` and `toBlock` each accept a hex-encoded block number (for example `"0xf4240"`) or a tag: `"latest"`, `"earliest"`, `"safe"`, `"finalized"`. Tags MUST be resolved server-side at query execution time. If omitted, `fromBlock` defaults to `"earliest"` in `asc` mode or `"latest"` in `desc` mode, and `toBlock` defaults to `"latest"` in `asc` mode or `"earliest"` in `desc` mode. An `asc` scan with `toBlock` omitted therefore runs to chain tip, and a `desc` scan with `toBlock` omitted runs to genesis.
 
 A resolved range is inverted if `fromBlock` is greater than `toBlock` in `asc` mode, or less than `toBlock` in `desc` mode. The server MUST fail a request with an inverted range with `-32602`.
 
@@ -226,7 +226,7 @@ All conditions within a `filter` object are combined with AND semantics. Except 
 
 #### Fields and relations
 
-The `fields` object selects what the response includes. Each key names an object schema, and each value is either an array of field names to include from that schema or the string `"all"` to include every field of that schema. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. See each method's Fields section for the keys it accepts.
+The `fields` object selects what the response includes. Each key names an object schema, and each value is either an array of field names to include from that schema or the string `"all"` to include every field of that schema. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. Objects MUST NOT include fields that the request does not select. A field name that is not in the schema of its key is invalid. See each method's Fields section for the keys it accepts.
 
 A relation is a reference from a primary object to a single object of another type. Only many-to-one relations are joinable. Each method MUST reject a `fields` key that names a relation it does not support.
 
@@ -331,9 +331,9 @@ The `transactions` objects combine transaction fields with receipt fields. The r
 | `maxFeePerBlobGas` | `QUANTITY` | Maximum blob fee per gas. | Fork-dependent |
 | `blobVersionedHashes` | `DATA[]` | Versioned blob hashes. | Fork-dependent |
 | `v` | `QUANTITY` | ECDSA signature recovery value. | Required |
-| `yParity` | `QUANTITY` | ECDSA signature parity for typed transactions. | Type-dependent |
-| `r` | `DATA` | ECDSA signature `r` value. | Required |
-| `s` | `DATA` | ECDSA signature `s` value. | Required |
+| `yParity` | `QUANTITY` | ECDSA signature parity for typed transactions: `0x0` or `0x1`. | Type-dependent |
+| `r` | `QUANTITY` | ECDSA signature `r` value. | Required |
+| `s` | `QUANTITY` | ECDSA signature `s` value. | Required |
 | `blockTimestamp` | `QUANTITY` | Timestamp of the containing block. | Optional |
 | `contractAddress` | `DATA` or `null` | Created contract address, or `null`. | Required |
 | `cumulativeGasUsed` | `QUANTITY` | Cumulative gas used in the block. | Required |
@@ -506,7 +506,7 @@ The methods use standard JSON-RPC error codes plus application-specific codes th
 | --- | --- | --- |
 | `-32601` | Method not found | The node does not recognize the method, because it runs software that predates this MIP. This is the standard JSON-RPC code and is listed here only to distinguish it from `-32004`. |
 | `-32004` | Method not supported | The node recognizes the method but is not configured to serve it, and so cannot serve it for any block range. A node that does not index traces, for example, returns this code for `eth_queryTraces` and `eth_queryTransfers` while still serving the other three methods. |
-| `-32602` | Invalid params | Malformed request: unknown `fields` keys, invalid filter fields, a `fields` key naming an unrecognized or unsupported relation for this method, a `target` of `0x0`, or a block range that is inverted for the requested `order`. |
+| `-32602` | Invalid params | Malformed request: unknown `fields` keys, unknown field names in a `fields` array, invalid filter fields, a `fields` key naming an unrecognized or unsupported relation for this method, a `target` of `0x0`, or a block range that is inverted for the requested `order`. |
 | `-32001` | Resource not found | The node serves this method, but the resolved block range falls partly or wholly outside its availability window for the method. See [Block range](#block-range). |
 | `-32005` | Limit exceeded | The request exceeded a server-imposed resource limit. For the response budget, this occurs only when `fromBlock` alone exceeds the budget; see [Block-aligned pagination](#block-aligned-pagination). |
 
@@ -572,7 +572,7 @@ To associate a primary object with its related objects, the client should match 
 
 Join keys are selected like any other field. A client that requests a relation should include both sides of its join key in `fields`; otherwise, the response has no way to indicate which related object belongs to which primary object.
 
-The [Example](#example) request selects `blockNumber` on logs and `number` on blocks for this reason. Both returned logs have a `blockNumber` of `0x5E69EC6`, so both join to the single `blocks` object whose `number` is `0x5E69EC6`, and both logs have a block timestamp of `0x6a8d5688`. The block appears once even though two logs reference it. Blocks in the range that contain no matching logs, such as `0x5E69EC4`, do not appear at all.
+The [Example](#example) request selects `blockNumber` on logs and `number` on blocks for this reason. Both returned logs have a `blockNumber` of `0x5e69ec6`, so both join to the single `blocks` object whose `number` is `0x5e69ec6`, and both logs have a block timestamp of `0x6a8d5688`. The block appears once even though two logs reference it. Blocks in the range that contain no matching logs, such as `0x5e69ec4`, do not appear at all.
 
 ## Rationale
 
