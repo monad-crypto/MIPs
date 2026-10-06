@@ -450,7 +450,7 @@ Trace objects are flattened `callTracer` frames, omitting nested calls and trace
 
 ### `eth_queryTransfers`
 
-Query for native token transfers. A transfer is any call frame whose `value` is greater than zero. The set of transfers in a block range is therefore exactly the subset of the traces in that range for which `value > 0`, and each transfer object carries the same trace context as the corresponding `eth_queryTraces` object.
+Query for native token transfers. A transfer is any call frame whose `value` is greater than zero and whose `type` is not `DELEGATECALL` or `CALLCODE`. These two call types do not move value. The server MUST NOT return them as transfers. The set of transfers in a block range is therefore exactly the subset of the traces in that range for which `value > 0` and `type` is not `DELEGATECALL` or `CALLCODE`, and each transfer object carries the same trace context as the corresponding `eth_queryTraces` object.
 
 #### Filter
 
