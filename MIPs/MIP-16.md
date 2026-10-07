@@ -247,9 +247,7 @@ Query for block headers.
 
 #### Response
 
-> **Note:** This table lists only the normative fields. These are the minimum fields that every implementation MUST support; for every field that Monad returns, see [Appendix: Monad Response Schemas](#appendix-monad-response-schemas).
-
-The normative fields of `blocks` objects are:
+This table lists the normative fields of `blocks` objects. These are the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -286,11 +284,9 @@ Query for transactions included in blocks.
 
 #### Response
 
-The `transactions` objects combine transaction fields with receipt fields. The receipt `logs` field is not included, because it contains one-to-many data; see [Many-to-one relations only](#rationale).
+The `transactions` objects combine transaction fields with receipt fields.
 
-> **Note:** This table lists only the normative fields. These are the minimum fields that every implementation MUST support; for every field that Monad returns, see [Appendix: Monad Response Schemas](#appendix-monad-response-schemas).
-
-The normative fields of `transactions` objects are:
+This table lists the normative fields of `transactions` objects. These are the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -303,6 +299,8 @@ The normative fields of `transactions` objects are:
 | `input` | `DATA` | Calldata. |
 | `value` | `QUANTITY` | Transferred value. |
 | `status` | `QUANTITY` | `0x1` if the transaction succeeded, or `0x0` if it reverted. |
+
+`transactions` objects MUST NOT include the receipt `logs` field. This field contains one-to-many data; see [Many-to-one relations only](#rationale).
 
 #### Ordering
 
@@ -339,9 +337,7 @@ Trailing `null` entries MAY be omitted.
 
 #### Response
 
-> **Note:** This table lists only the normative fields. These are the minimum fields that every implementation MUST support; for every field that Monad returns, see [Appendix: Monad Response Schemas](#appendix-monad-response-schemas).
-
-The normative fields of `logs` objects are:
+This table lists the normative fields of `logs` objects. These are the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -385,9 +381,7 @@ Query for internal call traces.
 
 Each trace object is one call frame of a transaction, without its nested calls and logs.
 
-> **Note:** This table lists only the normative fields. These are the minimum fields that every implementation MUST support; for every field that Monad returns, see [Appendix: Monad Response Schemas](#appendix-monad-response-schemas).
-
-The normative fields of `traces` objects are:
+This table lists the normative fields of `traces` objects. These are the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -404,8 +398,6 @@ The normative fields of `traces` objects are:
 | `transactionHash` | `DATA` | Hash of the containing transaction. |
 | `transactionIndex` | `QUANTITY` | Transaction index in the block. |
 | `traceAddress` | `number[]` | Path through the nested call tree. |
-
-`error` and `reverted` answer different questions: `error` indicates that this frame failed, and `reverted` indicates that this frame's effects did not persist. Every frame with `error` has `reverted: true`, but the converse does not hold.
 
 #### Ordering
 
@@ -537,6 +529,8 @@ The [Example](#example) request selects `blockNumber` on logs and `number` on bl
 
 **Merged transactions and receipts.** `eth_queryTransactions` returns each transaction and its receipt as a single object. The standard interface splits them across `eth_getTransactionByHash` and `eth_getTransactionReceipt` because receipts are produced by execution rather than stored in the block body, a distinction that does not matter to clients. Many common queries need fields from both, such as filtering transactions by `to` and reading `status` to skip reverted calls.
 
+**Traces and transfers `reverted` field.** `callTracer` frames have an `error` field, but `error` only shows that the frame itself failed. A frame that returns normally also loses its state changes when one of its parent frames fails. To find these frames, a client must examine all parent frames of each frame. Flattened, filtered, and paginated results usually do not include those parent frames, so the client cannot calculate this. With the `reverted` field, `error` shows that a frame failed, and `reverted` shows that the effects of a frame did not persist. Each frame with an `error` also has `reverted: true`, but a frame with `reverted: true` can have no `error`. For the same reason, `eth_queryTraces` and `eth_queryTransfers` do not return reverted frames by default: most clients, such as balance indexers, need only the value movements and calls that persisted. Clients that need reverted frames set `includeReverted: true`.
+
 ## Backwards Compatibility
 
 There are no backwards compatibility issues. These are five new JSON-RPC methods; no existing method's request or response shape is changed. Clients that do not support these methods are unaffected, and a node that does not recognize them responds with the standard JSON-RPC "method not found" error (`-32601`). A node that recognizes the methods but is not configured to serve all of them responds with `-32004` for the methods it does not serve; see [Errors](#errors).
@@ -549,7 +543,7 @@ Results near the chain tip are not final. A reorganization can invalidate pages 
 
 Because the new RPC methods support joins and field projection, the worst-case work for a single request depends on the requested relations and fields as well as on the block range. Implementations should validate relations and fields strictly and bound that worst case.
 
-## Appendix: Monad Response Schemas
+## Appendix 1: Monad response schemas
 
 This appendix is normative for Monad at revision `MONAD_TEN`. A Monad node that serves these methods MUST support every field in this appendix, and MUST NOT return fields that this appendix does not define.
 
@@ -561,7 +555,7 @@ Some fields are present only from a specific Monad revision. This table lists ea
 | --- | --- | --- |
 | `MONAD_FOUR` | Adds `requestsHash` to blocks. Adds type `0x4` (EIP-7702) transactions. | `0x1fe56b2` |
 
-Monad mainnet (chain ID `0x8f`) changed from `MONAD_THREE` directly to `MONAD_SIX` at block `0x1fe56b2` (timestamp `0x690a0de8`, 2025-11-04T14:30:00Z). Thus the `MONAD_FOUR` changes start at that block on mainnet. The revisions from `MONAD_FIVE` to `MONAD_TEN` do not change the response schemas.
+Monad mainnet (chain ID `0x8f`) changed from `MONAD_THREE` directly to `MONAD_SIX` at block `0x1fe56b2`. Thus the `MONAD_FOUR` changes start at that block on mainnet. The revisions from `MONAD_FIVE` to `MONAD_TEN` do not change the response schemas.
 
 ### Blocks
 
