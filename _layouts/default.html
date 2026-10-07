@@ -49,6 +49,12 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-python.min.js" integrity="sha512-AKaNmg8COK0zEbjTdMHJAPJ0z6VeNqvRvH4/d5M4sHJbQQUToMBtodq4HaV4fa+WV2UTfoperElm66c9/8cKmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-solidity.min.js" integrity="sha512-cVwDlg8/p6UhSKtcNwXU8mv3QL7uwVilUFE5EtblYWLjAXqyYOh7yXDCkNKJH279fvVe4vzD0OoMX3GokaAU2A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     {% endif %}
+    {% if content contains "\[" or content contains "\(" %}
+    <script>
+      window.MathJax = { chtml: { scale: 0.9 } };
+    </script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" integrity="sha512-kO24RkUwCpSCXtdV9p2FM/5isVLi06qQPGlE+AsOx8kN9MTc6Mk7qlZBSEh/b7bvCr2vEWlZLAdp20QLkB/qPg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    {% endif %}
     <script defer src="{{ '/assets/js/site.js' | relative_url }}"></script>
   </head>
   <body>

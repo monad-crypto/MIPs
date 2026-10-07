@@ -4,7 +4,7 @@ title: Extension opcodes
 description: Add a reserved opcode for implementation-defined extension opcodes
 author: Category Labs
 discussions-to: https://forum.monad.xyz/t/mip-7-extension-opcodes/387
-status: Draft
+status: Review
 type: Standards Track
 category: Core
 created: 2026-01-28
@@ -25,6 +25,7 @@ EIP-8163 reserves the `EXTENSION` (`0xAE`) opcode on Ethereum L1 specifically to
 ### Extended Opcode Encoding
 
 The `EXTENSION` opcode (`0xAE`) MUST be immediately followed by a 1-byte extension selector. The extension selector MUST NOT be `0x5B` (`JUMPDEST`) or in the range `0x60`-`0x7F` (`PUSH1`-`PUSH32`). An extension selector in this excluded range MUST cause an exceptional halt, consuming all remaining gas.
+An `EXTENSION` byte at the end of code has no selector and MUST cause an exceptional halt, consuming all remaining gas.
 
 Define **extended opcode** as the 2-byte sequence `0xAE XX`.
 
