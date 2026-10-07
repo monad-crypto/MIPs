@@ -247,7 +247,7 @@ Query for block headers.
 
 #### Response
 
-This table lists the normative fields of `blocks` objects. These are the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
+This table lists the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -284,9 +284,9 @@ Query for transactions included in blocks.
 
 #### Response
 
-The `transactions` objects combine transaction fields with receipt fields.
+Each transaction object combines transaction fields with receipt fields.
 
-This table lists the normative fields of `transactions` objects. These are the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
+This table lists the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -337,7 +337,7 @@ Trailing `null` entries MAY be omitted.
 
 #### Response
 
-This table lists the normative fields of `logs` objects. These are the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
+This table lists the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -379,9 +379,9 @@ Query for internal call traces.
 
 #### Response
 
-Each trace object is one call frame of a transaction, without its nested calls and logs.
+Each trace object is one call frame of a transaction, excluding nested calls and logs.
 
-This table lists the normative fields of `traces` objects. These are the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
+This table lists the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -427,9 +427,7 @@ Query for native token transfers. A transfer is any call frame whose `value` is 
 
 #### Response
 
-Transfer objects have the same fields as `traces` objects.
-
-For a transfer, `reverted: true` means the value did not move.
+The `eth_queryTransfers` response schema is the same as `eth_queryTraces`.
 
 #### Ordering
 
@@ -515,7 +513,7 @@ The [Example](#example) request selects `blockNumber` on logs and `number` on bl
 
 **JSON-RPC interface.** These methods extend the existing JSON-RPC interface rather than introduce a new transport or query language. Node operators and client libraries can adopt them without new infrastructure, and existing tooling such as authentication, load balancing, and retries works unchanged.
 
-**`eth_` namespace.** The methods use the `eth_` namespace because nothing in the interface is specific to Monad. They query objects common to every EVM chain — blocks, transactions, logs, traces, and transfers — and reuse the value types, block tags, and error code conventions of existing `eth_` methods.
+**`eth_*` namespace.** The methods use the `eth_*` namespace because nothing in the interface is specific to Monad. They query objects common to every EVM chain — blocks, transactions, logs, traces, and transfers — and reuse the value types, block tags, and error code conventions of existing `eth_*` methods.
 
 **Block range and traversal direction.** Chain history is ordered by block, so a contiguous block range is the natural unit for scanning and resuming a query. Supporting both `asc` and `desc` lets the same method serve forward scans, such as backfilling an index from genesis, and backward scans, such as fetching the most recent N events from `"latest"`, without the client guessing a block window and widening it until enough results arrive.
 
@@ -529,7 +527,7 @@ The [Example](#example) request selects `blockNumber` on logs and `number` on bl
 
 **Merged transactions and receipts.** `eth_queryTransactions` returns each transaction and its receipt as a single object. The standard interface splits them across `eth_getTransactionByHash` and `eth_getTransactionReceipt` because receipts are produced by execution rather than stored in the block body, a distinction that does not matter to clients. Many common queries need fields from both, such as filtering transactions by `to` and reading `status` to skip reverted calls.
 
-**Traces and transfers `reverted` field.** `callTracer` frames have an `error` field, but `error` only shows that the frame itself failed. A frame that returns normally also loses its state changes when one of its parent frames fails. To find these frames, a client must examine all parent frames of each frame. Flattened, filtered, and paginated results usually do not include those parent frames, so the client cannot calculate this. With the `reverted` field, `error` shows that a frame failed, and `reverted` shows that the effects of a frame did not persist. Each frame with an `error` also has `reverted: true`, but a frame with `reverted: true` can have no `error`. For the same reason, `eth_queryTraces` and `eth_queryTransfers` do not return reverted frames by default: most clients, such as balance indexers, need only the value movements and calls that persisted. Clients that need reverted frames set `includeReverted: true`.
+**New `reverted` field for traces and transfers.** In both the Geth (`debug_*`) and Parity-style (`trace_*`) call trace formats, the `error` field reports only whether that frame itself failed. If an ancestor frame fails, the frame's state changes are discarded too, and the only way to detect this is to walk the transaction's call tree. Because these methods return flat, filtered lists that often omit those ancestors, each frame now includes a `reverted` field that is `true` if its state changes were discarded for any reason. Reverted frames are excluded by default, since these methods are designed to return historical activity that actually took effect.
 
 ## Backwards compatibility
 
