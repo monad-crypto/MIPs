@@ -592,11 +592,11 @@ The [Example](#example) request selects `blockNumber` on logs and `number` on bl
 
 **Merged transactions and receipts.** `eth_queryTransactions` returns each transaction and its receipt as a single object. The standard interface splits them across `eth_getTransactionByHash` and `eth_getTransactionReceipt` because receipts are produced by execution rather than stored in the block body, a distinction that does not matter to clients. Many common queries need fields from both, such as filtering transactions by `to` and reading `status` to skip reverted calls.
 
-## Backwards Compatibility
+## Backwards compatibility
 
 There are no backwards compatibility issues. These are five new JSON-RPC methods; no existing method's request or response shape is changed. Clients that do not support these methods are unaffected, and a node that does not recognize them responds with the standard JSON-RPC "method not found" error (`-32601`). A node that recognizes the methods but is not configured to serve all of them responds with `-32004` for the methods it does not serve; see [Errors](#errors).
 
-## Security Considerations
+## Security considerations
 
 These methods increase server-side workload by enabling high-volume historical queries. Implementations are expected to enforce request limits, such as a maximum response size or execution time, and to apply fair-use controls such as rate limiting and per-API-key quotas, to mitigate denial-of-service and cost-amplification risks.
 
