@@ -580,7 +580,7 @@ Monad mainnet (chain ID `0x8f`) changed from `MONAD_THREE` directly to `MONAD_SI
 | `stateRoot` | `DATA` | State root. |
 | `receiptsRoot` | `DATA` | Receipts root. |
 | `difficulty` | `QUANTITY` | Block difficulty. Always `0x0` on Monad. |
-| `totalDifficulty` | `QUANTITY` | Total difficulty of the chain up to this block. |
+| `totalDifficulty` | `QUANTITY` | Total difficulty of the chain up to this block. Always `0x0` on Monad. |
 | `extraData` | `DATA` | Extra data. |
 | `size` | `QUANTITY` | Block size, in bytes. |
 | `gasLimit` | `QUANTITY` | Block gas limit. |
