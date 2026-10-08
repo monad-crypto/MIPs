@@ -17,7 +17,7 @@ requires: <MIP number(s)> # Only required when this MIP cannot be understood or 
 
   Note that an MIP number will be assigned by an editor. When opening a pull request to submit your MIP, please use an abbreviated title in the filename, `MIP-draft_title_abbrev.md`.
 
-  The title should be 44 characters or less. It should not repeat the MIP number in title, irrespective of the category.
+  The title should be 90 characters or less. It should not repeat the MIP number in title, irrespective of the category.
 
   TODO: Remove this comment before submitting
 -->
