@@ -27,11 +27,13 @@ defaults:
       path: "MIPs"
     values:
       layout: "proposal"
+      render_with_liquid: false
   -
     scope:
       path: "MRCs"
     values:
       layout: "proposal"
+      render_with_liquid: false
 
 exclude:
   - .github
