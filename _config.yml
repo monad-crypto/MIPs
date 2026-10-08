@@ -8,6 +8,7 @@ timezone: UTC
 lsi: false
 safe: true
 incremental: false
+strict_front_matter: true
 theme: minima
 markdown: kramdown
 highlighter: none
@@ -35,6 +36,7 @@ defaults:
 
 exclude:
   - .github
+  - scripts
   - Gemfile
   - Gemfile.lock
   - node_modules

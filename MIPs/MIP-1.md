@@ -102,7 +102,7 @@ The following is the standardization process for all MIPs in all tracks:
 
 Each MIP should have the following parts:
 
-- **Preamble** - RFC 822 style headers containing metadata about the MIP, including the MIP number, a short descriptive title (limited to a maximum of 44 characters), a description (limited to a maximum of 140 characters), and the author details. Irrespective of the category, the title and description should not include the MIP number. See [below](#mip-header-preamble) for details.
+- **Preamble** - RFC 822 style headers containing metadata about the MIP, including the MIP number, a short descriptive title (limited to a maximum of 90 characters), a description (limited to a maximum of 140 characters), and the author details. Irrespective of the category, the title and description should not include the MIP number. See [below](#mip-header-preamble) for details.
 
 - **Abstract** - Abstract is a multi-sentence (short paragraph) technical summary. This should be a very terse and human-readable version of the specification section. Someone should be able to read only the abstract to get the gist of what this specification does.
 

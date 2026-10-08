@@ -1,0 +1,43 @@
+name: Lint MIPs
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: MIP linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Test the linter
+        run: python3 -m unittest discover scripts
+
+      - name: Lint changed proposals
+        if: github.event_name == 'pull_request'
+        run: |
+          git diff --name-only --diff-filter=d HEAD^1 HEAD | grep -iE '^(MIPs|MRCs)/[^/]+\.md$' > changed.txt || true
+          if [ ! -s changed.txt ]; then
+            echo "No proposals changed."
+            exit 0
+          fi
+          xargs -a changed.txt python3 scripts/lint_mips.py
+
+      - name: Lint all proposals
+        if: github.event_name == 'workflow_dispatch'
+        run: python3 scripts/lint_mips.py
