@@ -11,6 +11,7 @@ jobs:
   lint:
     name: MIP linter
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -28,15 +29,23 @@ jobs:
       - name: Test the linter
         run: python3 -m unittest discover scripts
 
+      - name: Flag changes outside the proposals
+        if: github.event_name == 'pull_request'
+        run: |
+          others=$(git diff -z --name-only --diff-filter=d HEAD^1 HEAD | tr '\0' '\n' | { grep -vE '^(MIPs|MRCs)/[^/]+\.md$|^assets/(MIP|MRC)-[0-9]+/' || true; })
+          if [ -n "$others" ]; then
+            echo "::warning title=Changes outside the proposals::Jekyll publishes every file in this repository and the lint result below comes from the tooling in this PR. Review these files first: $(echo "$others" | tr '\n' ' ')"
+          fi
+
       - name: Lint changed proposals
         if: github.event_name == 'pull_request'
         run: |
-          git diff --name-only --diff-filter=d HEAD^1 HEAD | grep -iE '^(MIPs|MRCs)/[^/]+\.md$' > changed.txt || true
-          if [ ! -s changed.txt ]; then
+          git diff -z --name-only --diff-filter=d HEAD^1 HEAD | { grep -z -iE '^(MIPs|MRCs)/[^/]+\.md$' || true; } > changed.lst
+          if [ ! -s changed.lst ]; then
             echo "No proposals changed."
             exit 0
           fi
-          xargs -a changed.txt python3 scripts/lint_mips.py
+          xargs -0 -a changed.lst python3 scripts/lint_mips.py
 
       - name: Lint all proposals
         if: github.event_name == 'workflow_dispatch'
