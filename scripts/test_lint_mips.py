@@ -138,6 +138,7 @@ class PreambleTest(LintTestCase):
     def test_author_forms(self) -> None:
         self.assertClean(document(author="Random J. User (@random) <random@example.com>"))
         self.assertClean(document(author="(@random)"))
+        self.assertClean(document(author="Category Labs (@category-labs)"))
         self.assertClean(document(author="Random (@random), Other J. User <other@example.com>, Third"))
         self.assertRule("preamble-author", document(author="Random J. User <random@example.com> (@random)"))
 
@@ -267,7 +268,8 @@ class BodyTest(LintTestCase):
         self.assertRule("markdown-headings-space", document(BODY.replace("## Abstract", "##Abstract")))
 
     def test_external_links(self) -> None:
-        self.assertRule("markdown-rel-links", with_abstract("See [EIP-170](https://eips.ethereum.org/EIPS/eip-170)."))
+        self.assertRule("markdown-rel-links", with_abstract("See [the thread](https://ethereum-magicians.org/t/eip-170/1)."))
+        self.assertClean(with_abstract("See [EIP-170](https://eips.ethereum.org/EIPS/eip-170)."))
         self.assertRule("markdown-rel-links", with_abstract("See <https://example.com/paper>."))
         self.assertRule("markdown-rel-links", with_abstract("See [MIP-1](https://github.com/monad-crypto/MIPs/blob/main/MIPs/MIP-1.md)."))
         self.assertClean(with_abstract(f"See [EIP-170]({EIP_COMMIT_LINK})."))
@@ -276,7 +278,7 @@ class BodyTest(LintTestCase):
         self.assertClean(with_abstract("```\nhttps://example.com/in-code\n```"))
 
     def test_reference_style_links(self) -> None:
-        self.assertRule("markdown-rel-links", with_abstract("See [EIP-170][eip].\n\n[eip]: https://eips.ethereum.org/EIPS/eip-170"))
+        self.assertRule("markdown-rel-links", with_abstract("See [EIP-170][eip].\n\n[eip]: https://ethereum-magicians.org/t/eip-170/1"))
         self.assertClean(with_abstract(f"See [EIP-170][eip].\n\n[eip]: {EIP_COMMIT_LINK}"))
 
     def test_relative_links(self) -> None:

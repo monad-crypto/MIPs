@@ -101,6 +101,7 @@ ALLOWED_EXTERNAL_LINKS = [
         r"^https://(?:www\.)?github\.com/ethereum/execution-specs/commit/[0-9a-f]{40}$",
         r"^https://(?:www\.)?github\.com/ethereum/EIPs/(?:blob|tree)/[0-9a-f]{40}/.+$",
         r"^https://(?:www\.)?github\.com/ethereum/EIPs/commit/[0-9a-f]{40}$",
+        r"^https://eips\.ethereum\.org/EIPS/eip-\d+(?:#.*)?$",
         r"^https://(?:www\.)?github\.com/bitcoin/bips/(?:blob|tree)/[0-9a-f]{40}/.+$",
         r"^https://(?:www\.)?github\.com/bitcoin/bips/commit/[0-9a-f]{40}$",
         r"^https://(?:www\.)?github\.com/ChainAgnostic/CAIPs/(?:blob|tree)/[0-9a-f]{40}/.+$",

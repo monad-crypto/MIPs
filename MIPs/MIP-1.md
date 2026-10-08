@@ -178,6 +178,8 @@ if the email address and/or GitHub username is included, and
 
 if neither the email address nor the GitHub username are given.
 
+An organization may be listed as an author in the same forms, with its GitHub organization handle as the username, for example `Category Labs (@category-labs)`.
+
 At least one author must use a GitHub username, in order to get notified on change requests and have the capability to approve or reject them.
 
 ### `discussions-to` Header
@@ -216,7 +218,7 @@ The following external resources may be linked:
 - **Ethereum Yellow Paper**: Links to the [Ethereum Yellow Paper](https://github.com/ethereum/yellowpaper/blob/efc5f9a1f356cba376c978eedb63cb0363c2aa85/Paper.tex) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 - **Ethereum Execution Client Specifications**: Links to the [Ethereum Execution Client Specifications](https://github.com/ethereum/execution-specs) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 - **Internet Engineering Task Force (IETF)**: Links to an IETF Request For Comment (RFC) specification may be included using normal Markdown syntax. Permitted URLs MUST anchor to a specification with an assigned RFC number.
-- **Ethereum Improvement Proposals (EIPs)**: Links to [EIPs](https://github.com/ethereum/EIPs) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
+- **Ethereum Improvement Proposals (EIPs)**: Links to [EIPs](https://github.com/ethereum/EIPs) may be included using normal Markdown syntax. Permitted URLs MUST either be the published page of an EIP, `https://eips.ethereum.org/EIPS/eip-N`, or anchor to a specific commit in the repository.
 - **Bitcoin Improvement Proposals (BIPs)**: Links to [BIPs](https://github.com/bitcoin/bips) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 - **Chain Agnostic Improvement Proposals (CAIPs)**: Links to [CAIPs](https://github.com/ChainAgnostic/CAIPs) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 - **World Wide Web Consortium (W3C)**: Links to a W3C “Recommendation” status specification may be included using normal Markdown syntax. Permitted URLs MUST anchor to a specification in the technical reports namespace with a date.
