@@ -151,6 +151,8 @@ All other types named in this document (`string`, `number`, `boolean`, `object`,
 | `filter` | `object` | No | Method-specific filter object. See [Filters](#filters) and each method's Filter section. |
 | `fields` | `object` | No | Method-specific selection of fields to include and relations to join. See [Fields and relations](#fields-and-relations) and each method's Fields section. |
 
+The request object MUST NOT contain keys other than those listed above. If it does, the server MUST fail the request with `-32602`.
+
 #### Response
 
 | Field | Type | Description |
@@ -211,11 +213,11 @@ This guarantee applies within a single response. Consecutive pages MAY reflect d
 
 Each method defines its own set of filter fields; see that method's Filter section. The rules below apply to all of them.
 
-All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). An omitted filter field places no constraint on the result, unless the method's Filter section defines a default for that field. If `filter` is omitted, every object of the method's primary type within the block range is returned, subject to those defaults.
+All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). An omitted filter field places no constraint on the result, unless the method's Filter section defines a default for that field. A `null` value is the same as an omitted field. An empty array (`[]`) also places no constraint on the result. Thus, a client that builds a filter field from an empty list gets all objects back, not zero objects. A filter key that the method's Filter section does not define is invalid, and the server MUST fail the request with `-32602`. If `filter` is omitted, every object of the method's primary type within the block range is returned, subject to those defaults.
 
 #### Fields and relations
 
-The `fields` object selects what the response includes. Each key names an object type, and each value is either an array of field names to include or the string `"all"` to include every field that the implementation supports for that object type. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. Objects MUST NOT include fields that the request does not select. A field name that the implementation does not support for its key is invalid, and the server MUST fail the request with `-32602`. See each method's Fields section for the keys it accepts.
+The `fields` object selects what the response includes. Each key names an object type, and each value is either an array of field names to include or the string `"all"` to include every field that the implementation supports for that object type. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. If `fields` is present, it MUST contain the key of the method's primary object type. A `fields` value MUST NOT be an empty array. The server MUST fail a request that does not obey these two rules with `-32602`. Objects MUST NOT include fields that the request does not select. A field name that the implementation does not support for its key is invalid, and the server MUST fail the request with `-32602`. See each method's Fields section for the keys it accepts.
 
 A relation is a reference from a primary object to a single object of another type. Only many-to-one relations are joinable. Each method MUST reject a `fields` key that names a relation it does not support.
 
@@ -322,10 +324,11 @@ Query for event logs emitted during transaction execution.
 The `topics` filter MUST follow the same matching semantics as `eth_getLogs`. The value is an array of up to 4 positional entries. Each entry may be:
 
 - A single topic hash (`DATA`): matches logs where `topics[i]` equals that hash.
-- An array of topic hashes (`DATA[]`): matches logs where `topics[i]` equals any hash in the array.
+- A non-empty array of topic hashes (`DATA[]`): matches logs where `topics[i]` equals any hash in the array.
+- An empty array (`[]`): wildcard, the same as `null`.
 - `null`: wildcard — matches any value at position `i`.
 
-Trailing `null` entries MAY be omitted.
+`topics: []` and `topics: null` place no constraint on the result.
 
 #### Fields
 
@@ -356,7 +359,7 @@ Log objects are ordered by `(blockNumber, logIndex)`.
 
 ### `eth_queryTraces`
 
-Query for internal call traces.
+Query for internal call traces. The result includes system transactions and precompile calls.
 
 #### Filter
 
@@ -405,7 +408,7 @@ This table lists the minimum fields that every implementation MUST support; see 
 
 ### `eth_queryTransfers`
 
-Query for native token transfers. A transfer is any call frame whose `value` is greater than zero and whose `type` is not `DELEGATECALL` or `CALLCODE`. These two call types do not move value. The server MUST NOT return them as transfers. The set of transfers in a block range is therefore exactly the subset of the traces in that range for which `value > 0` and `type` is not `DELEGATECALL` or `CALLCODE`, and each transfer object carries the same trace context as the corresponding `eth_queryTraces` object.
+Query for native token transfers. A transfer is any call frame whose `value` is greater than zero and whose `type` is not `DELEGATECALL` or `CALLCODE`. These two call types do not move value. The server MUST NOT return them as transfers. The set of transfers in a block range is therefore exactly the subset of the traces in that range for which `value > 0` and `type` is not `DELEGATECALL` or `CALLCODE`, and each transfer object carries the same trace context as the corresponding `eth_queryTraces` object. The result includes system transactions and precompile calls.
 
 #### Filter
 
@@ -441,7 +444,7 @@ The methods use standard JSON-RPC error codes plus application-specific codes th
 | --- | --- | --- |
 | `-32601` | Method not found | The node does not recognize the method, because it runs software that predates this MIP. This is the standard JSON-RPC code and is listed here only to distinguish it from `-32004`. |
 | `-32004` | Method not supported | The node recognizes the method but is not configured to serve it, and so cannot serve it for any block range. A node that does not index traces, for example, returns this code for `eth_queryTraces` and `eth_queryTransfers` while still serving the other three methods. |
-| `-32602` | Invalid params | Malformed request: unknown `fields` keys, unknown field names in a `fields` array, invalid filter fields, a `fields` key naming an unrecognized or unsupported relation for this method, a `target` of `0x0`, or a block range that is inverted for the requested `order`. |
+| `-32602` | Invalid params | Malformed request: unknown keys in the request object, unknown filter keys, invalid filter values, a `null` entry in a filter array, a `fields` object without the key of the primary object type, an empty `fields` array, unknown `fields` keys, unknown field names in a `fields` array, a `fields` key naming an unrecognized or unsupported relation for this method, a `target` of `0x0`, or a block range that is inverted for the requested `order`. |
 | `-32001` | Resource not found | The node serves this method, but the resolved block range falls partly or wholly outside its availability window for the method. See [Block range](#block-range). |
 | `-32005` | Limit exceeded | The request exceeded a server-imposed resource limit. For the response budget, this occurs only when `fromBlock` alone exceeds the budget; see [Block-aligned pagination](#block-aligned-pagination). |
 
