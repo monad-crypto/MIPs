@@ -35,6 +35,7 @@ defaults:
 
 exclude:
   - .github
+  - scripts
   - Gemfile
   - Gemfile.lock
   - node_modules
