@@ -2,7 +2,7 @@
 mip: 3
 title: Linear Memory
 description: Redefine memory expansion cost to be linear and enforce an explicit maximum memory usage per transaction
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-3-linear-evm-memory-cost/362
 status: Final
 type: Standards Track
@@ -41,6 +41,10 @@ The max memory usage is capped at 8 MB.  Memory allocation is bounded across cal
 ```
 3. Once a call returns, the memory is returned to the pool.
 4. If a call exceeds the remaining memory limit, it halts exceptionally, consuming all gas remaining in that call frame.
+
+## Rationale
+
+-
 
 ## Backwards Compatibility
 

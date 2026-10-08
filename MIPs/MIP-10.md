@@ -2,7 +2,7 @@
 mip: 10
 title: Deterministic RaptorCast
 description: Canonical RaptorCast encoding that removes author control over chunk placement and binds each proposal to a per-round commitment
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-10-deterministic-raptorcast/453
 status: Draft
 type: Standards Track
@@ -16,7 +16,7 @@ Deterministic RaptorCast (v1) pins each canonical encoded symbol to a fixed posi
 
 A validator authenticates the packet header and author identity, recomputes the seed, derives the same assignment from its view of the epoch validator set, verifies each chunk against the message-level root, and rejects any chunk whose commitment conflicts with the one already recorded for that round. Having reconstructed the payload, the validator re-encodes it and checks that the resulting Merkle root matches the committed root. Given the payload, author, round metadata, and epoch validator set, v1 deterministically fixes the encoding, root, and chunk assignment; each correct validator accepts at most one `EncodingCommitment` per round.
 
-Throughout this MIP, v0 refers to the existing RaptorCast proposal format (see [RaptorCast: Designing a Messaging Layer](https://www.category.xyz/blogs/raptorcast-designing-a-messaging-layer)) and v1 to the deterministic proposal format introduced by this MIP.
+Throughout this MIP, v0 refers to the existing RaptorCast proposal format (see the Category Labs post *RaptorCast: Designing a Messaging Layer*) and v1 to the deterministic proposal format introduced by this MIP.
 
 ## Motivation
 
@@ -239,7 +239,7 @@ Nodes at adjacent stages interoperate; nodes two or more stages apart do not. Ch
 
 ## Reference Implementation
 
-The protocol is implemented in [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811), with chunk assignment refined in [monad-bft#2970](https://github.com/category-labs/monad-bft/pull/2970) and [monad-bft#2978](https://github.com/category-labs/monad-bft/pull/2978), integer stake-partition arithmetic in [monad-bft#3073](https://github.com/category-labs/monad-bft/pull/3073), per-round author validation in [monad-bft#3114](https://github.com/category-labs/monad-bft/pull/3114), packet-header canonicalization of the Merkle tree depth and reserved fields in [monad-bft#3247](https://github.com/category-labs/monad-bft/pull/3247) and the `EncodingCommitment` definition in [monad-bft#3248](https://github.com/category-labs/monad-bft/pull/3248).
+The protocol is implemented in monad-bft#2811, with chunk assignment refined in monad-bft#2970 and monad-bft#2978, integer stake-partition arithmetic in monad-bft#3073, per-round author validation in monad-bft#3114, packet-header canonicalization of the Merkle tree depth and reserved fields in monad-bft#3247 and the `EncodingCommitment` definition in monad-bft#3248.
 
 ## Security Considerations
 
