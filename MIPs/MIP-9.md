@@ -8,6 +8,7 @@ status: Withdrawn
 type: Standards Track
 category: Core
 created: 2026-03-19
+withdrawal-reason: Postponed pending evaluation of a larger active set under the Cadence consensus architecture announced by Category Labs.
 ---
 
 ## Abstract
@@ -40,7 +41,7 @@ The increase allows for greater decentralization in the active set, enforcing st
 
 ## Backwards Compatibility
 
-This MIP does not introduce backwards incompatibilities. The change is additive: existing validators in the active set are unaffected. The hard-coded `ACTIVE_VALSET_SIZE = 200` MUST be updated to `300` to support the new parameter values prior to activation.
+This MIP does not introduce backwards incompatibilities. The change is additive: existing validators in the active set are unaffected. The hard-coded `ACTIVE_VALSET_SIZE = 200` must be updated to `300` to support the new parameter values prior to activation.
 
 ## Security Considerations
 
