@@ -2,7 +2,7 @@
 mip: 4
 title: Reserve Balance Introspection
 description: Add reserve balance precompile to query reserve balance violation state during transaction execution
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-4-reserve-balance-introspection/363
 status: Final
 type: Standards Track
@@ -112,7 +112,7 @@ No new attack surface is introduced.
 
 ## References
 
-- [Monad Initial Specification](https://category-labs.github.io/category-research/monad-initial-spec-proposal.pdf)
+- [Monad Initial Specification](../assets/MIP-4/monad-initial-spec-proposal.pdf)
 
 ## Copyright
 

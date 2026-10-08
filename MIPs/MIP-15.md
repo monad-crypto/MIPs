@@ -2,7 +2,7 @@
 mip: 15
 title: Glamsterdam EIP Activation
 description: Activate selected EIPs from Ethereum's Glamsterdam upgrade.
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-15-glamsterdam-eip-activation/540
 status: Review
 type: Standards Track
@@ -89,13 +89,10 @@ No security considerations beyond those in the original EIP specifications.
 ## References
 
 - [EIP-7773] — Hardfork Meta - Glamsterdam
-- [Monad Initial Specification](https://category-labs.github.io/category-research/monad-initial-spec-proposal.pdf)
 
 ## Copyright
 
 Copyright and related rights waived via [CC0](../LICENSE.md).
-
-<!-- EIP link index -->
 
 [EIP-2780]: https://github.com/ethereum/EIPs/blob/b6d3f2c65aad65bb09856db6db50ae612b8bf8aa/EIPS/eip-2780.md
 [EIP-7688]: https://github.com/ethereum/EIPs/blob/b6d3f2c65aad65bb09856db6db50ae612b8bf8aa/EIPS/eip-7688.md

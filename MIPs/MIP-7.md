@@ -1,8 +1,8 @@
 ---
 mip: 7
-title: Extension opcodes
+title: Extension Opcodes
 description: Add a reserved opcode for implementation-defined extension opcodes
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-7-extension-opcodes/387
 status: Review
 type: Standards Track
@@ -101,7 +101,6 @@ Because `JUMPDEST` analysis is unaffected by `EXTENSION`, the risks associated w
 
 - [EIP-8163: Reserve EXTENSION (0xAE) Opcode](https://eips.ethereum.org/EIPS/eip-8163)
 - [EIP-8024: Backward Compatible SWAPN, DUPN, EXCHANGE](https://eips.ethereum.org/EIPS/eip-8024)
-- [Monad Initial Specification](https://category-labs.github.io/category-research/monad-initial-spec-proposal.pdf)
 
 ## Copyright
 

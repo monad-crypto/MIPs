@@ -173,7 +173,7 @@ The common thread is that a self-attestation here is proof-of-control of the sub
 
 ## Backwards Compatibility
 
-This MRC is purely additive: it specifies a new application-layer contract and changes no precompile, EVM, or consensus behaviour. Tools that consume off-chain metadata MAY continue to do so, both for accounts that have not yet filed and to corroborate the self-attestations of those that have.
+This MRC is purely additive: it specifies a new application-layer contract and changes no precompile, EVM, or consensus behaviour. Tools that consume off-chain metadata may continue to do so, both for accounts that have not yet filed and to corroborate the self-attestations of those that have.
 
 ## Test Cases
 
@@ -194,7 +194,7 @@ The normative artifact of this MRC is the interface and behavioural spec in [§ 
 
 ## Security Considerations
 
-A self-attestation is authorized only by control of the subject address, not a proof of the fact it asserts; a reference is weaker still, a third-party claim whose trust rests on its attester (see References). A consumer MUST treat each value as a claim, weigh it against off-chain evidence, and MUST NOT render it as verified fact or let it override anything observable on-chain. Whoever controls the account's key can change its metadata unilaterally, so the integrity of an entry rests on that account's own key-security assumptions.
+A self-attestation is authorized only by control of the subject address, not a proof of the fact it asserts; a reference is weaker still, a third-party claim whose trust rests on its attester (see References). A consumer must treat each value as a claim, weigh it against off-chain evidence, and must not render it as verified fact or let it override anything observable on-chain. Whoever controls the account's key can change its metadata unilaterally, so the integrity of an entry rests on that account's own key-security assumptions.
 
 ## Copyright
 

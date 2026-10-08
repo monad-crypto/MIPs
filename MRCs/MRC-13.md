@@ -1,8 +1,8 @@
 ---
 mip: 13
 title: Validator Metadata Registry
-description: An on-chain registry standard for human-readable Monad validator metadata
-author: Dorde Mijovic <dorde@monad.foundation> (@mijovic), Jackson Lewis <jlewis@monad.foundation>
+description: An on-chain registry for human-readable Monad validator metadata
+author: Dorde Mijovic (@mijovic) <dorde@monad.foundation>, Jackson Lewis <jlewis@monad.foundation>
 discussions-to: https://forum.monad.xyz/t/validator-metadata-registry/497
 status: Final
 type: Standards Track
@@ -12,7 +12,7 @@ created: 2026-06-15
 
 ## Abstract
 
-This MRC specifies an on-chain registry contract that augments the Monad staking precompile (at `0x0000000000000000000000000000000000001000`) with human-readable validator metadata: name, website, description, logo URL, a JSON `socials` field, and a JSON `additionalInfo` field for forward-compatible extensions. At minimum, a validator's own authority address — as reported by the staking precompile — MUST be able to write metadata for that validator; implementations are free to grant write access to additional callers under their own authorization model. The registry exposes both full-record writes and per-field updates, plus read methods for the stored record.
+This MRC specifies an on-chain registry contract that augments the Monad staking precompile (at `0x0000000000000000000000000000000000001000`) with human-readable validator metadata: name, website, description, logo URL, a JSON `socials` field, and a JSON `additionalInfo` field for forward-compatible extensions. At minimum, a validator's own authority address — as reported by the staking precompile — must be able to write metadata for that validator; implementations are free to grant write access to additional callers under their own authorization model. The registry exposes both full-record writes and per-field updates, plus read methods for the stored record.
 
 ## Motivation
 
@@ -147,13 +147,13 @@ Any deployment is valid only on networks that expose the staking precompile at `
 
 **Why is the authority address only a baseline, not the sole writer?** The authority address is the one identity that every validator demonstrably controls today, so anchoring on it gives a consistent, consensus-aligned default. But validators have real reasons to delegate metadata management — hot-key/cold-key separation, team operators rotating the brand without touching the staking key, multisig-gated changes for security-conscious operators — and forcing those flows to share the authority key would either expand its blast radius or push validators into off-chain curation again. Letting implementations extend the writer set above the authority baseline preserves the auditability of the default path (anyone can verify the authority is at least permitted) while leaving room for operationally realistic policies on top.
 
-**Why store data on-chain rather than just a content hash?** Storing names on-chain is cheap relative to the gas budget of validators, removes a dependence on external content-addressed storage availability for first-class fields like name and website, and lets light integrators read metadata without running an IPFS or HTTP fetcher. Heavier extension payloads MAY use `additionalInfo` to hold a content hash.
+**Why store data on-chain rather than just a content hash?** Storing names on-chain is cheap relative to the gas budget of validators, removes a dependence on external content-addressed storage availability for first-class fields like name and website, and lets light integrators read metadata without running an IPFS or HTTP fetcher. Heavier extension payloads may use `additionalInfo` to hold a content hash.
 
 ## Backwards Compatibility
 
 This MRC is purely additive: it specifies a new application-layer contract and does not change the staking precompile, the EVM, or any existing consensus or networking behaviour. It introduces no backwards-incompatible changes.
 
-Ecosystem tools that currently consume off-chain `metadata.json` files MAY continue to do so. Tools SHOULD migrate to reading from the registry when available, treating off-chain files as a fallback for validators that have not yet registered metadata.
+Ecosystem tools that currently consume off-chain `metadata.json` files may continue to do so. Tools should migrate to reading from the registry when available, treating off-chain files as a fallback for validators that have not yet registered metadata.
 
 ## Test Cases
 
@@ -176,23 +176,23 @@ The normative artifact of this MRC is the interface and behavioural spec in [§ 
 
 ## Security Considerations
 
-**Authority key compromise:** A compromised authority key can both drain validator stake (via the staking precompile) and post arbitrary metadata (via this registry). The registry does not amplify the impact of a compromise beyond what the staking precompile already allows. Validators SHOULD protect the authority key accordingly and SHOULD treat rotation of the authority as the canonical recovery path.
+**Authority key compromise:** A compromised authority key can both drain validator stake (via the staking precompile) and post arbitrary metadata (via this registry). The registry does not amplify the impact of a compromise beyond what the staking precompile already allows. Validators should protect the authority key accordingly and should treat rotation of the authority as the canonical recovery path.
 
-**Phishing and impersonation via metadata:** Because `name`, `website`, `logo`, and `socials` are free-form and unverified, a malicious validator may copy the branding of another validator to siphon delegations. Integrators displaying registry data SHOULD:
+**Phishing and impersonation via metadata:** Because `name`, `website`, `logo`, and `socials` are free-form and unverified, a malicious validator may copy the branding of another validator to siphon delegations. Integrators displaying registry data should:
 
 - Always render `validatorId` and the validator's authority address alongside human-readable fields, so that two distinct validators with identical names remain distinguishable.
 - Treat all string fields as untrusted: HTML-escape on render, refuse to auto-load remote images by default, and validate URL schemes.
 - Consider maintaining a curated allow-list of authority addresses for any feature that grants elevated trust (e.g. featured validators) — the registry's job is to provide self-attested data, not to attest its truth.
 
-**Storage griefing:** Strings and `additionalInfo` are unbounded in length. A validator may pay to store an arbitrarily large record. This affects only that validator's own gas cost (an authorized caller must sign the transaction) and the SLOAD cost of `getMetadata` for that validator. Implementations that grant write access beyond the authority address SHOULD ensure the additional callers cannot impose costs the validator did not themselves agree to bear. Integrators concerned about read gas SHOULD prefer the field-scoped getters (`getValidatorName`, `hasMetadata`) where they suffice, and SHOULD impose their own client-side display limits on string lengths.
+**Storage griefing:** Strings and `additionalInfo` are unbounded in length. A validator may pay to store an arbitrarily large record. This affects only that validator's own gas cost (an authorized caller must sign the transaction) and the SLOAD cost of `getMetadata` for that validator. Implementations that grant write access beyond the authority address should ensure the additional callers cannot impose costs the validator did not themselves agree to bear. Integrators concerned about read gas should prefer the field-scoped getters (`getValidatorName`, `hasMetadata`) where they suffice, and should impose their own client-side display limits on string lengths.
 
 **Authority resolution race:** Authorization is resolved by calling the staking precompile inside the same transaction as the write. There is no TOCTOU window: the precompile cannot change authority mid-transaction.
 
-**Reorgs:** Like any on-chain state, registry contents are subject to reorganisation. Integrators that cache the registry SHOULD respect the chain's finality guarantees before treating an update as durable.
+**Reorgs:** Like any on-chain state, registry contents are subject to reorganisation. Integrators that cache the registry should respect the chain's finality guarantees before treating an update as durable.
 
-**`STATICCALL` and `DELEGATECALL` restrictions:** Monad's staking precompile permits only standard `CALL`s. The registry MUST invoke the precompile via ordinary `CALL` (no `delegatecall`, no `staticcall` on write paths). View methods that proxy to the precompile MUST be marked `view`, which forces `STATICCALL` semantics — implementations relying on this MUST verify the precompile's view methods are STATICCALL-compatible on the target network.
+**`STATICCALL` and `DELEGATECALL` restrictions:** Monad's staking precompile permits only standard `CALL`s. The registry must invoke the precompile via ordinary `CALL` (no `delegatecall`, no `staticcall` on write paths). View methods that proxy to the precompile must be marked `view`, which forces `STATICCALL` semantics — implementations relying on this must verify the precompile's view methods are STATICCALL-compatible on the target network.
 
-**No upgrade path:** This MRC specifies an immutable, non-upgradeable contract. A future MRC that changes the storage layout or interface MUST take effect through new deployments at new addresses, not by mutating existing ones. Integrators MUST treat each registry deployment as fixed and independently track which deployment(s) they consider current, rather than assume the standard guarantees a stable address over time.
+**No upgrade path:** This MRC specifies an immutable, non-upgradeable contract. A future MRC that changes the storage layout or interface must take effect through new deployments at new addresses, not by mutating existing ones. Integrators must treat each registry deployment as fixed and independently track which deployment(s) they consider current, rather than assume the standard guarantees a stable address over time.
 
 ## Copyright
 

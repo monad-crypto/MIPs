@@ -2,7 +2,7 @@
 mip: 12
 title: Decrease Block Time
 description: Decrease consensus vote pace from 400ms to 300ms
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-12-decrease-vote-pace/488
 status: Final
 type: Standards Track
@@ -41,11 +41,19 @@ This change should not affect the execution client in any way.
 
 The consensus client will vote on proposals 100 milliseconds faster than it does currently, leading to faster quorums and faster block times.
 
+## Rationale
+
+-
+
 ## Backwards Compatibility
 
 This change is backward compatible with the execution client.
 
 However, since the block parameters are used for consensus block validation, this change is not backward compatible with the consensus client and will require a hard fork on a round.
+
+## Security Considerations
+
+-
 
 ## Copyright
 

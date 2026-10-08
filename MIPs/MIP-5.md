@@ -2,7 +2,7 @@
 mip: 5
 title: Fusaka EIP Activation
 description: Activate EIP-7823, EIP-7883, and EIP-7939 from Ethereum's Fusaka upgrade.
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-5-fusaka-eip-activation/373
 status: Final
 type: Standards Track
@@ -35,15 +35,23 @@ are not relevant to Monad:
 - [EIP-7917: Deterministic proposer lookahead](https://eips.ethereum.org/EIPS/eip-7917)
 - [EIP-7918: Blob base fee bounded by execution cost](https://eips.ethereum.org/EIPS/eip-7918)
 
-The following EIPs set parameters for which Monad makes different choices per [the Monad specification](https://category-labs.github.io/category-research/monad-initial-spec-proposal.pdf) (30M
+The following EIPs set parameters for which Monad makes different choices per [the Monad specification](../assets/MIP-4/monad-initial-spec-proposal.pdf) (30M
 transaction gas limit, and 2MB block size), so are not included:
 
 - [EIP-7825: Transaction Gas Limit Cap](https://eips.ethereum.org/EIPS/eip-7825)
 - [EIP-7934: RLP Execution Block Size Limit](https://eips.ethereum.org/EIPS/eip-7934)
 
+## Rationale
+
+-
+
+## Security Considerations
+
+-
+
 ## References
 
-- [Monad Initial Specification](https://category-labs.github.io/category-research/monad-initial-spec-proposal.pdf)
+- [Monad Initial Specification](../assets/MIP-4/monad-initial-spec-proposal.pdf)
 
 ## Copyright
 

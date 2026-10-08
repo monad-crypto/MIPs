@@ -6,5 +6,6 @@
 # Necessary for running eipw locally
 * text=auto eol=lf
 
-# Fonts are binary
+# Fonts and documents are binary
 *.woff2 binary
+*.pdf binary

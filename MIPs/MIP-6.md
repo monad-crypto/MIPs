@@ -2,7 +2,7 @@
 mip: 6
 title: MONAD_NINE Network Upgrade
 description: Meta MIP for the `MONAD_NINE` network upgrade
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-6-monad-nine-revision-meta/381
 status: Final
 type: Meta
@@ -38,6 +38,10 @@ This upgrade includes:
 - [MIP-3: Linear Memory](./MIP-3.md)
 - [MIP-4: Reserve Balance Introspection](./MIP-4.md)
 - [MIP-5: Fusaka EIP Activation](./MIP-5.md)
+
+## Security Considerations
+
+-
 
 ## Copyright
 

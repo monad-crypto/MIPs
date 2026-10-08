@@ -2,7 +2,7 @@
 mip: 18
 title: Call Stack Introspection Opcodes
 description: Add extension opcodes to inspect the depth and caller chain of the current call stack
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-18-callstackdepth-and-callern-call-stack-introspection-opcodes/556
 status: Review
 type: Standards Track
@@ -101,7 +101,7 @@ Neither opcode needs immediate arguments, so neither uses the argument encodings
 
 Under MIP-7, the extended opcodes `0xAE 0x00` and `0xAE 0x01` currently behave like `INVALID`. Existing code that executes either sequence halts exceptionally today and will execute successfully after this MIP. Such code is not expected to exist in practice, because the sequences have never had defined behavior on Monad or Ethereum.
 
-A trailing `EXTENSION` byte has no selector and MUST halt exceptionally, as [MIP-7](./MIP-7.md) specifies.
+A trailing `EXTENSION` byte has no selector and must halt exceptionally, as [MIP-7](./MIP-7.md) specifies.
 
 `JUMPDEST` analysis is unaffected.
 
@@ -109,7 +109,7 @@ A trailing `EXTENSION` byte has no selector and MUST halt exceptionally, as [MIP
 
 ### Authorization
 
-`CALLERN` makes the identity of every ancestor caller available to a contract, not just its immediate caller. Using `CALLERN` for authorization inherits the weaknesses of authorizing with `ORIGIN`: an attacker who persuades a privileged account to call an attacker-controlled contract can relay calls that appear to originate from that account. Contracts SHOULD NOT use `CALLERN(n)` for `n > 0` for authorization.
+`CALLERN` makes the identity of every ancestor caller available to a contract, not just its immediate caller. Using `CALLERN` for authorization inherits the weaknesses of authorizing with `ORIGIN`: an attacker who persuades a privileged account to call an attacker-controlled contract can relay calls that appear to originate from that account. Contracts should not use `CALLERN(n)` for `n > 0` for authorization.
 
 ### Context-Dependent Behavior
 

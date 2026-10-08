@@ -2,7 +2,7 @@
 mip: 8
 title: Page-ified Storage State
 description: Partition EVM storage to align with database pages
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-8-page-ified-storage-state/407
 status: Final
 type: Standards Track
@@ -332,4 +332,4 @@ In a future MIP, we explore the correspondence between binary commitments and hi
 
 ## Copyright
 
-Copyright and related rights waived via [CC0](../LICENSE.md).
+Copyright and related rights waived via [CC0](../LICENSE.md).
