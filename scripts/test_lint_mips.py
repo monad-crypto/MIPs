@@ -4,7 +4,9 @@ Tests for lint_mips.py.
 Run with: python3 -m unittest discover scripts
 """
 
+import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -310,6 +312,62 @@ class BodyTest(LintTestCase):
     def test_references_in_code_are_ignored(self) -> None:
         self.assertClean(document(BODY.replace("[MIP-1](./MIP-1.md)", "`MIP-1`")))
         self.assertClean(with_abstract("```\nMIP 42\n```"))
+
+    def test_raw_html(self) -> None:
+        self.assertRule("markdown-no-html", with_abstract('<a href="https://evil.example">x</a>'))
+        self.assertRule("markdown-no-html", with_abstract('<img src="../assets/MIP-3/diagram.svg">'))
+        self.assertRule("markdown-no-html", with_abstract('2<sup class="x">8</sup>'))
+        self.assertClean(with_abstract("2<sup>8</sup> and H<sub>2</sub>O"))
+        self.assertClean(with_abstract('```html\n<a href="https://evil.example">x</a>\n```'))
+
+    def test_unclosed_fence(self) -> None:
+        self.assertRule("markdown-unclosed-fence", with_abstract("```\n[t](https://evil.example)"))
+
+    def test_link_extraction_hardening(self) -> None:
+        self.assertRule("markdown-rel-links", with_abstract("[t](https://evil.example/a(b))"))
+        self.assertRule("markdown-rel-links", with_abstract("[a [b] c](https://evil.example)"))
+        for payload in (
+            "[t](<https://evil.example/a b>)",
+            "[a [b [c]] d](https://evil.example)",
+            "[a [b [c [d]]] e](javascript:alert(1))",
+        ):
+            self.assertRule("markdown-link-syntax", with_abstract(payload))
+        self.assertClean(with_abstract(f"[t]({EIP_COMMIT_LINK}#section-(1))"))
+
+    def test_pathological_link_completes_quickly(self) -> None:
+        start = time.monotonic()
+        self.lint(with_abstract("[a](" + " " * 9_000))
+        self.assertLess(time.monotonic() - start, 2)
+
+    def test_yaml_anchors_and_collections(self) -> None:
+        self.assertRule("preamble-yaml", document(title="&a [x, x, x]", description="*a"))
+        self.assertRule("preamble-yaml", document(title="[a, [b, [c]]]"))
+        self.assertRule("preamble-yaml", document(title="[" * 5000))
+
+    def test_invisible_characters(self) -> None:
+        self.assertRule("text-invisible-chars", with_rationale("MU\u200bST"))
+        self.assertRule("text-invisible-chars", with_abstract("```\nabc \u202e dcba\n```"))
+        self.assertRule("text-invisible-chars", "\ufeff" + document())
+
+    def test_duplicate_number(self) -> None:
+        self.assertRule("file-name-dup", document(mip="1", category="MRC"), name="MRCs/MRC-1.md")
+
+    def test_link_outside_repository(self) -> None:
+        outside = Path(tempfile.mkdtemp()) / "outside.md"
+        outside.write_text("x\n")
+        relative = os.path.relpath(outside, self.root / "MIPs")
+        self.assertRule("markdown-rel-links", with_abstract(f"[x]({relative})"))
+
+    def test_size_limits(self) -> None:
+        self.assertRule("line-length", with_abstract("x" * 10_001))
+        self.assertRule("file-size", with_abstract("x" * 1_000_001))
+
+    def test_unreadable_files(self) -> None:
+        path = self.root / "MIPs" / "MIP-3.md"
+        path.write_bytes(b"---\nmip: 3\ntitle: \xff\n---\n")
+        self.assertEqual(["file-encoding"], [f.rule for f in lint_mips.DocumentLinter(path, self.repo).lint()])
+        (self.root / "MIPs" / "MIP-4.md").mkdir()
+        self.assertEqual(["file-unreadable"], [f.rule for f in lint_mips.DocumentLinter(self.root / "MIPs" / "MIP-4.md", self.repo).lint()])
 
     def test_rfc2119_keywords(self) -> None:
         self.assertRule("markdown-rfc2119", with_rationale("Clients SHOULD NOT do this."))

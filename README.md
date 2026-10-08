@@ -39,7 +39,7 @@ Use `\lvert V \rvert` instead of `|V|` inside inline math so Markdown does not i
 
 ## Linting
 
-Every pull request runs `scripts/lint_mips.py` on the MIPs and MRCs it changes. The linter checks the preamble, the section layout, links and proposal references against the rules in [MIP-1](MIPs/MIP-1.md). It needs Python 3 and the pinned PyYAML (`pip install -r scripts/requirements.txt`).
+Every pull request runs `scripts/lint_mips.py` on the MIPs and MRCs it changes. The linter checks the preamble, the section layout, links and proposal references against the rules in [MIP-1](MIPs/MIP-1.md). It needs Python 3.11 or newer and the pinned PyYAML (`pip install -r scripts/requirements.txt`).
 
 Lint every proposal:
 

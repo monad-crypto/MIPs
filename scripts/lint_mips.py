@@ -32,7 +32,10 @@ except ImportError:
 
 MAX_TITLE_LENGTH = 90
 MAX_DESCRIPTION_LENGTH = 140
+MAX_FILE_BYTES = 1_000_000
+MAX_LINE_LENGTH = 10_000
 FORUM_HOST = "forum.monad.xyz"
+ALLOWED_HTML_TAGS = {"sup", "sub"}
 
 HEADER_ORDER = [
     "mip",
@@ -130,12 +133,17 @@ RFC2119_RE = re.compile(
 FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$")
 HEADING_NO_SPACE_RE = re.compile(r"^ {0,3}#{1,6}[^#\s]")
-LINK_LABEL = r"((?:[^\[\]]|\[[^\[\]]*\])*)"
-LINK_TITLE = r"(?:\s+(?:\"[^\"]*\"|'[^']*'))?"
-INLINE_LINK_RE = re.compile(r"(!?)\[" + LINK_LABEL + r"\]\(\s*<?([^\s<>()]*)>?" + LINK_TITLE + r"\s*\)")
-REF_LINK_RE = re.compile(r"(!?)\[" + LINK_LABEL + r"\]\[([^\]]*)\]")
-REF_DEF_RE = re.compile(r"^ {0,3}\[([^\]]+)\]:\s*<?(\S+?)>?" + LINK_TITLE + r"\s*$")
-AUTOLINK_RE = re.compile(r"<(https?://[^\s>]+)>")
+# Possessive quantifiers keep matching linear on adversarial input; they
+# need Python 3.11 or newer.
+LINK_LABEL = r"((?:[^\[\]]|\[[^\[\]]*+\])*+)"
+LINK_DEST = r"((?:[^\s<>()]|\([^\s<>()]*+\))*+)"
+LINK_TITLE = r"(?:\s++(?:\"[^\"]*+\"|'[^']*+'))?+"
+INLINE_LINK_RE = re.compile(r"(!?)\[" + LINK_LABEL + r"\]\(\s*+<?" + LINK_DEST + r">?" + LINK_TITLE + r"\s*+\)")
+REF_LINK_RE = re.compile(r"(!?)\[" + LINK_LABEL + r"\]\[([^\]]*+)\]")
+REF_DEF_RE = re.compile(r"^ {0,3}\[([^\]]++)\]:\s*+<?(\S+?)>?" + LINK_TITLE + r"\s*+$")
+AUTOLINK_RE = re.compile(r"<(https?://[^\s>]+)>", re.IGNORECASE)
+HTML_TAG_RE = re.compile(r"</?([A-Za-z][A-Za-z0-9-]*)(\s[^<>]*)?/?>")
+INVISIBLE_RE = re.compile("[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]")
 
 
 @dataclass
@@ -237,12 +245,15 @@ class Body:
         self.links: list[Link] = []
         self.comments: list[tuple[int, int]] = []
         self.headings_without_space: list[int] = []
+        self.html_tags: list[tuple[int, int, str]] = []
+        self.unclosed_fence: int | None = None
+        self.unparsed_links: list[tuple[int, int]] = []
         self.prose: list[tuple[int, str]] = []
         self._scan(lines, first_line)
 
     def _scan(self, lines: list[str], first_line: int) -> None:
         refs = self._reference_definitions(lines)
-        fence: tuple[str, int] | None = None
+        fence: tuple[str, int, int] | None = None
         in_comment = False
         for offset, raw in enumerate(lines):
             lineno = first_line + offset
@@ -252,10 +263,13 @@ class Body:
                 continue
             opening = FENCE_RE.match(raw)
             if opening and not in_comment:
-                fence = (opening.group(1)[0], len(opening.group(1)))
+                fence = (opening.group(1)[0], len(opening.group(1)), lineno)
                 continue
             text, in_comment = self._blank_comments(raw, lineno, in_comment)
             text = blank_code_spans(text)
+            for tag in HTML_TAG_RE.finditer(text):
+                if tag.group(2) is not None or tag.group(1).lower() not in ALLOWED_HTML_TAGS:
+                    self.html_tags.append((lineno, tag.start() + 1, tag.group(0)))
             if HEADING_NO_SPACE_RE.match(text):
                 self.headings_without_space.append(lineno)
             heading = HEADING_RE.match(text)
@@ -263,6 +277,8 @@ class Body:
                 self.headings.append(Heading(lineno, len(heading.group(1)), (heading.group(2) or "").strip()))
             text = self._extract_links(text, lineno, refs)
             self.prose.append((lineno, text))
+        if fence:
+            self.unclosed_fence = fence[2]
 
     @staticmethod
     def _reference_definitions(lines: list[str]) -> dict[str, str]:
@@ -321,7 +337,13 @@ class Body:
 
         text = INLINE_LINK_RE.sub(inline, text)
         text = REF_LINK_RE.sub(reference, text)
-        return AUTOLINK_RE.sub(autolink, text)
+        text = AUTOLINK_RE.sub(autolink, text)
+        # kramdown nests brackets in link text to any depth and allows
+        # whitespace in a `<url>`; whatever the patterns above did not
+        # consume is reported rather than let through.
+        for unparsed in re.finditer(r"\]\(", text):
+            self.unparsed_links.append((lineno, unparsed.start() + 1))
+        return text
 
 
 def one_of(values: list[str]) -> str:
@@ -364,20 +386,47 @@ class DocumentLinter:
         self.report("warning", line, col, rule, message)
 
     def lint(self) -> list[Finding]:
+        try:
+            self._lint()
+        except UnicodeDecodeError:
+            self.error(1, "file-encoding", "the file is not valid UTF-8")
+        except OSError as exc:
+            self.error(1, "file-unreadable", f"the file cannot be read: {exc.strerror}")
+        except Exception as exc:
+            # Last resort, so that one document cannot abort the whole run.
+            self.error(1, "lint-failed", f"the linter failed on this file: {type(exc).__name__}: {exc}")
+        return self.findings
+
+    def _lint(self) -> None:
+        if self.path.stat().st_size > MAX_FILE_BYTES:
+            self.error(1, "file-size", f"the file must be smaller than {MAX_FILE_BYTES // 1_000_000} MB")
+            return
         lines = self.path.read_text(encoding="utf-8").splitlines()
+        for lineno, line in enumerate(lines, start=1):
+            for match in INVISIBLE_RE.finditer(line):
+                self.error(
+                    lineno,
+                    "text-invisible-chars",
+                    f"invisible or bidirectional control character U+{ord(match.group(0)):04X} is not allowed",
+                    match.start() + 1,
+                )
+        long_lines = [lineno for lineno, line in enumerate(lines, start=1) if len(line) > MAX_LINE_LENGTH]
+        for lineno in long_lines:
+            self.error(lineno, "line-length", f"lines must be at most {MAX_LINE_LENGTH} characters long")
+        if long_lines:
+            return
         if not lines or lines[0] != "---":
             self.error(1, "preamble-missing", "the document must start with a `---` preamble")
-            return self.findings
+            return
         try:
             end = lines.index("---", 1)
         except ValueError:
             self.error(1, "preamble-missing", "the preamble is not closed with `---`")
-            return self.findings
+            return
         headers = self.parse_headers(lines[1:end])
         self.check_preamble(headers, lines[1:end])
         if self.number not in BODY_UNCHECKED:
             self.check_body(lines[end + 1 :], end + 2)
-        return self.findings
 
     def parse_headers(self, lines: list[str]) -> list[Header]:
         headers = []
@@ -453,9 +502,10 @@ class DocumentLinter:
         self.check_file_name(is_draft_file)
 
     def check_yaml(self, lines: list[str], by_name: dict[str, Header]) -> None:
+        text = "\n".join(lines)
         try:
-            parsed = yaml.safe_load("\n".join(lines))
-        except yaml.YAMLError as exc:
+            parsed = yaml.safe_load(text)
+        except (yaml.YAMLError, RecursionError) as exc:
             mark = getattr(exc, "problem_mark", None)
             line = mark.line + 2 if mark else 2
             problem = " ".join(str(exc).split())
@@ -469,6 +519,9 @@ class DocumentLinter:
             return
         for name, header in by_name.items():
             value = parsed.get(name)
+            if isinstance(value, (list, dict)):
+                self.error(header.line, "preamble-yaml", "preamble values must be plain text, not YAML lists or maps")
+                continue
             text = "" if value is None else str(value)
             if text != header.value:
                 self.error(header.line, "preamble-yaml", f"YAML reads preamble header `{name}` as `{text}`; rephrase or quote the value")
@@ -594,9 +647,20 @@ class DocumentLinter:
             ok = self.path.name == expected
         if not ok or self.path.parent.name != directory:
             self.error(1, "file-name", f"this {kind} must be saved as `{directory}/{expected}`")
+        if self.number is not None:
+            other = "MIP" if kind == "MRC" else "MRC"
+            twin = self.repo.root / f"{other}s" / f"{other}-{self.number}.md"
+            if twin.is_file():
+                self.error(1, "file-name-dup", f"number {self.number} is already used by `{other}s/{twin.name}`")
 
     def check_body(self, lines: list[str], first_line: int) -> None:
         body = Body(lines, first_line)
+        if body.unclosed_fence is not None:
+            self.error(body.unclosed_fence, "markdown-unclosed-fence", "this code fence is never closed, so the rest of the document renders as text")
+        for line, col in body.unparsed_links:
+            self.error(line, "markdown-link-syntax", "this link could not be parsed; avoid nested brackets in the link text and whitespace in the URL", col)
+        for line, col, tag in body.html_tags:
+            self.error(line, "markdown-no-html", f"raw HTML `{tag}` is not allowed; only `<sup>` and `<sub>` without attributes are permitted", col)
         for line, col in body.comments:
             self.error(line, "markdown-html-comments", "HTML comments must be removed before submitting", col)
         for line in body.headings_without_space:
@@ -677,7 +741,11 @@ class DocumentLinter:
                     )
                 continue
             target = self.resolve(link.dest)
-            if target is not None and not target.exists():
+            if target is None:
+                continue
+            if not target.is_relative_to(self.repo.root):
+                self.error(link.line, "markdown-rel-links", f"the relative link `{url.path}` points outside the repository", link.col)
+            elif not target.exists():
                 self.error(link.line, "markdown-rel-links", f"the relative link target `{url.path}` does not exist", link.col)
 
     def check_mentions(self, body: Body) -> None:
