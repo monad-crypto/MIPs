@@ -186,7 +186,7 @@ At least one author must use a GitHub username, in order to get notified on chan
 
 While a MIP is a draft, a `discussions-to` header will indicate the URL where the MIP is being discussed.
 
-The preferred discussion URL is a topic on the Monad community forum. The URL cannot point to GitHub pull requests, any URL which is ephemeral, and any URL which can get locked over time (i.e. Reddit topics).
+The discussion URL must be a topic on the Monad community forum, `https://forum.monad.xyz/`. The URL cannot point to GitHub pull requests, any URL which is ephemeral, and any URL which can get locked over time (i.e. Reddit topics).
 
 ### `type` Header
 
