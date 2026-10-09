@@ -11,6 +11,8 @@ import unittest
 from pathlib import Path
 
 import lint_mips
+from mip_linter.findings import Finding
+from mip_linter.repo import Repo
 
 EIP_COMMIT_LINK = "https://github.com/ethereum/EIPs/blob/b6d3f2c65aad65bb09856db6db50ae612b8bf8aa/EIPS/eip-170.md"
 
@@ -85,12 +87,12 @@ class LintTestCase(unittest.TestCase):
         (self.root / "MRCs" / "MRC-13.md").write_text("---\nmip: 13\n---\n")
         (self.root / "MIPs" / "MIP-2.md").write_text("---\nmip: 2\n---\n")
         (self.root / "assets" / "MIP-3" / "diagram.svg").write_text("<svg/>\n")
-        self.repo = lint_mips.Repo(self.root)
+        self.repo = Repo(self.root)
 
     def tearDown(self) -> None:
         self.tmp.cleanup()
 
-    def lint(self, text: str, name: str = "MIPs/MIP-3.md") -> list[lint_mips.Finding]:
+    def lint(self, text: str, name: str = "MIPs/MIP-3.md") -> list[Finding]:
         path = self.root / name
         path.write_text(text)
         return lint_mips.DocumentLinter(path, self.repo).lint()
