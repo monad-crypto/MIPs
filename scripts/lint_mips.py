@@ -20,10 +20,11 @@ import argparse
 import os
 import re
 import sys
+import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import SplitResult, unquote, urlsplit
 
 try:
     import yaml
@@ -85,7 +86,7 @@ COPYRIGHT_TEXT = "Copyright and related rights waived via [CC0](../LICENSE.md)."
 DRAFT_PLACEHOLDERS = {"Rationale": "TBD", "Security Considerations": "Needs discussion."}
 
 # MIP-1 describes the process itself and does not follow the template.
-BODY_UNCHECKED = {1}
+TEMPLATE_EXEMPT = {"MIPs/MIP-1.md"}
 
 SMALL_WORDS = {
     "a", "an", "the", "and", "but", "or", "nor", "for", "so", "yet", "as", "at",
@@ -142,8 +143,12 @@ INLINE_LINK_RE = re.compile(r"(!?)\[" + LINK_LABEL + r"\]\(\s*+<?" + LINK_DEST +
 REF_LINK_RE = re.compile(r"(!?)\[" + LINK_LABEL + r"\]\[([^\]]*+)\]")
 REF_DEF_RE = re.compile(r"^ {0,3}\[([^\]]++)\]:\s*+<?(\S+?)>?" + LINK_TITLE + r"\s*+$")
 AUTOLINK_RE = re.compile(r"<(https?://[^\s>]+)>", re.IGNORECASE)
-HTML_TAG_RE = re.compile(r"</?([A-Za-z][A-Za-z0-9-]*)(\s[^<>]*)?/?>")
-INVISIBLE_RE = re.compile("[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]")
+# Browsers accept `/` in place of whitespace before attributes and let a tag
+# continue on the next line, so a tag is recognised by its name alone.
+HTML_TAG_RE = re.compile(r"</?([A-Za-z][A-Za-z0-9-]*)(?=[\s/>]|$)")
+KRAMDOWN_RE = re.compile(r"\{:")
+NON_PRINTABLE_RE = re.compile(r"[^\t\x20-\x7e]")
+INVISIBLE_CATEGORIES = {"Cc", "Cf", "Co", "Zl", "Zp"}
 
 
 @dataclass
@@ -246,6 +251,7 @@ class Body:
         self.comments: list[tuple[int, int]] = []
         self.headings_without_space: list[int] = []
         self.html_tags: list[tuple[int, int, str]] = []
+        self.kramdown: list[tuple[int, int]] = []
         self.unclosed_fence: int | None = None
         self.unparsed_links: list[tuple[int, int]] = []
         self.prose: list[tuple[int, str]] = []
@@ -268,8 +274,11 @@ class Body:
             text, in_comment = self._blank_comments(raw, lineno, in_comment)
             text = blank_code_spans(text)
             for tag in HTML_TAG_RE.finditer(text):
-                if tag.group(2) is not None or tag.group(1).lower() not in ALLOWED_HTML_TAGS:
+                bare = text[tag.end() : tag.end() + 1] == ">"
+                if not (bare and tag.group(1).lower() in ALLOWED_HTML_TAGS):
                     self.html_tags.append((lineno, tag.start() + 1, tag.group(0)))
+            for attributes in KRAMDOWN_RE.finditer(text):
+                self.kramdown.append((lineno, attributes.start() + 1))
             if HEADING_NO_SPACE_RE.match(text):
                 self.headings_without_space.append(lineno)
             heading = HEADING_RE.match(text)
@@ -346,6 +355,12 @@ class Body:
         return text
 
 
+def split_url(dest: str) -> SplitResult:
+    # Browsers read a backslash as a slash, so `/\evil.example` is a
+    # scheme-relative URL.
+    return urlsplit(dest.replace("\\", "/"))
+
+
 def one_of(values: list[str]) -> str:
     return ", ".join(f"`{value}`" for value in values)
 
@@ -375,6 +390,10 @@ class DocumentLinter:
             self.display = str(path.resolve().relative_to(Path.cwd()))
         except ValueError:
             self.display = str(path)
+        try:
+            self.repo_path: str | None = path.resolve().relative_to(repo.root).as_posix()
+        except ValueError:
+            self.repo_path = None
 
     def report(self, level: str, line: int, col: int, rule: str, message: str) -> None:
         self.findings.append(Finding(self.display, line, col, level, rule, message))
@@ -401,15 +420,25 @@ class DocumentLinter:
         if self.path.stat().st_size > MAX_FILE_BYTES:
             self.error(1, "file-size", f"the file must be smaller than {MAX_FILE_BYTES // 1_000_000} MB")
             return
-        lines = self.path.read_text(encoding="utf-8").splitlines()
+        with self.path.open(encoding="utf-8", newline="") as handle:
+            text = handle.read()
+        if "\r" in text:
+            self.error(text.count("\n", 0, text.index("\r")) + 1, "text-line-endings", "lines must end with LF, not CR or CRLF")
+            text = text.replace("\r\n", "\n").replace("\r", "\n")
+        # str.splitlines also splits on U+2028, U+0085 and form feed, which
+        # kramdown keeps inside the line.
+        lines = text.split("\n")
+        if lines[-1] == "":
+            lines.pop()
         for lineno, line in enumerate(lines, start=1):
-            for match in INVISIBLE_RE.finditer(line):
-                self.error(
-                    lineno,
-                    "text-invisible-chars",
-                    f"invisible or bidirectional control character U+{ord(match.group(0)):04X} is not allowed",
-                    match.start() + 1,
-                )
+            for match in NON_PRINTABLE_RE.finditer(line):
+                if unicodedata.category(match.group(0)) in INVISIBLE_CATEGORIES:
+                    self.error(
+                        lineno,
+                        "text-invisible-chars",
+                        f"invisible, formatting or control character U+{ord(match.group(0)):04X} is not allowed",
+                        match.start() + 1,
+                    )
         long_lines = [lineno for lineno, line in enumerate(lines, start=1) if len(line) > MAX_LINE_LENGTH]
         for lineno in long_lines:
             self.error(lineno, "line-length", f"lines must be at most {MAX_LINE_LENGTH} characters long")
@@ -425,8 +454,7 @@ class DocumentLinter:
             return
         headers = self.parse_headers(lines[1:end])
         self.check_preamble(headers, lines[1:end])
-        if self.number not in BODY_UNCHECKED:
-            self.check_body(lines[end + 1 :], end + 2)
+        self.check_body(lines[end + 1 :], end + 2)
 
     def parse_headers(self, lines: list[str]) -> list[Header]:
         headers = []
@@ -587,15 +615,9 @@ class DocumentLinter:
     def check_discussions_to(self, header: Header | None) -> None:
         if not header:
             return
-        url = urlsplit(header.value)
-        if url.scheme not in ("http", "https") or not url.netloc:
-            self.error(header.line, "preamble-url", "`discussions-to` must be a URL")
-            return
-        host = url.netloc.lower().removeprefix("www.")
-        if (host == "github.com" and re.search(r"/(?:pull|issues)/\d+", url.path)) or host.endswith("reddit.com"):
-            self.error(header.line, "preamble-discussions-to", "`discussions-to` must not point to a GitHub pull request or issue, or to Reddit")
-        elif host != FORUM_HOST:
-            self.warning(header.line, "preamble-discussions-to", f"`discussions-to` should point to a thread on https://{FORUM_HOST}/")
+        url = split_url(header.value)
+        if url.scheme != "https" or url.netloc.lower() != FORUM_HOST:
+            self.error(header.line, "preamble-discussions-to", f"`discussions-to` must be a thread on https://{FORUM_HOST}/")
 
     def check_type_and_category(self, type_: Header | None, category: Header | None) -> None:
         if not type_:
@@ -660,14 +682,23 @@ class DocumentLinter:
         for line, col in body.unparsed_links:
             self.error(line, "markdown-link-syntax", "this link could not be parsed; avoid nested brackets in the link text and whitespace in the URL", col)
         for line, col, tag in body.html_tags:
-            self.error(line, "markdown-no-html", f"raw HTML `{tag}` is not allowed; only `<sup>` and `<sub>` without attributes are permitted", col)
+            self.error(
+                line,
+                "markdown-no-html",
+                f"raw HTML `{tag}` is not allowed; only bare `<sup>` and `<sub>` are permitted, and a less-than sign in prose needs a space after it",
+                col,
+            )
+        for line, col in body.kramdown:
+            self.error(line, "markdown-no-kramdown", "kramdown attribute lists and extensions (`{:`) are not allowed", col)
         for line, col in body.comments:
             self.error(line, "markdown-html-comments", "HTML comments must be removed before submitting", col)
         for line in body.headings_without_space:
             self.error(line, "markdown-headings-space", "headings must have a space after the `#` characters")
+        self.check_mentions(body)
+        if self.repo_path in TEMPLATE_EXEMPT:
+            return
         self.check_sections(body, lines, first_line)
         self.check_links(body)
-        self.check_mentions(body)
         self.check_rfc2119(body)
 
     def check_sections(self, body: Body, lines: list[str], first_line: int) -> None:
@@ -718,15 +749,15 @@ class DocumentLinter:
                 self.error(heading.line, "markdown-placeholder", f"a Final MIP must not leave the `{placeholder}` placeholder in place")
 
     def resolve(self, dest: str) -> Path | None:
-        url = urlsplit(dest)
-        if url.scheme or not url.path:
+        url = split_url(dest)
+        if url.scheme or url.netloc or not url.path:
             return None
         return (self.path.parent / unquote(url.path)).resolve()
 
     def check_links(self, body: Body) -> None:
         for link in body.links:
-            url = urlsplit(link.dest)
-            if url.scheme:
+            url = split_url(link.dest)
+            if url.scheme or url.netloc:
                 if url.scheme in ("http", "https") and any(pattern.match(link.dest) for pattern in ALLOWED_EXTERNAL_LINKS):
                     continue
                 host = url.netloc.lower().removeprefix("www.")

@@ -153,10 +153,15 @@ class PreambleTest(LintTestCase):
         self.assertRule("preamble-list", document(requires="1,13"))
 
     def test_discussions_to(self) -> None:
-        self.assertRule("preamble-url", document(discussions_to=""))
-        self.assertRule("preamble-discussions-to", document(discussions_to="https://github.com/monad-crypto/MIPs/pull/5"))
-        self.assertRule("preamble-discussions-to", document(discussions_to="https://www.reddit.com/r/monad/comments/1"))
-        self.assertRule("preamble-discussions-to", document(discussions_to="https://example.com/t/1"), level="warning")
+        for value in (
+            "",
+            "https://github.com/monad-crypto/MIPs/pull/5",
+            "https://example.com/t/1",
+            "http://forum.monad.xyz/t/1",
+            "https://forum.monad.xyz.example.com/t/1",
+            "https://forum.monad.xyz@example.com/t/1",
+        ):
+            self.assertRule("preamble-discussions-to", document(discussions_to=value))
 
     def test_status_enum(self) -> None:
         self.assertRule("preamble-enum", document(status="Accepted"))
@@ -225,8 +230,9 @@ class PreambleTest(LintTestCase):
         self.assertRule("file-name", document(category="MRC"))
         self.assertNoRule("file-name", document(category="MRC"), name="MRCs/MRC-3.md")
 
-    def test_mip_1_body_is_not_checked(self) -> None:
+    def test_mip_1_is_exempt_from_the_template(self) -> None:
         self.assertClean(document(body="Process text.\n", mip="1", type="Meta", category="Process"), name="MIPs/MIP-1.md")
+        self.assertRule("markdown-no-html", document(body="<script>x</script>\n", mip="1", type="Meta", category="Process"), name="MIPs/MIP-1.md")
 
 
 class BodyTest(LintTestCase):
@@ -314,11 +320,29 @@ class BodyTest(LintTestCase):
         self.assertClean(with_abstract("```\nMIP 42\n```"))
 
     def test_raw_html(self) -> None:
-        self.assertRule("markdown-no-html", with_abstract('<a href="https://evil.example">x</a>'))
-        self.assertRule("markdown-no-html", with_abstract('<img src="../assets/MIP-3/diagram.svg">'))
-        self.assertRule("markdown-no-html", with_abstract('2<sup class="x">8</sup>'))
-        self.assertClean(with_abstract("2<sup>8</sup> and H<sub>2</sub>O"))
+        for payload in (
+            '<a href="https://evil.example">x</a>',
+            '<img src="../assets/MIP-3/diagram.svg">',
+            '2<sup class="x">8</sup>',
+            '<a/href="javascript:alert(1)">x',
+            "<img/src=x onerror=alert(1)>",
+            "<sup/onclick=alert(1)>x</sup>",
+            '<a\nhref="javascript:alert(1)">x',
+            "<A HREF=x>x</A>",
+        ):
+            self.assertRule("markdown-no-html", with_abstract(payload))
+        self.assertClean(with_abstract("2<sup>8</sup> and H<sub>2</sub>O, x < y, <https://eips.ethereum.org/EIPS/eip-1>"))
         self.assertClean(with_abstract('```html\n<a href="https://evil.example">x</a>\n```'))
+
+    def test_kramdown_attributes(self) -> None:
+        self.assertRule("markdown-no-kramdown", with_abstract('[x](./MIP-1.md){: onclick="alert(1)"}'))
+        self.assertRule("markdown-no-kramdown", with_abstract("{::nomarkdown}x{:/}"))
+        self.assertRule("markdown-no-kramdown", with_abstract("text\n{: .class}"))
+        self.assertClean(with_abstract("`{: .class}` is kramdown syntax."))
+
+    def test_scheme_relative_links(self) -> None:
+        for payload in ("[t](//evil.example)", "[t](/\\evil.example)", "[t](\\\\evil.example)", "[t](//mips.monad.xyz/MIPs/MIP-1)"):
+            self.assertRule("markdown-rel-links", with_abstract(payload))
 
     def test_unclosed_fence(self) -> None:
         self.assertRule("markdown-unclosed-fence", with_abstract("```\n[t](https://evil.example)"))
@@ -345,9 +369,19 @@ class BodyTest(LintTestCase):
         self.assertRule("preamble-yaml", document(title="[" * 5000))
 
     def test_invisible_characters(self) -> None:
-        self.assertRule("text-invisible-chars", with_rationale("MU\u200bST"))
+        for char in "\u200b\u202e\u2066\u061c\u00ad\U000e0001\u2028\u0085\x0c":
+            self.assertRule("text-invisible-chars", with_rationale(f"MU{char}ST"))
         self.assertRule("text-invisible-chars", with_abstract("```\nabc \u202e dcba\n```"))
         self.assertRule("text-invisible-chars", "\ufeff" + document())
+        self.assertClean(with_abstract("Ünïcödé, 2\u00a0MON and 😀 are printable."))
+
+    def test_line_numbers_follow_lf_only(self) -> None:
+        text = with_abstract("a\u2028b")
+        finding = next(f for f in self.lint(text) if f.rule == "text-invisible-chars")
+        self.assertEqual(text.count("\n", 0, text.index("\u2028")) + 1, finding.line)
+
+    def test_line_endings(self) -> None:
+        self.assertEqual(["text-line-endings"], [f.rule for f in self.lint(document().replace("\n", "\r\n"))])
 
     def test_duplicate_number(self) -> None:
         self.assertRule("file-name-dup", document(mip="1", category="MRC"), name="MRCs/MRC-1.md")

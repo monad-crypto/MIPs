@@ -37,6 +37,25 @@ jobs:
             echo "::warning title=Changes outside the proposals::Jekyll publishes every file in this repository and the lint result below comes from the tooling in this PR. Review these files first: $(echo "$others" | tr '\n' ' ')"
           fi
 
+      - name: Check changed assets
+        if: github.event_name == 'pull_request'
+        run: |
+          status=0
+          while IFS= read -r -d '' file; do
+            [ -f "$file" ] || continue
+            name=$(printf '%q' "$file")
+            case "${file,,}" in
+              *.html|*.htm|*.xhtml|*.xht|*.xml|*.xsl|*.xslt|*.svgz|*.js|*.mjs)
+                echo "::error title=asset-type::$name: browsers execute this file type when it is opened on the site; assets must be images, documents or data"
+                status=1 ;;
+            esac
+            if [ "$(head -c 3 "$file")" = "---" ]; then
+              echo "::error title=asset-front-matter::$name: Jekyll renders files that start with --- as pages; remove the front matter"
+              status=1
+            fi
+          done < <(git diff -z --name-only --diff-filter=d HEAD^1 HEAD | { grep -z -iE '^assets/' || true; })
+          exit $status
+
       - name: Lint changed proposals
         if: github.event_name == 'pull_request'
         run: |
