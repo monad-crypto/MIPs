@@ -186,30 +186,30 @@ This MRC defines an application layer interface and does not require a precompil
 
 ## Rationale
 
-### Why a Routing Interface?
+### Router Interface
 
 Standardizing propAMM contracts would force venues to redesign their core architecture.
 A routing interface permits native propAMM contracts to conform directly, while a thin adapter gives existing venues a common integration target without changing their core mechanisms.
 
 A popular design that aggregators rely on is directly using  the venue’s swap logic to retrieve the quote amount, by calling the swap function, reverting any state change in the call frame, decoding, and returning the swapped amount as a quote. Even for such aggregators that don’t rely on a quoting method, this proposal unifies the swap function and allows those aggregators to use the revert pattern without embedding any venue-specific logic.
 
-### Why Explicit Input and Output Tokens
+### Explicit Input and Output Tokens
 
 Explicit token addresses allow the same interface to support per-pair contracts and singleton venues that serve multiple markets. Routers specify the assets and direction directly, without requiring token-ordering getters or a separate adapter for every pair.
 
-### Why `quoteData` and `swapData`?
+### Opaque `quoteData` and `swapData`
 
-propAMMs have different requirements across the quote to execution boundary. Some require no additional data, while others may require data such as signed prices, quote identifiers…etc
+propAMMs have different requirements across the quote to execution boundary. Some require no additional data, while others may require data such as signed prices or quote identifiers.
 
 Opaque byte fields support these designs without requiring the standard to understand every venue specific format.
 
-### Why is `getAmountOut` non-view?
+### `getAmountOut()` as a Non-View Function
 
 Some venues derive quotes by using the same state changing logic used for execution and deliberately reverting after the output is known. These quote paths work under RPC `eth_call` but fail under EVM `STATICCALL`, even though their effects are intended to be discarded.
 
 Making `getAmountOut` non-view permits aggregators to integrate those venues without reimplementing their pricing logic. Static compatible contracts remain valid and are still called successfully through an ordinary `CALL`.
 
-### Why No Pair Discovery?
+### Pair Discovery Outside the Interface
 
 Discovery differs substantially between venues. Some use factories or singleton registries, while others rely on deterministic deployment. This MRC focuses only on the router facing quote and execution boundary.
 
