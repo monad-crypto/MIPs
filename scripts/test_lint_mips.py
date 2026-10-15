@@ -309,12 +309,14 @@ class BodyTest(LintTestCase):
         self.assertRule("markdown-rel-links", with_reference_implementation("See [the post](https://example.com/post)."))
 
     def test_client_repository_links(self) -> None:
-        self.assertClean(with_reference_implementation("See [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811)."))
-        self.assertClean(with_reference_implementation("See [monad](https://github.com/category-labs/monad)."))
-        self.assertRule("markdown-rel-links", with_reference_implementation("See [x](https://github.com/category-labs/monad-evil/pull/1)."))
-        self.assertRule("markdown-rel-links", with_reference_implementation("See [x](https://github.com/category-labs/monad.evil.example)."))
-        self.assertRule("markdown-rel-links", with_abstract("See [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811)."))
-        self.assertRule("markdown-rel-links", with_motivation("See [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811)."), level="warning")
+        commit = "https://github.com/category-labs/monad-bft/commit/3c142ddf2e4fb45ffe01f6c588168bf4b423f970"
+        self.assertClean(with_reference_implementation(f"See [monad-bft#2811]({commit})."))
+        self.assertClean(with_reference_implementation(f"See [monad]({commit.replace('monad-bft/commit', 'monad/blob')}/README.md#L1)."))
+        self.assertRule("markdown-rel-links", with_reference_implementation("See [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811)."))
+        self.assertRule("markdown-rel-links", with_reference_implementation("See [monad](https://github.com/category-labs/monad/tree/main)."))
+        self.assertRule("markdown-rel-links", with_reference_implementation(f"See [x]({commit.replace('monad-bft', 'monad-evil')})."))
+        self.assertRule("markdown-rel-links", with_abstract(f"See [monad-bft#2811]({commit})."))
+        self.assertRule("markdown-rel-links", with_motivation(f"See [monad-bft#2811]({commit})."), level="warning")
 
     def test_reference_style_links(self) -> None:
         self.assertRule("markdown-rel-links", with_abstract("See [EIP-170][eip].\n\n[eip]: https://ethereum-magicians.org/t/eip-170/1"))

@@ -47,7 +47,9 @@ ALLOWED_EXTERNAL_LINKS = [
 ]
 # Sections where other external links are discouraged instead of forbidden.
 DISCOURAGED_LINK_SECTIONS = {"Motivation", "Rationale"}
-CLIENT_REPO_LINK_RE = re.compile(r"^https://(?:www\.)?github\.com/category-labs/(?:monad|monad-bft)(?:[/?#].*)?$", re.IGNORECASE)
+CLIENT_REPO_LINK_RE = re.compile(
+    r"^https://(?:www\.)?github\.com/category-labs/(?:monad|monad-bft)/(?:commit/[0-9a-f]{40}(?:#.*)?|(?:blob|tree)/[0-9a-f]{40}(?:[/#].*)?)$"
+)
 
 RFC2119_RE = re.compile(
     r"\b(?:MUST(?: NOT)?|REQUIRED|SHALL(?: NOT)?|SHOULD(?: NOT)?|(?:NOT )?RECOMMENDED|MAY|OPTIONAL)\b"
