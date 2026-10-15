@@ -16,6 +16,8 @@ from .repo import DRAFT_FILE_RE, UNDASHED_MENTION_RE, Repo
 MAX_TITLE_LENGTH = 90
 MAX_DESCRIPTION_LENGTH = 140
 FORUM_HOST = "forum.monad.xyz"
+# MIP-2 was Final before forum threads were required and has none.
+DISCUSSIONS_TO_EXEMPT = {"MIPs/MIP-2.md"}
 
 HEADER_ORDER = [
     "mip",
@@ -152,7 +154,8 @@ def check_preamble(report: Report, lines: list[str], path: Path, repo: Repo) -> 
     check_title(report, by_name.get("title"), preamble.number)
     check_description(report, by_name.get("description"), preamble.number)
     check_author(report, by_name.get("author"))
-    check_discussions_to(report, by_name.get("discussions-to"))
+    if repo.relative(path) not in DISCUSSIONS_TO_EXEMPT:
+        check_discussions_to(report, by_name.get("discussions-to"))
 
     status = by_name.get("status")
     if status:

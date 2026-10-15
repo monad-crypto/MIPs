@@ -87,7 +87,7 @@ Increasing the contract code size limit raises the maximum resource cost of oper
 - **JIT compilation**: Frequently-used contracts are compiled to native code, amortizing preprocessing costs.
 - **Per-transaction gas limit**: The 30M per-transaction gas cap bounds the total resource expenditure of any single transaction.
 
-RPC node operators should be aware that concurrent `eth_call` invocations involving large contracts may consume additional memory. Operators MAY adjust concurrency limits accordingly to avoid out-of-memory conditions.
+RPC node operators should be aware that concurrent `eth_call` invocations involving large contracts may consume additional memory. Operators may adjust concurrency limits accordingly to avoid out-of-memory conditions.
 
 ## References
 

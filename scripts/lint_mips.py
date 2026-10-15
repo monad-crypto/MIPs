@@ -45,10 +45,7 @@ class DocumentLinter:
         except ValueError:
             display = str(path)
         self.report = Report(display)
-        try:
-            self.repo_path: str | None = path.resolve().relative_to(repo.root).as_posix()
-        except ValueError:
-            self.repo_path = None
+        self.repo_path = repo.relative(path)
 
     def lint(self) -> list[Finding]:
         try:

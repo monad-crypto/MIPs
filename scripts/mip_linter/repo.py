@@ -11,6 +11,12 @@ class Repo:
     def __init__(self, root: Path):
         self.root = root.resolve()
 
+    def relative(self, path: Path) -> str | None:
+        try:
+            return path.resolve().relative_to(self.root).as_posix()
+        except ValueError:
+            return None
+
     def proposal_path(self, number: int) -> Path | None:
         for kind in ("MIP", "MRC"):
             path = self.root / f"{kind}s" / f"{kind}-{number}.md"

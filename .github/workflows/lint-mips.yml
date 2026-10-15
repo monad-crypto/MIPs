@@ -1,8 +1,10 @@
 name: Lint MIPs
 
 on:
+  push:
+    branches: [main]
   pull_request:
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read
@@ -14,14 +16,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 2
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.15"
 
       - name: Install dependencies
         run: pip install -r scripts/requirements.txt
@@ -67,5 +69,5 @@ jobs:
           xargs -0 -a changed.lst python3 scripts/lint_mips.py
 
       - name: Lint all proposals
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'push'
         run: python3 scripts/lint_mips.py

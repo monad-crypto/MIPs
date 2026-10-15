@@ -173,6 +173,10 @@ class PreambleTest(LintTestCase):
         ):
             self.assertRule("preamble-discussions-to", document(discussions_to=value))
 
+    def test_mip_2_is_exempt_from_discussions_to(self) -> None:
+        self.assertNoRule("preamble-discussions-to", document(mip="2", discussions_to=""), name="MIPs/MIP-2.md")
+        self.assertRule("preamble-discussions-to", document(mip="4", discussions_to=""), name="MIPs/MIP-4.md")
+
     def test_status_enum(self) -> None:
         self.assertRule("preamble-enum", document(status="Accepted"))
 
