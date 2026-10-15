@@ -45,6 +45,9 @@ ALLOWED_EXTERNAL_LINKS = [
         r"^https://www\.w3\.org/TR/\d{4}/.+$",
     ]
 ]
+# Sections where other external links are discouraged instead of forbidden.
+DISCOURAGED_LINK_SECTIONS = {"Motivation", "Rationale"}
+CLIENT_REPO_LINK_RE = re.compile(r"^https://(?:www\.)?github\.com/category-labs/(?:monad|monad-bft)(?:[/?#].*)?$", re.IGNORECASE)
 
 RFC2119_RE = re.compile(
     r"\b(?:MUST(?: NOT)?|REQUIRED|SHALL(?: NOT)?|SHOULD(?: NOT)?|(?:NOT )?RECOMMENDED|MAY|OPTIONAL)\b"
@@ -126,6 +129,16 @@ def resolve(path: Path, dest: str) -> Path | None:
     return (path.parent / unquote(url.path)).resolve()
 
 
+def section_at(body: Body, line: int) -> str | None:
+    section = None
+    for heading in body.headings:
+        if heading.line > line:
+            break
+        if heading.level == 2:
+            section = heading.text
+    return section
+
+
 def check_links(report: Report, body: Body, path: Path, repo: Repo) -> None:
     for link in body.links:
         url = split_url(link.dest)
@@ -133,8 +146,18 @@ def check_links(report: Report, body: Body, path: Path, repo: Repo) -> None:
             if url.scheme in ("http", "https") and any(pattern.match(link.dest) for pattern in ALLOWED_EXTERNAL_LINKS):
                 continue
             host = url.netloc.lower().removeprefix("www.")
+            section = section_at(body, link.line)
             if host == "mips.monad.xyz" or (host == "github.com" and url.path.lower().startswith("/monad-crypto/mips")):
                 report.error(link.line, "markdown-rel-links", f"links within this repository must be relative: `{link.dest}`", link.col)
+            elif section == "Reference Implementation" and CLIENT_REPO_LINK_RE.match(link.dest):
+                continue
+            elif section in DISCOURAGED_LINK_SECTIONS and url.scheme == "https":
+                report.warning(
+                    link.line,
+                    "markdown-rel-links",
+                    f"external link `{link.dest}` should not be included; see the permitted external resources in MIP-1",
+                    link.col,
+                )
             else:
                 report.error(
                     link.line,

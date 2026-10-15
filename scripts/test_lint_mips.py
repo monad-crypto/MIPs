@@ -75,6 +75,14 @@ def with_rationale(text: str) -> str:
     return document(BODY.replace("## Test Cases", text + "\n\n## Test Cases"))
 
 
+def with_motivation(text: str) -> str:
+    return document(BODY.replace("## Specification", "## Motivation\n\n" + text + "\n\n## Specification"))
+
+
+def with_reference_implementation(text: str) -> str:
+    return document(BODY.replace("## Security Considerations", "## Reference Implementation\n\n" + text + "\n\n## Security Considerations"))
+
+
 class LintTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
@@ -285,6 +293,24 @@ class BodyTest(LintTestCase):
         self.assertClean(with_abstract("See [RFC 2119](https://www.ietf.org/rfc/rfc2119.html)."))
         self.assertClean(with_abstract("See [MonadBFT](https://doi.org/10.48550/arXiv.2502.20692)."))
         self.assertClean(with_abstract("```\nhttps://example.com/in-code\n```"))
+
+    def test_discouraged_external_links(self) -> None:
+        self.assertRule("markdown-rel-links", with_motivation("See [the post](https://www.category.xyz/blogs/raptorcast)."), level="warning")
+        self.assertRule("markdown-rel-links", with_rationale("### Alternatives\n\nSee [the post](https://example.com/post)."), level="warning")
+        findings = self.lint(with_rationale("See [the post](https://example.com/post)."))
+        self.assertEqual(["warning"], [f.level for f in findings])
+        self.assertRule("markdown-rel-links", with_rationale("See [the post](javascript:alert(1))."))
+        self.assertRule("markdown-rel-links", with_rationale("See [the post](http://example.com/post)."))
+        self.assertRule("markdown-rel-links", with_rationale("See [MIP-1](https://mips.monad.xyz/MIPs/MIP-1)."))
+        self.assertRule("markdown-rel-links", with_reference_implementation("See [the post](https://example.com/post)."))
+
+    def test_client_repository_links(self) -> None:
+        self.assertClean(with_reference_implementation("See [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811)."))
+        self.assertClean(with_reference_implementation("See [monad](https://github.com/category-labs/monad)."))
+        self.assertRule("markdown-rel-links", with_reference_implementation("See [x](https://github.com/category-labs/monad-evil/pull/1)."))
+        self.assertRule("markdown-rel-links", with_reference_implementation("See [x](https://github.com/category-labs/monad.evil.example)."))
+        self.assertRule("markdown-rel-links", with_abstract("See [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811)."))
+        self.assertRule("markdown-rel-links", with_motivation("See [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811)."), level="warning")
 
     def test_reference_style_links(self) -> None:
         self.assertRule("markdown-rel-links", with_abstract("See [EIP-170][eip].\n\n[eip]: https://ethereum-magicians.org/t/eip-170/1"))
