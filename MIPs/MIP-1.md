@@ -102,7 +102,7 @@ The following is the standardization process for all MIPs in all tracks:
 
 Each MIP should have the following parts:
 
-- **Preamble** - RFC 822 style headers containing metadata about the MIP, including the MIP number, a short descriptive title (limited to a maximum of 44 characters), a description (limited to a maximum of 140 characters), and the author details. Irrespective of the category, the title and description should not include the MIP number. See [below](#mip-header-preamble) for details.
+- **Preamble** - RFC 822 style headers containing metadata about the MIP, including the MIP number, a short descriptive title (limited to a maximum of 90 characters), a description (limited to a maximum of 140 characters), and the author details. Irrespective of the category, the title and description should not include the MIP number. See [below](#mip-header-preamble) for details.
 
 - **Abstract** - Abstract is a multi-sentence (short paragraph) technical summary. This should be a very terse and human-readable version of the specification section. Someone should be able to read only the abstract to get the gist of what this specification does.
 
@@ -178,13 +178,15 @@ if the email address and/or GitHub username is included, and
 
 if neither the email address nor the GitHub username are given.
 
+An organization may be listed as an author in the same forms, with its GitHub organization handle as the username, for example `Category Labs (@category-labs)`.
+
 At least one author must use a GitHub username, in order to get notified on change requests and have the capability to approve or reject them.
 
 ### `discussions-to` Header
 
 While a MIP is a draft, a `discussions-to` header will indicate the URL where the MIP is being discussed.
 
-The preferred discussion URL is a topic on the Monad community forum. The URL cannot point to GitHub pull requests, any URL which is ephemeral, and any URL which can get locked over time (i.e. Reddit topics).
+The discussion URL must be a topic on the Monad community forum, `https://forum.monad.xyz/`. The URL cannot point to GitHub pull requests, any URL which is ephemeral, and any URL which can get locked over time (i.e. Reddit topics).
 
 ### `type` Header
 
@@ -206,7 +208,7 @@ A `requires` dependency is created when the current MIP cannot be understood or 
 
 ## Linking to External Resources
 
-Other than the specific exceptions listed below, links to external resources SHOULD NOT be included. External resources may disappear, move, or change unexpectedly.
+Other than the specific exceptions listed below, links to external resources MUST NOT be included. External resources may disappear, move, or change unexpectedly. In the Motivation and Rationale sections, links to other external resources SHOULD NOT be included.
 
 ### Permitted External Resources
 
@@ -216,11 +218,12 @@ The following external resources may be linked:
 - **Ethereum Yellow Paper**: Links to the [Ethereum Yellow Paper](https://github.com/ethereum/yellowpaper/blob/efc5f9a1f356cba376c978eedb63cb0363c2aa85/Paper.tex) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 - **Ethereum Execution Client Specifications**: Links to the [Ethereum Execution Client Specifications](https://github.com/ethereum/execution-specs) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 - **Internet Engineering Task Force (IETF)**: Links to an IETF Request For Comment (RFC) specification may be included using normal Markdown syntax. Permitted URLs MUST anchor to a specification with an assigned RFC number.
-- **Ethereum Improvement Proposals (EIPs)**: Links to [EIPs](https://github.com/ethereum/EIPs) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
+- **Ethereum Improvement Proposals (EIPs)**: Links to [EIPs](https://github.com/ethereum/EIPs) may be included using normal Markdown syntax. Permitted URLs MUST either be the published page of an EIP, `https://eips.ethereum.org/EIPS/eip-N`, or anchor to a specific commit in the repository.
 - **Bitcoin Improvement Proposals (BIPs)**: Links to [BIPs](https://github.com/bitcoin/bips) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 - **Chain Agnostic Improvement Proposals (CAIPs)**: Links to [CAIPs](https://github.com/ChainAgnostic/CAIPs) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 - **World Wide Web Consortium (W3C)**: Links to a W3C “Recommendation” status specification may be included using normal Markdown syntax. Permitted URLs MUST anchor to a specification in the technical reports namespace with a date.
 - **Digital Object Identifier System (DOI)**: Links qualified with a Digital Object Identifier (DOI) may be included. The top-level URL field must resolve to a copy of the referenced work that is freely accessible to the public.
+- **Monad client repositories**: The Reference Implementation section may link to the [monad](https://github.com/category-labs/monad) and [monad-bft](https://github.com/category-labs/monad-bft) repositories using normal Markdown syntax, but MUST anchor to a specific commit.
 
 ## Linking to Other MIPs
 

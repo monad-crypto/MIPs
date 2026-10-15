@@ -2,7 +2,7 @@
 mip: 10
 title: Deterministic RaptorCast
 description: Canonical RaptorCast encoding that removes author control over chunk placement and binds each proposal to a per-round commitment
-author: Category Labs
+author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-10-deterministic-raptorcast/453
 status: Draft
 type: Standards Track
@@ -16,11 +16,11 @@ Deterministic RaptorCast (v1) pins each canonical encoded symbol to a fixed posi
 
 A validator authenticates the packet header and author identity, recomputes the seed, derives the same assignment from its view of the epoch validator set, verifies each chunk against the message-level root, and rejects any chunk whose commitment conflicts with the one already recorded for that round. Having reconstructed the payload, the validator re-encodes it and checks that the resulting Merkle root matches the committed root. Given the payload, author, round metadata, and epoch validator set, v1 deterministically fixes the encoding, root, and chunk assignment; each correct validator accepts at most one `EncodingCommitment` per round.
 
-Throughout this MIP, v0 refers to the existing RaptorCast proposal format (see [RaptorCast: Designing a Messaging Layer](https://www.category.xyz/blogs/raptorcast-designing-a-messaging-layer)) and v1 to the deterministic proposal format introduced by this MIP.
-
 ## Motivation
 
 MonadBFT uses RaptorCast to disseminate block proposals across the validator set. The implementation distinguishes Primary RaptorCast, which carries a proposal within the validator set, from Secondary RaptorCast, which carries it onward to full nodes. This MIP specifies Primary RaptorCast. Secondary RaptorCast also uses the deterministic encoding introduced here, but its routing and assignment logic is outside the scope of this specification. The author is the validator selected for the round that constructs, signs, and disseminates the RaptorCast proposal.
+
+Throughout this MIP, v0 refers to the existing RaptorCast proposal format (see [RaptorCast: Designing a Messaging Layer](https://www.category.xyz/blogs/raptorcast-designing-a-messaging-layer)) and v1 to the deterministic proposal format introduced by this MIP.
 
 An Encoding Symbol ID (ESI) is the integer identifier of a Raptor-encoded symbol. Under v0 an ESI may sit at any position in the Merkle tree. The author also chooses which chunks go to which validator and writes that choice into each chunk. No node can check the choice, because there is no other answer to compare it against. In v1, ESI `i` is also the canonical chunk index and determines that symbol's position in the Merkle tree.
 
@@ -239,7 +239,7 @@ Nodes at adjacent stages interoperate; nodes two or more stages apart do not. Ch
 
 ## Reference Implementation
 
-The protocol is implemented in [monad-bft#2811](https://github.com/category-labs/monad-bft/pull/2811), with chunk assignment refined in [monad-bft#2970](https://github.com/category-labs/monad-bft/pull/2970) and [monad-bft#2978](https://github.com/category-labs/monad-bft/pull/2978), integer stake-partition arithmetic in [monad-bft#3073](https://github.com/category-labs/monad-bft/pull/3073), per-round author validation in [monad-bft#3114](https://github.com/category-labs/monad-bft/pull/3114), packet-header canonicalization of the Merkle tree depth and reserved fields in [monad-bft#3247](https://github.com/category-labs/monad-bft/pull/3247) and the `EncodingCommitment` definition in [monad-bft#3248](https://github.com/category-labs/monad-bft/pull/3248).
+The protocol is implemented in [monad-bft#2811](https://github.com/category-labs/monad-bft/commit/3c142ddf2e4fb45ffe01f6c588168bf4b423f970), with chunk assignment refined in [monad-bft#2970](https://github.com/category-labs/monad-bft/commit/2aa494c36d7ddd262d516cc7719e4caa02669733) and [monad-bft#2978](https://github.com/category-labs/monad-bft/commit/3323620e50c04debd17a3b179ee625f470258d9b), integer stake-partition arithmetic in [monad-bft#3073](https://github.com/category-labs/monad-bft/commit/fc13fc1359bb1aa7827b5d74a7649dd5115b41e2), per-round author validation in [monad-bft#3114](https://github.com/category-labs/monad-bft/commit/0743c2c986ef2c8153a61b681bcef8353c682b24), packet-header canonicalization of the Merkle tree depth and reserved fields in [monad-bft#3247](https://github.com/category-labs/monad-bft/commit/10195742d3c09a7527905f388c5623cac3aecafa) and the `EncodingCommitment` definition in [monad-bft#3248](https://github.com/category-labs/monad-bft/commit/fcbe48d2657048d5ebd7c43f675b750c383f02c7).
 
 ## Security Considerations
 
