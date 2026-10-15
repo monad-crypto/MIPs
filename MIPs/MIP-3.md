@@ -44,7 +44,7 @@ The max memory usage is capped at 8 MB.  Memory allocation is bounded across cal
 
 ## Rationale
 
--
+An alternative design would revert the call frame on exceeding the memory limit and return its remaining gas. Halting exceptionally follows the convention that errors in the executing code consume all gas. It also matches the behavior before this MIP, where expanding memory beyond what the remaining gas pays for is an out-of-gas exceptional halt.
 
 ## Backwards Compatibility
 
