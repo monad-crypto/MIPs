@@ -110,7 +110,7 @@ No backward compatibility issues found.
   This section is optional.
 
   The Reference Implementation section should include a minimal implementation that assists in understanding or implementing this specification. It should not include project build files. The reference implementation is not a replacement for the Specification section, and the proposal should still be understandable without it.
-  If the reference implementation is too large to reasonably be included inline, then consider adding it as one or more files in `../assets/MIP-####/`. With the exception of links to the monad and monad-bft repositories, external links will not be allowed.
+  If the reference implementation is too large to reasonably be included inline, then consider adding it as one or more files in `../assets/MIP-####/`. With the exception of links to the monad and monad-bft repositories anchored to a specific commit, external links will not be allowed.
 
   TODO: Remove this comment before submitting
 -->
