@@ -223,7 +223,9 @@ The following external resources may be linked:
 - **Chain Agnostic Improvement Proposals (CAIPs)**: Links to [CAIPs](https://github.com/ChainAgnostic/CAIPs) may be included using normal Markdown syntax, but MUST anchor to a specific commit.
 - **World Wide Web Consortium (W3C)**: Links to a W3C “Recommendation” status specification may be included using normal Markdown syntax. Permitted URLs MUST anchor to a specification in the technical reports namespace with a date.
 - **Digital Object Identifier System (DOI)**: Links qualified with a Digital Object Identifier (DOI) may be included. The top-level URL field must resolve to a copy of the referenced work that is freely accessible to the public.
-- **Monad client repositories**: The Reference Implementation section may link to the [monad](https://github.com/category-labs/monad) and [monad-bft](https://github.com/category-labs/monad-bft) repositories using normal Markdown syntax, but MUST anchor to a specific commit.
+- **Monad client repositories**: Links to the repositories of Monad clients that can sync to Monad networks or execute Monad blocks may be included in the Reference Implementation section using normal Markdown syntax, but MUST anchor to a specific commit. Currently such repositories are:
+  - [monad](https://github.com/category-labs/monad)
+  - [monad-bft](https://github.com/category-labs/monad-bft)
 
 ## Linking to Other MIPs
 
