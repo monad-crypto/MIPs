@@ -17,7 +17,7 @@ requires: <MIP number(s)> # Only required when this MIP cannot be understood or 
 
   Note that an MIP number will be assigned by an editor. When opening a pull request to submit your MIP, please use an abbreviated title in the filename, `MIP-draft_title_abbrev.md`.
 
-  The title should be 44 characters or less. It should not repeat the MIP number in title, irrespective of the category.
+  The title should be 90 characters or less. It should not repeat the MIP number in title, irrespective of the category.
 
   TODO: Remove this comment before submitting
 -->
@@ -37,7 +37,7 @@ requires: <MIP number(s)> # Only required when this MIP cannot be understood or 
 
   The motivation section should include a description of any nontrivial problems the MIP solves. It should not describe how the MIP solves those problems, unless it is not immediately obvious. It should not describe why the MIP should be made into a standard, unless it is not immediately obvious.
 
-  With a few exceptions, external links are not allowed. If you feel that a particular resource would demonstrate a compelling case for your MIP, then save it as a printer-friendly PDF, put it in the assets folder, and link to that copy.
+  With a few exceptions, external links should not be included. If you feel that a particular resource would demonstrate a compelling case for your MIP, then save it as a printer-friendly PDF, put it in the assets folder, and link to that copy.
 
   TODO: Remove this comment before submitting
 -->
@@ -69,6 +69,8 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 <!--
   The rationale fleshes out the specification by describing what motivated the design and why particular design decisions were made. It should describe alternate designs that were considered and related work, e.g. how the feature is supported in other languages.
 
+  With a few exceptions, external links should not be included. If you feel that a particular resource would demonstrate a compelling case for your MIP, then save it as a printer-friendly PDF, put it in the assets folder, and link to that copy.
+
   The current placeholder is acceptable for a draft.
 
   TODO: Remove this comment before submitting
@@ -97,7 +99,7 @@ No backward compatibility issues found.
   This section is optional for non-Core MIPs.
 
   The Test Cases section should include expected input/output pairs, but may include a succinct set of executable tests. It should not include project build files. No new requirements may be introduced here (meaning an implementation following only the Specification section should pass all tests here.)
-  If the test suite is too large to reasonably be included inline, then consider adding it as one or more files in `../assets/MIP-####/`. External links will not be allowed
+  If the test suite is too large to reasonably be included inline, then consider adding it as one or more files in `../assets/MIP-####/`. External links will not be allowed.
 
   TODO: Remove this comment before submitting
 -->
@@ -108,7 +110,7 @@ No backward compatibility issues found.
   This section is optional.
 
   The Reference Implementation section should include a minimal implementation that assists in understanding or implementing this specification. It should not include project build files. The reference implementation is not a replacement for the Specification section, and the proposal should still be understandable without it.
-  If the reference implementation is too large to reasonably be included inline, then consider adding it as one or more files in `../assets/MIP-####/`. External links will not be allowed.
+  If the reference implementation is too large to reasonably be included inline, then consider adding it as one or more files in `../assets/MIP-####/`. With the exception of links to the monad and monad-bft repositories anchored to a specific commit, external links will not be allowed.
 
   TODO: Remove this comment before submitting
 -->
