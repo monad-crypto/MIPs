@@ -116,12 +116,13 @@ A sequenced transaction to which the [EIP-3607] sender restriction applies and w
 
 1. Signature, chain id, gas limit and intrinsic gas are validated as today.
 2. The sender's code is validated. The sender holds regular code.
-3. The transaction's nonce and the sender's balance are validated as today.
-4. The transaction's nonce is consumed.
-5. The transaction's fees are charged.
-6. The transaction's authorization list is processed.
-7. No value is transferred, no code runs, no contract is created, no log is emitted and no trace frame is produced.
-8. The receipt has status 0 and `gasUsed` equal to the gas limit.
+3. The transaction's nonce is not validated against the sender's nonce. A sender's nonce of `2^64 - 1` invalidates the block as specified in [EIP-2681].
+4. The sender's balance is validated as today.
+5. The sender's nonce is incremented by one.
+6. The transaction's fees are charged.
+7. The transaction's authorization list is processed as specified in [EIP-7702].
+8. No value is transferred, no code runs, no contract is created, no log is emitted and no trace frame is produced.
+9. The receipt has status 0 and `gasUsed` equal to the gas limit.
 
 ### Reserve Balance Introspection
 
@@ -166,6 +167,16 @@ When such a mechanism is specified, three adaptations follow from this MIP:
 
 A transaction signed by an account's key can be sequenced while the state consensus validates against still shows the account as an EOA or as delegated, and execute after the account has adopted regular code. This happens only within `RESERVE_BALANCE_DELAY_BLOCKS` of the adoption. Under [EIP-3607] such a transaction invalidates the block, which is not an option once consensus has sequenced it. Executing it would let the old key act on the account after migration. Including it without charging would give up to the reserve of block space per migration for free. Charging the full gas limit is consistent with the reserve check, which keeps the migrated account above its threshold for the same window so the fee can be paid.
 
+### Authorizations in In-Flight Transactions
+
+Consensus counts every authorization it sequences. It treats the authority as delegated for the reserve budget and, without checking the authority's code, raises the authority's predicted nonce when the authorization's nonce matches the prediction. An authorization whose authority holds empty code or a delegation indicator therefore applies even when the transaction carrying it fails, otherwise the authority's next transaction would carry a nonce execution does not expect and invalidate the block. An authorization naming an account with regular code is skipped as in [EIP-7702], so the account cannot be delegated again. Consensus still raises that account's predicted nonce, which can then exceed its nonce in execution until consensus sees the regular code.
+
+### Nonces of In-Flight Transactions
+
+After the adoption the sender's nonce in execution moves away from the one consensus predicts. `CREATE` and `CREATE2` run by the account's new code raise it, and authorizations that execution skips, as described in Authorizations in In-Flight Transactions, leave it below the prediction. Execution therefore does not validate the transaction's nonce against the sender's nonce. Consensus accepts the transaction only with the nonce it predicts and sequences each nonce once, so a transaction cannot be executed twice.
+
+Incrementing the sender's nonce by one keeps it increasing, so it never takes a value it held before. `CREATE` derives the new contract's address from the creator's nonce in execution and therefore never derives the address of a contract the account already created, whether by `CREATE` or by a creation transaction. A transaction on this path creates no contract, so its unvalidated nonce never enters an address derivation.
+
 ### Reserve Balance Introspection
 
 The answer of `may_empty` is fixed for the whole transaction. The lagged state is fixed for the block, and the sender and authority windows are known when the transaction starts. A `SETCODEFROM` therefore does not change the answer of `dippedIntoReserve()` within the transaction, and the answer agrees with the end-of-transaction check. An account holding regular code can now return `true`, in the transaction that adopted the code and in the following `RESERVE_BALANCE_DELAY_BLOCKS - 1` blocks, whenever its balance is below its threshold. Before this MIP only accounts with empty code or a delegation indicator could.
@@ -173,6 +184,7 @@ The answer of `may_empty` is fixed for the whole transaction. The lagged state i
 ### Open Questions
 
 - `delegated_in_lagged_state` requires execution to read the state at the end of block `n - RESERVE_BALANCE_DELAY_BLOCKS`. Consensus already reads that state, but execution of block `n` today reads only the state of block `n - 1`. A direct read costs one account read for every account that dips below its threshold with no sender or authority in the window. A client can instead cache the migrations of completed blocks, provided it can rebuild that cache from the lagged state after a restart.
+- For a creation transaction on the in-flight path, an interface that derives the receipt's `contractAddress` from the sender and the transaction's nonce reports an address at which the transaction created no contract. A contract the account's code creates later can occupy that address.
 
 ## Backwards Compatibility
 
@@ -190,10 +202,15 @@ Needs discussion.
 
 Any account that has signed an EIP-7702 authorization can be kept from emptying by anyone who re-includes that authorization every `RESERVE_BALANCE_DELAY_BLOCKS` blocks, because an authority in the window is treated as delegated whether or not the authorization applied. A migrated account has necessarily signed one, so it stays exposed after migration: while the replay continues its code cannot move the balance below its threshold. This is the constraint the account had while delegated and is not introduced by this MIP.
 
+### In-Flight Transactions From a Compromised Key
+
+In case the account's key becomes compromised at the moment of code adoption, a malicious leader with the key can fill the window with in-flight transactions from the account, each charged in full, and sweep the priority fees. An alternative design charges only the base fee on the in-flight path, so that no priority fee reaches the leader.
+
 ## Copyright
 
 Copyright and related rights waived via [CC0](../LICENSE.md).
 
+[EIP-2681]: https://eips.ethereum.org/EIPS/eip-2681
 [EIP-3607]: https://eips.ethereum.org/EIPS/eip-3607
 [EIP-6780]: https://eips.ethereum.org/EIPS/eip-6780
 [EIP-7702]: https://eips.ethereum.org/EIPS/eip-7702
