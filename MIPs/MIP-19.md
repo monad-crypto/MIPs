@@ -1,4 +1,5 @@
 ---
+mip: 19
 title: Reserve Balance-Compatible SETCODEFROM Opcode
 description: Activate EIP-8298 with reserve balance rules for accounts that adopt code while delegated.
 author: Piotr Dobaczewski (@pdobacz)
@@ -6,7 +7,7 @@ discussions-to: <URL>
 status: Draft
 type: Standards Track
 category: Core
-created: 2026-10-09
+created: 2026-10-28
 requires: 4
 ---
 
