@@ -3,7 +3,7 @@ mip: 19
 title: Reserve Balance-Compatible SETCODEFROM Opcode
 description: Activate EIP-8298 with reserve balance rules for accounts that adopt code while delegated.
 author: Piotr Dobaczewski (@pdobacz)
-discussions-to: <URL>
+discussions-to: https://forum.monad.xyz/t/mip-19-reserve-balance-compatible-setcodefrom-opcode/572
 status: Draft
 type: Standards Track
 category: Core
