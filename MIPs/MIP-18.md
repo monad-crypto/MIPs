@@ -17,7 +17,19 @@ This MIP allocates two extension opcodes under the `EXTENSION` (`0xAE`) mechanis
 
 ## Motivation
 
-These opcodes are intended to support future Monad protocol upgrades under development at Category Labs.
+### Identifying Users Behind Routers
+
+Applications such as AMMs, referral systems or trading venues with tiered fee models may wish to determine the user on whose behalf a router or transaction aggregator is acting. The `ORIGIN` of a transaction identifies the end user only when that user is an EOA that submitted the transaction directly; it cannot be used when the user is a smart account, or when the transaction is submitted by a relayer, bundler or sponsor on the user's behalf. As a result, current implementations must rely on the entire call stack forwarding the transaction's user through calldata. This requires every intermediate contract to cooperate, and the forwarded value is an unverified claim made by the router.
+
+With `CALLERN`, an application can instead read the user directly: if its immediate caller (`CALLERN(0)`) is a known router, the router's own caller (`CALLERN(1)`) is the user, and this extends hop by hop through a contiguous chain of known routers and aggregators.
+
+### Reentrancy Protection
+
+In *read-only reentrancy*, a contract (the producer) makes an external call while its state is temporarily inconsistent, and during that window a third-party contract (the consumer) reads derived values such as a price or exchange rate from it. Several 2023 exploits of lending protocols that used liquidity-pool prices as oracles followed this pattern.
+
+Existing mitigations, including locks held in transient storage ([EIP-1153](https://eips.ethereum.org/EIPS/eip-1153)), require the producer to set a lock and expose it. Producers that are already deployed and cannot be upgraded cannot add such a lock, which leaves their consumers without a defence.
+
+`CALLERN` lets a consumer enforce this protection without the producer's help: it iterates `n` from `0` to `CALLSTACKDEPTH` and reverts if `CALLERN(n)` equals the producer's address. Any external call made by the producer creates a frame whose caller is the producer, so every frame created by that call has the producer among its ancestors' callers and the check cannot miss it. Because callers can add frames but cannot remove ancestors, an attacker cannot evade the check. This is the sound, "revert if contract X is an ancestor" form of check described in [Security Considerations](#security-considerations). As a consequence, the consumer also reverts when reached through a legitimate callback from the producer, while the producer's state may be inconsistent.
 
 ## Specification
 
@@ -110,6 +122,8 @@ A trailing `EXTENSION` byte has no selector and must halt exceptionally, as [MIP
 ### Authorization
 
 `CALLERN` makes the identity of every ancestor caller available to a contract, not just its immediate caller. Using `CALLERN` for authorization inherits the weaknesses of authorizing with `ORIGIN`: an attacker who persuades a privileged account to call an attacker-controlled contract can relay calls that appear to originate from that account. Contracts should not use `CALLERN(n)` for `n > 0` for authorization.
+
+Contracts that nonetheless inspect ancestors should note that arbitrary-depth ancestor checks are *asymmetric*; callers can insert frames but cannot remove them. This means that checks of the form "revert if contract X is an ancestor" are sound (the worst case being a false-positive revert), but checks of the form "allow if contract X is an ancestor" are *unsound* (the worst case being a false-positive trust assumption).
 
 ### Context-Dependent Behavior
 
