@@ -213,7 +213,7 @@ This guarantee applies within a single response. Consecutive pages MAY reflect d
 
 Each method defines its own set of filter fields; see that method's Filter section. The following rules apply to all of them.
 
-All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). An omitted filter field places no constraint on the result, unless the method's Filter section defines a default for that field. A `null` value is the same as an omitted field. An empty array (`[]`) also places no constraint on the result. Thus, a client that builds a filter field from an empty list matches all objects, not none. A filter key that the method's Filter section does not define is invalid, and the server MUST fail the request with `-32602`. If `filter` is omitted, every object of the method's primary object type within the block range is returned, subject to those defaults.
+All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). Such an array MUST NOT contain `null` entries; if it does, the server MUST fail the request with `-32602`. An omitted filter field places no constraint on the result, unless the method's Filter section defines a default for that field. A filter field whose value is `null` is the same as an omitted field. An empty array (`[]`) also places no constraint on the result. Thus, a client that builds a filter field from an empty list matches all objects, not none. A filter key that the method's Filter section does not define is invalid, and the server MUST fail the request with `-32602`. If `filter` is omitted, every object of the method's primary object type within the block range is returned, subject to those defaults.
 
 #### Fields and relations
 
@@ -324,11 +324,11 @@ Query for event logs emitted during transaction execution.
 The `topics` filter MUST follow the same matching semantics as `eth_getLogs`. The value is an array of up to 4 positional entries, where the entry at index `i` constrains `topics[i]`. Each entry can be one of the following:
 
 - A single topic hash (`DATA`): matches logs where `topics[i]` equals that hash.
-- A non-empty array of topic hashes (`DATA[]`): matches logs where `topics[i]` equals any hash in the array.
+- A non-empty array of topic hashes (`DATA[]`): matches logs where `topics[i]` equals any hash in the array. The array MUST NOT contain `null` entries.
 - An empty array (`[]`): wildcard, the same as `null`.
-- `null`: wildcard — matches any value at position `i`.
+- `null`: wildcard — matches any topic at position `i`.
 
-`topics: []` and `topics: null` place no constraint on the result.
+`topics: []` and `topics: null` place no constraint on the result. A wildcard entry still requires the log to have a topic at that position: as in `eth_getLogs`, a log matches only if it has at least as many topics as the filter has entries. For example, `[A, null]` matches a log with topics `[A, B]`, but not a log with topics `[A]`.
 
 #### Fields
 
@@ -488,13 +488,13 @@ A chain reorganization (reorg) can replace blocks near the chain tip and invalid
 
 ### Reorg recovery
 
-The recovery procedure finds the newest block the client processed that is still canonical, discards the data above it, and resumes paging from there.
+The recovery procedure finds the newest retained block that is still canonical, discards the data above it, and resumes paging from there.
 
-This requires the client to retain a `number` and `hash` for every block it has processed at or after the block that `"finalized"` resolves to. Because a reorg cannot replace a finalized block, one of these references always matches, so the procedure always terminates.
+This requires the client to retain the `number` and `hash` of each processed page's `cursorBlock`, and to keep at least one of these references at or below the block that `"finalized"` resolves to. The client can drop older references once a newer retained reference is finalized. Because a reorg cannot replace a finalized block, a retained reference at or below the finalized block always matches, so the procedure always finds a recovery point.
 
 1. Query `eth_queryBlocks` with `order: "desc"`, `fromBlock` set to `"latest"`, `toBlock` set to the oldest retained block number, and `fields` set to `{"blocks": ["number", "hash"]}`.
-2. Walk the returned blocks newest to oldest. The first block whose `hash` matches the retained reference at the same block number is the recovery point.
-3. Discard all stored data above the recovery point, drop the retained references above it, and resume paging from `recoveryPoint + 1`.
+2. Walk the returned blocks newest to oldest, fetching further pages as described in [Pagination](#pagination) until a match is found. The first block whose `hash` matches a retained reference with the same `number` is the recovery point. The client does not need to fetch the remaining pages.
+3. Discard all stored data above the recovery point, drop the retained references above it, and resume paging from `recoveryPoint + 1`. If no retained reference matches, which can happen only if the client has no retained reference at or below the finalized block, discard all stored data and restart paging from the client's original starting block.
 
 Setting `fromBlock` to `"latest"` rather than to the block number where the mismatch occurred keeps the query valid if the reorg shortened the chain.
 
@@ -649,14 +649,14 @@ Type `0x4` transactions are present only in blocks from `MONAD_FOUR` onward.
 | --- | --- | --- |
 | `type` | `string` | Call type: `CALL`, `CALLCODE`, `DELEGATECALL`, `STATICCALL`, `CREATE`, `CREATE2`, or `SELFDESTRUCT`. |
 | `from` | `DATA` | Address initiating the call. |
-| `to` | `DATA` or `null` | Target address. See the normative definition under [`eth_queryTraces`](#eth_querytraces). |
+| `to` | `DATA` or `null` | Target address of the call. For `CREATE` and `CREATE2`, the address of the created contract. For `SELFDESTRUCT`, the beneficiary address. `null` if a `CREATE` or `CREATE2` frame failed, because no contract was created. |
 | `value` | `QUANTITY` | Amount of native token sent with the call. `0x0` for `STATICCALL`. |
 | `gas` | `QUANTITY` | Gas provided for the call. |
 | `gasUsed` | `QUANTITY` | Gas used during the call. |
-| `input` | `DATA` | Calldata. |
-| `output` | `DATA` | Return data. `0x` if the frame returned no data. |
-| `error` | `string` or `null` | Failure of this call frame. `null` if the frame returned normally. |
-| `reverted` | `boolean` | `true` if the state changes of this call were discarded. |
+| `input` | `DATA` | Calldata. For `CREATE` and `CREATE2`, the init code. |
+| `output` | `DATA` | Return data. For a successful `CREATE` or `CREATE2`, the deployed code. `0x` if the frame returned no data. |
+| `error` | `string` or `null` | Failure of this call frame itself, such as a revert, an out-of-gas error, or an invalid opcode. `null` if this frame returned normally. For a revert, `output` contains the revert data. |
+| `reverted` | `boolean` | `true` if the state changes of this call were discarded. This happens when the call itself failed or when one of its ancestor calls failed. |
 | `blockHash` | `DATA` | Hash of the containing block. |
 | `blockNumber` | `QUANTITY` | Number of the containing block. |
 | `transactionHash` | `DATA` | Hash of the containing transaction. |
