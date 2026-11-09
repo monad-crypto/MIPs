@@ -20,24 +20,24 @@ This MIP introduces five new JSON-RPC methods that enable efficient queries for 
 - `eth_queryTraces`
 - `eth_queryTransfers`
 
-Each method scans a contiguous block range, oldest-first or newest-first, and returns the objects that match a server-side filter, such as sender, recipient, function selector, or event topic. A request can select exactly which fields to return, and can join each result's block and transaction into the same response. Results are paginated by block: a page never splits a block, and each response reports the last block it covers as `cursorBlock`, so clients resume from the next block without repeating or skipping results. Every response also includes the hash and parent hash of its boundary blocks, which lets clients detect reorgs without extra requests.
+Each method scans a contiguous block range, oldest-first or newest-first, and returns the objects that match a server-side filter, such as sender, recipient, function selector, or event topic. A request can select exactly which fields to return, and can join related blocks and transactions into the same response. Results are paginated by block: a page never splits a block, and each response reports the last block it covers as `cursorBlock`, so clients can resume from the next block without repeating or skipping results. Every response also includes the hash and parent hash of its boundary blocks, which lets clients detect reorgs without extra requests.
 
 ## Motivation
 
 The standard Ethereum JSON-RPC interface provides inadequate primitives for querying chain history. Many useful queries are not possible, and the queries that are supported suffer from overfetching and inefficient pagination.
 
-This proposal aims to address four specific shortcomings.
+This proposal addresses four shortcomings:
 
-- **Filtering.** The `eth_getLogs` method supports log filtering, but there is no efficient way to filter transactions or traces. To query all transactions sent to a specific address, the user must fetch entire blocks and filter client-side.
-- **Relations.** There is no way to join related objects in a single request. To fetch a set of logs and related transaction inputs, the user must make N+1 RPC requests (one to fetch logs, then one per unique transaction).
-- **Field selection.** Every RPC method returns a fixed object schema. Users that only need block number and timestamp have no choice but to fetch large unrelated fields like `logsBloom`, only to immediately discard them.
-- **Pagination.** The `eth_getLogs` pagination design causes frequent timeouts and client-side workarounds. The RPC methods for blocks, transactions, and traces don't support range queries at all.
+- **Filtering.** The `eth_getLogs` method supports log filtering, but there is no efficient way to filter transactions or traces. To query all transactions sent to a specific address, the client must fetch entire blocks and filter client-side.
+- **Relations.** There is no way to join related objects in a single request. To fetch a set of logs and the input of each related transaction, the client must make N+1 RPC requests (one to fetch logs, then one per unique transaction).
+- **Field selection.** Every RPC method returns a fixed object schema. A client that needs only the block number and timestamp must still fetch large, unrelated fields such as `logsBloom` and then discard them.
+- **Pagination.** The `eth_getLogs` pagination design causes frequent timeouts and client-side workarounds. The RPC methods for blocks, transactions, and traces do not support range queries at all.
 
 These shortcomings impose unnecessary compute, memory, and bandwidth costs on both users and node operators.
 
 ## Example
 
-This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emitted by the USDC contract on Monad mainnet, including the timestamp of each log's parent block.
+This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emitted by the USDC contract on Monad mainnet, including the timestamp of each log's containing block.
 
 ```json
 {
@@ -60,7 +60,7 @@ This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emit
 }
 ```
 
-The response includes the specified fields for each matched log and related block, and resolved block references for `fromBlock`, `toBlock`, and `cursorBlock`.
+The response includes the requested fields for each matching log and its related block, plus resolved block references for `fromBlock`, `toBlock`, and `cursorBlock`.
 
 ```json
 {
@@ -140,7 +140,7 @@ All other types named in this document (`string`, `number`, `boolean`, `object`,
 
 #### Request
 
- For all methods, `params` MUST be a single-element array whose first element is the request object defined below.
+For all methods, `params` MUST be a single-element array whose first element is the request object defined below.
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
@@ -157,10 +157,10 @@ The request object MUST NOT contain keys other than those listed above. If it do
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `data` | `object` | Method-specific query result object, keyed by object name. Each value is an array of objects containing the requested fields. |
-| `fromBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved starting block at query execution time. If `fromBlock` in the request was a tag, this reflects the block that tag resolved to. |
-| `toBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved ending block at query execution time. If `toBlock` was `"latest"` or omitted in `asc` mode, this reflects the block the node considered latest at query execution time. |
-| `cursorBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The final block in the page (inclusive). The response contains every matching primary object from `fromBlock` through `cursorBlock`. See [Block-aligned pagination](#block-aligned-pagination). |
+| `data` | `object` | Method-specific query result object, keyed by object type. Each value is an array of objects containing the requested fields. |
+| `fromBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved starting block at query execution time. If the request's `fromBlock` is a tag or is omitted, this is the block that the tag or default resolved to. |
+| `toBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The resolved ending block at query execution time. If the request's `toBlock` is a tag or is omitted, this is the block that the tag or default resolved to. |
+| `cursorBlock` | `{ number: QUANTITY, hash: DATA, parentHash: DATA }` | The last block in the page. The response contains every matching primary object from `fromBlock` through `cursorBlock`, inclusive. See [Block-aligned pagination](#block-aligned-pagination). |
 
 ### Query semantics
 
@@ -171,31 +171,31 @@ Each request scans a contiguous, inclusive range of blocks from `fromBlock` to `
 - `asc` (default): scan from `fromBlock` upward, returning results oldest-first. `fromBlock` is the lower bound and `toBlock` the upper bound.
 - `desc`: scan from `fromBlock` downward, returning results newest-first. `fromBlock` is the upper bound and `toBlock` the lower bound.
 
-`fromBlock` and `toBlock` each accept a hex-encoded block number (for example `"0xf4240"`) or a tag: `"latest"`, `"earliest"`, `"safe"`, `"finalized"`. Tags MUST be resolved server-side at query execution time. If omitted, `fromBlock` defaults to `"earliest"` in `asc` mode or `"latest"` in `desc` mode, and `toBlock` defaults to `"latest"` in `asc` mode or `"earliest"` in `desc` mode. An `asc` scan with `toBlock` omitted therefore runs to chain tip, and a `desc` scan with `toBlock` omitted runs to genesis.
+`fromBlock` and `toBlock` each accept a `QUANTITY` block number (for example, `"0xf4240"`) or a tag: `"latest"`, `"earliest"`, `"safe"`, `"finalized"`. Tags MUST be resolved server-side at query execution time. `fromBlock` defaults to `"earliest"` in `asc` mode and `"latest"` in `desc` mode. `toBlock` defaults to `"latest"` in `asc` mode and `"earliest"` in `desc` mode. An `asc` scan with `toBlock` omitted therefore runs to the chain tip, and a `desc` scan with `toBlock` omitted runs to genesis.
 
-A resolved range is inverted if `fromBlock` is greater than `toBlock` in `asc` mode, or less than `toBlock` in `desc` mode. The server MUST fail a request with an inverted range with `-32602`.
+A resolved range is inverted if `fromBlock` is greater than `toBlock` in `asc` mode, or less than `toBlock` in `desc` mode. If the resolved range is inverted, the server MUST fail the request with `-32602`.
 
-A node is not required to hold the entire chain history. Each method has an *availability window*: the contiguous range of blocks for which that node can serve that method's objects. The window MAY differ between methods on the same node, since a node may retain every block back to genesis while retaining traces only for recent history.
+A node is not required to hold the entire chain history. Each method has an *availability window*: the contiguous range of blocks for which that node can serve that method's objects. The window MAY differ between methods on the same node. For example, a node might retain every block back to genesis but retain traces only for recent history.
 
-After resolving `fromBlock` and `toBlock` to block numbers, the server MUST compare the resolved range against the availability window for the method being called. If any block in that range falls outside the window — whether because the data was pruned, was never indexed, or the block does not yet exist — the server MUST fail the request with `-32001` rather than returning a truncated result.
+After resolving `fromBlock` and `toBlock` to block numbers, the server MUST compare the resolved range against the availability window for the method being called. If any block in that range falls outside the window — whether because the data was pruned, the data was never indexed, or the block does not exist yet — the server MUST fail the request with `-32001` rather than returning a truncated result.
 
 #### Block-aligned pagination
 
 Each response covers a *page*: a contiguous run of blocks from `fromBlock` through `cursorBlock` in traversal order. Pages are block-aligned: the response contains every matching primary object from every block in the page, and none from blocks outside it. A page never contains part of a block.
 
-The `target` request field sets the target number of primary objects per page. It MUST be at least `0x1`, and related objects MUST NOT count toward it.
+The `target` request field sets the target number of primary objects per page. If specified, `target` MUST be at least `0x1`. Related objects MUST NOT count toward `target`.
 
 The server builds a page by scanning the resolved range one block at a time, starting at `fromBlock`, and ends the page at the first of the following conditions:
 
-1. **Range end.** The scan reaches `toBlock`. `cursorBlock` is `toBlock`, and no blocks remain.
-2. **Target reached.** The scan reaches a block that brings the page's primary object count to `target` or greater. `cursorBlock` MUST be set to this final block, and the response MUST include every matching primary object in it, even if the count then exceeds `target`. This condition does not apply if `target` is omitted.
-3. **Budget reached.** The server exhausts its *budget* — any server-imposed bound on the work or size of a single response, such as execution time, response size, or number of primary objects — before completing a block. The server MUST discard that block's partial results and end the page at the previous block.
+1. **Range end.** The server finishes scanning `toBlock`. `cursorBlock` is `toBlock`, and no blocks remain.
+2. **Target reached.** The server finishes scanning a block that brings the page's primary object count to `target` or greater. `cursorBlock` MUST be set to this final block, and the response MUST include every matching primary object in it, even if the count then exceeds `target`. This condition does not apply if `target` is omitted.
+3. **Budget reached.** The server exhausts its *budget* before completing a block. The budget is any server-imposed bound on the work or size of a single response, such as execution time, response size, or number of primary objects. The server MUST discard that block's partial results and end the page at the previous block.
 
 Every successful response MUST include at least the `fromBlock` block, so each page advances by at least one block. If the server exhausts its budget before completing `fromBlock`, no block-aligned page exists, and the server MUST fail the request with `-32005`. Once the server has completed at least one block, it MUST return the page rather than fail with `-32005`.
 
 As a result, a page contains more than `target` primary objects when its final block holds more matches than needed, and fewer — possibly zero — when the range ends or the budget is reached first. The number of primary objects in a response therefore does not indicate whether more data remains; only `cursorBlock` does.
 
-For example, consider an `asc` request with `fromBlock` 10, `toBlock` 20, and `target` 100 (decimal for readability), where blocks 10 through 13 contain 40, 0, 55, and 30 matching primary objects:
+For example, consider an `asc` request with `fromBlock` 10, `toBlock` 20, and `target` 100, where blocks 10 through 13 contain 40, 0, 55, and 30 matching primary objects (block numbers and counts are in decimal for readability).
 
 | Scenario | Ending condition | `cursorBlock` | Primary objects returned |
 | --- | --- | --- | --- |
@@ -211,15 +211,15 @@ This guarantee applies within a single response. Consecutive pages MAY reflect d
 
 #### Filters
 
-Each method defines its own set of filter fields; see that method's Filter section. The rules below apply to all of them.
+Each method defines its own set of filter fields; see that method's Filter section. The following rules apply to all of them.
 
-All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). An omitted filter field places no constraint on the result, unless the method's Filter section defines a default for that field. A `null` value is the same as an omitted field. An empty array (`[]`) also places no constraint on the result. Thus, a client that builds a filter field from an empty list gets all objects back, not zero objects. A filter key that the method's Filter section does not define is invalid, and the server MUST fail the request with `-32602`. If `filter` is omitted, every object of the method's primary type within the block range is returned, subject to those defaults.
+All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). An omitted filter field places no constraint on the result, unless the method's Filter section defines a default for that field. A `null` value is the same as an omitted field. An empty array (`[]`) also places no constraint on the result. Thus, a client that builds a filter field from an empty list matches all objects, not none. A filter key that the method's Filter section does not define is invalid, and the server MUST fail the request with `-32602`. If `filter` is omitted, every object of the method's primary object type within the block range is returned, subject to those defaults.
 
 #### Fields and relations
 
-The `fields` object selects what the response includes. Each key names an object type, and each value is either an array of field names to include or the string `"all"` to include every field that the implementation supports for that object type. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. If `fields` is present, it MUST contain the key of the method's primary object type. A `fields` value MUST NOT be an empty array. The server MUST fail a request that does not obey these two rules with `-32602`. Objects MUST NOT include fields that the request does not select. A field name that the implementation does not support for its key is invalid, and the server MUST fail the request with `-32602`. See each method's Fields section for the keys it accepts.
+The `fields` object selects what the response includes. Each key names an object type, and each value is either an array of field names to include or the string `"all"` to include every field that the implementation supports for that object type. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. If `fields` is present, it MUST contain the key of the method's primary object type. A `fields` value MUST NOT be an empty array. If a request violates either rule, the server MUST fail it with `-32602`. Objects MUST NOT include fields that the request does not select. A field name that the implementation does not support for its key is invalid, and the server MUST fail the request with `-32602`. See each method's Fields section for the keys it accepts.
 
-A relation is a reference from a primary object to a single object of another type. Only many-to-one relations are joinable. Each method MUST reject a `fields` key that names a relation it does not support.
+A relation is a reference from a primary object to a single object of another type. Only many-to-one relations are joinable. If a `fields` key names a relation that the method does not support, the server MUST fail the request with `-32602`.
 
 Results MUST be returned in normalized form. Related objects appear under `data` in their own array, keyed by the same name that selected them in `fields`. A related array MUST contain only objects referenced by a primary object in the same response, and a related object referenced by more than one primary object MUST appear only once.
 
@@ -227,7 +227,7 @@ Related objects use the schema defined in the response section of the correspond
 
 #### Ordering
 
-Each object type has an ordering key, defined in the Ordering section of the method that returns it as its primary type. The primary and related object arrays in `data` MUST be sorted by these ordering keys — ascending in `asc` mode and descending in `desc` mode. The sort applies across the entire array, not only at block granularity: in `desc` mode the objects within a single block are returned in reverse order as well.
+Each object type has an ordering key, defined in the Ordering section of the method that returns it as its primary object type. The primary and related object arrays in `data` MUST be sorted by these ordering keys — ascending in `asc` mode and descending in `desc` mode. The sort applies across the entire array, not only at block granularity: in `desc` mode the objects within a single block are returned in reverse order as well.
 
 ### `eth_queryBlocks`
 
@@ -237,7 +237,7 @@ Query for block headers.
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
-| `miner` | `DATA` or `DATA[]` | Block miner / coinbase address. |
+| `miner` | `DATA` or `DATA[]` | Block miner (coinbase) address. |
 
 #### Fields
 
@@ -314,14 +314,14 @@ Query for event logs emitted during transaction execution.
 
 #### Filter
 
-`topics` does not follow the general array rule; see below.
+`topics` does not follow the single-value-or-array rule in [Filters](#filters); see below.
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
 | `address` | `DATA` or `DATA[]` | Contract address that emitted the log. |
 | `topics` | see below | Positional topic filter. |
 
-The `topics` filter MUST follow the same matching semantics as `eth_getLogs`. The value is an array of up to 4 positional entries. Each entry may be:
+The `topics` filter MUST follow the same matching semantics as `eth_getLogs`. The value is an array of up to 4 positional entries, where the entry at index `i` constrains `topics[i]`. Each entry can be one of the following:
 
 - A single topic hash (`DATA`): matches logs where `topics[i]` equals that hash.
 - A non-empty array of topic hashes (`DATA[]`): matches logs where `topics[i]` equals any hash in the array.
@@ -359,18 +359,18 @@ Log objects are ordered by `(blockNumber, logIndex)`.
 
 ### `eth_queryTraces`
 
-Query for internal call traces. The result includes system transactions and precompile calls.
+Query for call traces, including call frames from system transactions and calls to precompiles.
 
 #### Filter
 
-`includeReverted` accepts only a single boolean; the other fields follow the general array rule.
+`includeReverted` accepts only a single boolean; the other fields follow the single-value-or-array rule in [Filters](#filters).
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
 | `from` | `DATA` or `DATA[]` | Sender address. |
 | `to` | `DATA` or `DATA[]` | Recipient address. |
 | `selector` | `DATA` or `DATA[]` | 4-byte function selector (first 4 bytes of `input`). Traces with `input` shorter than 4 bytes MUST NOT match a `selector` filter. |
-| `includeReverted` | `boolean` | If `true`, traces with `reverted: true` are also returned. If omitted or `false`, the server MUST NOT return traces with `reverted: true`. |
+| `includeReverted` | `boolean` | If `true`, the server also returns traces with `reverted: true`. If omitted or `false`, the server MUST NOT return traces with `reverted: true`. |
 
 #### Fields
 
@@ -382,7 +382,7 @@ Query for internal call traces. The result includes system transactions and prec
 
 #### Response
 
-Each trace object is one call frame of a transaction, excluding nested calls and logs.
+Each trace object represents one call frame of a transaction. The object does not contain the frame's nested calls or logs.
 
 This table lists the minimum fields that every implementation MUST support; see [Appendix 1](#appendix-1-monad-response-schemas) for the current fields supported by Monad.
 
@@ -392,10 +392,10 @@ This table lists the minimum fields that every implementation MUST support; see 
 | `from` | `DATA` | Address initiating the call. |
 | `to` | `DATA` or `null` | Target address of the call. For `CREATE` and `CREATE2`, the address of the created contract. For `SELFDESTRUCT`, the beneficiary address. `null` if a `CREATE` or `CREATE2` frame failed, because no contract was created. |
 | `value` | `QUANTITY` | Amount of native token sent with the call. |
-| `input` | `DATA` | Call data. For `CREATE` and `CREATE2`, the init code. |
+| `input` | `DATA` | Calldata. For `CREATE` and `CREATE2`, the init code. |
 | `output` | `DATA` | Return data. For a successful `CREATE` or `CREATE2`, the deployed code. `0x` if the frame returned no data. |
-| `error` | `string` or `null` | Failure of this call frame itself, such as a revert, out of gas, or an invalid opcode. `null` if this frame returned normally. To get revert data, decode `output`. |
-| `reverted` | `boolean` | `true` if the state changes of this call were discarded. This happens when the call itself failed or when one of its parent calls failed. |
+| `error` | `string` or `null` | Failure of this call frame itself, such as a revert, an out-of-gas error, or an invalid opcode. `null` if this frame returned normally. For a revert, `output` contains the revert data. |
+| `reverted` | `boolean` | `true` if the state changes of this call were discarded. This happens when the call itself failed or when one of its ancestor calls failed. |
 | `blockHash` | `DATA` | Hash of the containing block. |
 | `blockNumber` | `QUANTITY` | Number of the containing block. |
 | `transactionHash` | `DATA` | Hash of the containing transaction. |
@@ -404,21 +404,23 @@ This table lists the minimum fields that every implementation MUST support; see 
 
 #### Ordering
 
- Trace objects are ordered by `(blockNumber, transactionIndex, traceAddress)`, where `traceAddress` is compared lexicographically (element-wise), with shorter arrays sorting before longer arrays when one is a prefix of the other.
+Trace objects are ordered by `(blockNumber, transactionIndex, traceAddress)`, where `traceAddress` is compared lexicographically (element-wise), with shorter arrays sorting before longer arrays when one is a prefix of the other.
 
 ### `eth_queryTransfers`
 
-Query for native token transfers. A transfer is any call frame whose `value` is greater than zero and whose `type` is not `DELEGATECALL` or `CALLCODE`. These two call types do not move value. The server MUST NOT return them as transfers. The set of transfers in a block range is therefore exactly the subset of the traces in that range for which `value > 0` and `type` is not `DELEGATECALL` or `CALLCODE`, and each transfer object carries the same trace context as the corresponding `eth_queryTraces` object. The result includes system transactions and precompile calls.
+Query for native token transfers. A transfer is any call frame whose `value` is greater than zero and whose `type` is not `DELEGATECALL` or `CALLCODE`, including call frames from system transactions and calls to precompiles.
+
+The server MUST NOT return `DELEGATECALL` or `CALLCODE` frames as transfers, because these call types do not move value. The transfers in a block range are therefore exactly the traces in that range that meet this definition, and each transfer object is identical to the corresponding `eth_queryTraces` object.
 
 #### Filter
 
-`includeReverted` accepts only a single boolean; the other fields follow the general array rule.
+`includeReverted` accepts only a single boolean; the other fields follow the single-value-or-array rule in [Filters](#filters).
 
 | Field | Accepted Type | Description |
 | --- | --- | --- |
 | `from` | `DATA` or `DATA[]` | Address initiating the transfer. |
 | `to` | `DATA` or `DATA[]` | Address receiving the transfer. |
-| `includeReverted` | `boolean` | If `true`, transfers with `reverted: true` are also returned. If omitted or `false`, the server MUST NOT return transfers with `reverted: true`. |
+| `includeReverted` | `boolean` | If `true`, the server also returns transfers with `reverted: true`. If omitted or `false`, the server MUST NOT return transfers with `reverted: true`. |
 
 #### Fields
 
@@ -430,19 +432,19 @@ Query for native token transfers. A transfer is any call frame whose `value` is 
 
 #### Response
 
-The `eth_queryTransfers` response schema is the same as `eth_queryTraces`.
+The `eth_queryTransfers` response schema is the same as the `eth_queryTraces` response schema.
 
 #### Ordering
 
-Transfer objects are ordered by `(blockNumber, transactionIndex, traceAddress)`, where `traceAddress` is compared element-wise.
+Transfer objects are ordered by `(blockNumber, transactionIndex, traceAddress)`, where `traceAddress` is compared lexicographically (element-wise), with shorter arrays sorting before longer arrays when one is a prefix of the other.
 
 ### Errors
 
-The methods use standard JSON-RPC error codes plus application-specific codes that follow the conventions established by EIP-1474. The codes whose boundaries matter for these methods are:
+The methods use standard JSON-RPC error codes plus application-specific codes that follow the conventions established by EIP-1474. The following codes have specific meanings for these methods:
 
 | Code | Message | Description |
 | --- | --- | --- |
-| `-32601` | Method not found | The node does not recognize the method, because it runs software that predates this MIP. This is the standard JSON-RPC code and is listed here only to distinguish it from `-32004`. |
+| `-32601` | Method not found | The node does not recognize the method, typically because its software predates this MIP. This is the standard JSON-RPC code and is listed here only to distinguish it from `-32004`. |
 | `-32004` | Method not supported | The node recognizes the method but is not configured to serve it, and so cannot serve it for any block range. A node that does not index traces, for example, returns this code for `eth_queryTraces` and `eth_queryTransfers` while still serving the other three methods. |
 | `-32602` | Invalid params | Malformed request: unknown keys in the request object, unknown filter keys, invalid filter values, a `null` entry in a filter array, a `fields` object without the key of the primary object type, an empty `fields` array, unknown `fields` keys, unknown field names in a `fields` array, a `fields` key naming an unrecognized or unsupported relation for this method, a `target` of `0x0`, or a block range that is inverted for the requested `order`. |
 | `-32001` | Resource not found | The node serves this method, but the resolved block range falls partly or wholly outside its availability window for the method. See [Block range](#block-range). |
@@ -468,21 +470,21 @@ This section is informative. It describes recommended client behavior for these 
 
 ### Pagination
 
-Each response is a page covering `fromBlock` through `cursorBlock`, inclusive; see [Block-aligned pagination](#block-aligned-pagination). If `cursorBlock.number` equals `toBlock.number`, the query is complete. Otherwise more blocks remain, regardless of how many primary objects the page contains: a page cut short by the server's budget can hold fewer than `target` objects, or none, and still not be the last.
+Each response is a page covering `fromBlock` through `cursorBlock`, inclusive; see [Block-aligned pagination](#block-aligned-pagination). If `cursorBlock.number` equals `toBlock.number`, the query is complete. Otherwise, more blocks remain, regardless of how many primary objects the page contains: a page cut short by the server's budget can hold fewer than `target` objects, or none, and still not be the last.
 
 To fetch the next page, the client should repeat the request with every parameter unchanged except `fromBlock`:
 
 - `asc` mode: `fromBlock` = `cursorBlock.number + 1`
 - `desc` mode: `fromBlock` = `cursorBlock.number - 1`
 
-Because pages never split a block, resuming from the block after `cursorBlock` neither repeats nor skips objects, and clients do not need to reconcile partial blocks.
+Because pages never split a block, resuming from the next block in traversal order neither repeats nor skips objects, and clients do not need to reconcile partial blocks.
 
 ### Reorg detection
 
-Blocks near the chain tip can be replaced by a chain reorganization, which may invalidate data that a client has already processed. Clients paging toward the tip in `asc` mode can cheaply detect this by comparing each page's `fromBlock.parentHash` with the previous page's `cursorBlock.hash`:
+A chain reorganization (reorg) can replace blocks near the chain tip and invalidate data that a client has already processed. Clients paging toward the tip in `asc` mode can cheaply detect this by comparing each page's `fromBlock.parentHash` with the previous page's `cursorBlock.hash`:
 
-- **Match**: If the hashes match, the chain is unchanged. The client can safely process the new page.
-- **Mismatch**: If the hashes do not match, a reorg has replaced the stored block or one of its ancestors. The client should stop appending and run the recovery procedure below.
+- **Match**: The chain is unchanged, and the client can safely process the new page.
+- **Mismatch**: If the hashes do not match, a reorg has replaced the previous page's `cursorBlock` or one of its ancestors. The client should stop appending and run the recovery procedure below.
 
 ### Reorg recovery
 
@@ -494,7 +496,7 @@ This requires the client to retain a `number` and `hash` for every block it has 
 2. Walk the returned blocks newest to oldest. The first block whose `hash` matches the retained reference at the same block number is the recovery point.
 3. Discard all stored data above the recovery point, drop the retained references above it, and resume paging from `recoveryPoint + 1`.
 
-Setting `fromBlock` to `"latest"` rather than to the block number where detection failed keeps the query valid if the reorg shortened the chain.
+Setting `fromBlock` to `"latest"` rather than to the block number where the mismatch occurred keeps the query valid if the reorg shortened the chain.
 
 ### Joining relations
 
@@ -508,41 +510,41 @@ To associate a primary object with its related objects, the client should match 
 | `traces` | `traces.blockNumber == blocks.number` | `traces.transactionHash == transactions.hash` |
 | `transfers` | `transfers.blockNumber == blocks.number` | `transfers.transactionHash == transactions.hash` |
 
-Join keys are selected like any other field. A client that requests a relation should include both sides of its join key in `fields`; otherwise, the response has no way to indicate which related object belongs to which primary object.
+Join keys are selected like any other field. A client that requests a relation should include both sides of its join key in `fields`; otherwise, the client cannot tell which related object belongs to which primary object.
 
-The [Example](#example) request selects `blockNumber` on logs and `number` on blocks for this reason. Both returned logs have a `blockNumber` of `0x5e69ec6`, so both join to the single `blocks` object whose `number` is `0x5e69ec6`, and both logs have a block timestamp of `0x6a8d5688`. The block appears once even though two logs reference it. Blocks in the range that contain no matching logs, such as `0x5e69ec4`, do not appear at all.
+The [Example](#example) request selects `blockNumber` on logs and `number` on blocks for this reason. Both returned logs have a `blockNumber` of `0x5e69ec6`, so both join to the single `blocks` object whose `number` is `0x5e69ec6`, so both logs share its timestamp, `0x6a8d5688`. The block appears once even though two logs reference it. Blocks in the range that contain no matching logs, such as `0x5e69ec4`, do not appear at all.
 
 ## Rationale
 
-**JSON-RPC interface.** These methods extend the existing JSON-RPC interface rather than introduce a new transport or query language. Node operators and client libraries can adopt them without new infrastructure, and existing tooling such as authentication, load balancing, and retries works unchanged.
+**JSON-RPC interface.** These methods extend the existing JSON-RPC interface rather than introducing a new transport or query language. Node operators and client libraries can adopt them without new infrastructure, and existing tooling such as authentication, load balancing, and retries works unchanged.
 
 **`eth_*` namespace.** The methods use the `eth_*` namespace because nothing in the interface is specific to Monad. They query objects common to every EVM chain — blocks, transactions, logs, traces, and transfers — and reuse the value types, block tags, and error code conventions of existing `eth_*` methods.
 
 **Block range and traversal direction.** Chain history is ordered by block, so a contiguous block range is the natural unit for scanning and resuming a query. Supporting both `asc` and `desc` lets the same method serve forward scans, such as backfilling an index from genesis, and backward scans, such as fetching the most recent N events from `"latest"`, without the client guessing a block window and widening it until enough results arrive.
 
-**Block-aligned pagination.** The block is the atomic unit of chain history: a reorg replaces whole blocks, and indexers typically commit and roll back data one block at a time. The downside is that page size cannot be a hard limit. A page must include all of its final block, so the final block can push a page past `target`. For the same reason, if a single block has more matches than the server's budget allows, the server cannot return that block at all.
+**Block-aligned pagination.** The block is the atomic unit of chain history: a reorg replaces whole blocks, and indexers typically commit and roll back data one block at a time. Ending every page on a block boundary lets clients commit and roll back pages the same way. The downside is that page size cannot be a hard limit. A page must include all of its final block, so the final block can push a page past `target`. For the same reason, if a single block has more matches than the server's budget allows, the server cannot return that block at all.
 
 **Block references instead of an opaque cursor.** Because pages end on block boundaries, a block reference is a complete cursor. The response exposes it directly as `fromBlock`, `toBlock`, and `cursorBlock`, rather than wrapping it in an opaque token that would require either server-side state or an encoding shared by every implementation. With block numbers and hashes in every response, clients can resume pagination, check for completion, and detect reorgs without extra requests.
 
-**Many-to-one relations only.** One-to-many relations, such as all transactions in a block, would make response sizes unpredictable, since a single block can contain thousands of transactions. Restricting relations to many-to-one, such as each log's parent block, guarantees that a response never contains more related objects of a given type than primary objects. For the same reason, related objects do not count toward `target`: their number is already bounded by the primary count, and counting them would make page boundaries depend on which relations the client requested.
+**Many-to-one relations only.** One-to-many relations, such as all transactions in a block, would make response sizes unpredictable, because a single block can contain thousands of transactions. Restricting relations to many-to-one, such as each log's containing block, guarantees that a response never contains more related objects of a given type than primary objects. For the same reason, related objects do not count toward `target`: their number is already bounded by the primary count, and counting them would make page boundaries depend on which relations the client requested.
 
-**Normalized responses.** Related objects are returned in their own arrays, and each appears once even when several primary objects reference it. Embedding them instead would repeat the same block once for every log it contains. Separate arrays also match how clients typically store and index the data.
+**Normalized responses.** Related objects are returned in their own arrays, and each appears once even when several primary objects reference it. Embedding them instead would repeat the same block once for every matching log it contains. Separate arrays also match how clients typically store and index the data.
 
-**Merged transactions and receipts.** `eth_queryTransactions` returns each transaction and its receipt as a single object. The standard interface splits them across `eth_getTransactionByHash` and `eth_getTransactionReceipt` because receipts are produced by execution rather than stored in the block body, a distinction that does not matter to clients. Many common queries need fields from both, such as filtering transactions by `to` and reading `status` to skip reverted calls.
+**Merged transactions and receipts.** `eth_queryTransactions` returns each transaction and its receipt as a single object. The standard interface splits them across `eth_getTransactionByHash` and `eth_getTransactionReceipt` because receipts are produced by execution rather than stored in the block body, a distinction that does not matter to clients. Many common queries need fields from both, such as filtering transactions by `to` and reading `status` to skip reverted transactions.
 
-**New `reverted` field for traces and transfers.** In both the Geth (`debug_*`) and Parity-style (`trace_*`) call trace formats, the `error` field reports only whether that frame itself failed. If an ancestor frame fails, the frame's state changes are discarded too, and the only way to detect this is to walk the transaction's call tree. Because these methods return flat, filtered lists that often omit those ancestors, each frame now includes a `reverted` field that is `true` if its state changes were discarded for any reason. Reverted frames are excluded by default, since these methods are designed to return historical activity that actually took effect.
+**New `reverted` field for traces and transfers.** In both the Geth (`debug_*`) and Parity-style (`trace_*`) call trace formats, the `error` field reports only whether that frame itself failed. If an ancestor frame fails, the frame's state changes are discarded too, and the only way to detect this is to walk the transaction's call tree. Because these methods return flat, filtered lists that often omit those ancestors, each frame includes a `reverted` field that is `true` if its state changes were discarded for any reason. Reverted frames are excluded by default, because these methods are designed to return historical activity that actually took effect.
 
 ## Backwards compatibility
 
-There are no backwards compatibility issues. These are five new JSON-RPC methods; no existing method's request or response shape is changed. Clients that do not support these methods are unaffected, and a node that does not recognize them responds with the standard JSON-RPC "method not found" error (`-32601`). A node that recognizes the methods but is not configured to serve all of them responds with `-32004` for the methods it does not serve; see [Errors](#errors).
+There are no backwards compatibility issues. This MIP adds five new JSON-RPC methods and does not change the request or response shape of any existing method. Clients that do not support these methods are unaffected, and a node that does not recognize them responds with the standard JSON-RPC "method not found" error (`-32601`). A node that recognizes the methods but is not configured to serve all of them responds with `-32004` for the methods it does not serve; see [Errors](#errors).
 
 ## Security considerations
 
-These methods increase server-side workload by enabling high-volume historical queries. Implementations are expected to enforce request limits, such as a maximum response size or execution time, and to apply fair-use controls such as rate limiting and per-API-key quotas, to mitigate denial-of-service and cost-amplification risks.
+These methods increase server-side workload by enabling high-volume historical queries. Implementations should enforce request limits, such as a maximum response size or execution time. They should also apply fair-use controls, such as rate limiting and per-API-key quotas, to mitigate denial-of-service and cost-amplification risks.
 
 Results near the chain tip are not final. A reorganization can invalidate pages a client has already consumed, so a client that persists query results needs a recovery strategy built on the block references in the response; see [Reorg detection](#reorg-detection).
 
-Because the new RPC methods support joins and field projection, the worst-case work for a single request depends on the requested relations and fields as well as on the block range. Implementations should validate relations and fields strictly and bound that worst case.
+Because the new RPC methods support joins and field selection, the worst-case work for a single request depends on the requested relations and fields as well as on the block range. Implementations should validate relations and fields strictly and bound that worst case.
 
 ## Appendix 1: Monad response schemas
 
@@ -556,7 +558,7 @@ Some fields are present only from a specific Monad revision. This table lists ea
 | --- | --- | --- |
 | `MONAD_FOUR` | Adds `requestsHash` to blocks. Adds type `0x4` (EIP-7702) transactions. | `0x1fe56b2` |
 
-Monad mainnet (chain ID `0x8f`) changed from `MONAD_THREE` directly to `MONAD_SIX` at block `0x1fe56b2`. Thus the `MONAD_FOUR` changes start at that block on mainnet. The revisions from `MONAD_FIVE` to `MONAD_TEN` do not change the response schemas.
+Monad mainnet (chain ID `0x8f`) changed from `MONAD_THREE` directly to `MONAD_SIX` at block `0x1fe56b2`. Thus the `MONAD_FOUR` changes start at that block on mainnet. The revisions `MONAD_FIVE` through `MONAD_TEN` do not change the response schemas.
 
 ### Blocks
 
@@ -585,7 +587,7 @@ Monad mainnet (chain ID `0x8f`) changed from `MONAD_THREE` directly to `MONAD_SI
 | `blobGasUsed` | `QUANTITY` | Blob gas used. Always `0x0` on Monad. |
 | `excessBlobGas` | `QUANTITY` | Excess blob gas. Always `0x0` on Monad. |
 | `parentBeaconBlockRoot` | `DATA` | Parent beacon block root. |
-| `requestsHash` | `DATA` | EIP-7685 requests hash. Present only in blocks from `MONAD_FOUR`; absent in earlier blocks. |
+| `requestsHash` | `DATA` | EIP-7685 requests hash. Present only in blocks from `MONAD_FOUR` onward; absent in earlier blocks. |
 
 ### Transactions
 
@@ -607,7 +609,7 @@ In the table below, ✓ means that the field is present on that transaction type
 | `input` | `DATA` | Calldata, or init code for a contract creation transaction. | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `value` | `QUANTITY` | Transferred value. | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `gas` | `QUANTITY` | Gas limit. | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `gasPrice` | `QUANTITY` | For types `0x0` and `0x1`, the gas price that the sender signed. For types `0x2` and `0x4`, the effective gas price; equal to `effectiveGasPrice`. | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `gasPrice` | `QUANTITY` | For types `0x0` and `0x1`, the gas price that the sender signed. For types `0x2` and `0x4`, the effective gas price, equal to `effectiveGasPrice`. | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `maxFeePerGas` | `QUANTITY` | Maximum fee per gas. | — | — | — | ✓ | ✓ |
 | `maxPriorityFeePerGas` | `QUANTITY` | Maximum priority fee per gas. | — | — | — | ✓ | ✓ |
 | `chainId` | `QUANTITY` | Chain ID. | — | ✓ | ✓ | ✓ | ✓ |
@@ -624,7 +626,7 @@ In the table below, ✓ means that the field is present on that transaction type
 | `contractAddress` | `DATA` or `null` | Address of the created contract. `null` if the transaction is not a contract creation transaction. | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `logsBloom` | `DATA` | Receipt logs bloom filter. | ✓ | ✓ | ✓ | ✓ | ✓ |
 
-Type `0x4` transactions are present only in blocks from `MONAD_FOUR`.
+Type `0x4` transactions are present only in blocks from `MONAD_FOUR` onward.
 
 ### Logs
 
@@ -651,7 +653,7 @@ Type `0x4` transactions are present only in blocks from `MONAD_FOUR`.
 | `value` | `QUANTITY` | Amount of native token sent with the call. `0x0` for `STATICCALL`. |
 | `gas` | `QUANTITY` | Gas provided for the call. |
 | `gasUsed` | `QUANTITY` | Gas used during the call. |
-| `input` | `DATA` | Call data. |
+| `input` | `DATA` | Calldata. |
 | `output` | `DATA` | Return data. `0x` if the frame returned no data. |
 | `error` | `string` or `null` | Failure of this call frame. `null` if the frame returned normally. |
 | `reverted` | `boolean` | `true` if the state changes of this call were discarded. |
