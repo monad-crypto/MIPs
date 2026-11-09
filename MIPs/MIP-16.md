@@ -168,36 +168,38 @@ The request object MUST NOT contain keys other than those listed above. If it do
 
 Each request scans a contiguous, inclusive range of blocks from `fromBlock` to `toBlock`, in the direction given by `order`:
 
-- `asc` (default): scan from `fromBlock` upward, returning results oldest-first. `fromBlock` is the lower bound and `toBlock` the upper bound.
-- `desc`: scan from `fromBlock` downward, returning results newest-first. `fromBlock` is the upper bound and `toBlock` the lower bound.
+- `asc` (default): scan from `fromBlock` upward, returning results oldest-first. `fromBlock` is the lower bound, and `toBlock` is the upper bound.
+- `desc`: scan from `fromBlock` downward, returning results newest-first. `fromBlock` is the upper bound, and `toBlock` is the lower bound.
 
-`fromBlock` and `toBlock` each accept a `QUANTITY` block number (for example, `"0xf4240"`) or a tag: `"latest"`, `"earliest"`, `"safe"`, `"finalized"`. Tags MUST be resolved server-side at query execution time. `fromBlock` defaults to `"earliest"` in `asc` mode and `"latest"` in `desc` mode. `toBlock` defaults to `"latest"` in `asc` mode and `"earliest"` in `desc` mode. An `asc` scan with `toBlock` omitted therefore runs to the chain tip, and a `desc` scan with `toBlock` omitted runs to genesis.
+`fromBlock` and `toBlock` each accept a `QUANTITY` block number (for example, `"0xf4240"`) or one of the tags `"latest"`, `"earliest"`, `"safe"`, or `"finalized"`. The server MUST resolve tags to block numbers when it executes the query.
 
-A resolved range is inverted if `fromBlock` is greater than `toBlock` in `asc` mode, or less than `toBlock` in `desc` mode. If the resolved range is inverted, the server MUST fail the request with `-32602`.
+If omitted, `fromBlock` defaults to `"earliest"` in `asc` mode and `"latest"` in `desc` mode, and `toBlock` defaults to the opposite end: `"latest"` in `asc` mode and `"earliest"` in `desc` mode. As a result, an `asc` scan with `toBlock` omitted runs to the chain tip, and a `desc` scan with `toBlock` omitted runs to genesis.
+
+The server MUST fail the request with `-32602` if the resolved range is inverted: that is, if `fromBlock` is greater than `toBlock` in `asc` mode, or less than `toBlock` in `desc` mode.
 
 A node is not required to hold the entire chain history. Each method has an *availability window*: the contiguous range of blocks for which that node can serve that method's objects. The window MAY differ between methods on the same node. For example, a node might retain every block back to genesis but retain traces only for recent history.
 
-After resolving `fromBlock` and `toBlock` to block numbers, the server MUST compare the resolved range against the availability window for the method being called. If any block in that range falls outside the window — whether because the data was pruned, the data was never indexed, or the block does not exist yet — the server MUST fail the request with `-32001` rather than returning a truncated result.
+If any block in the resolved range falls outside the method's availability window, the server MUST fail the request with `-32001` rather than return a truncated result. This applies whether the data was pruned, the data was never indexed, or the block does not exist yet.
 
 #### Block-aligned pagination
 
-Each response covers a *page*: a contiguous run of blocks from `fromBlock` through `cursorBlock` in traversal order. Pages are block-aligned: the response contains every matching primary object from every block in the page, and none from blocks outside it. A page never contains part of a block.
+Each response covers a *page*: the contiguous run of blocks from `fromBlock` through `cursorBlock`, in traversal order. Pages are block-aligned, so a page never contains part of a block: the response contains every matching primary object from every block in the page, and none from blocks outside it.
 
-The `target` request field sets the target number of primary objects per page. If specified, `target` MUST be at least `0x1`. Related objects MUST NOT count toward `target`.
+The `target` request field sets the desired number of primary objects per page. It is not a hard limit; see the Target reached condition below. If present, `target` MUST be at least `0x1`. Related objects MUST NOT count toward `target`.
 
-The server builds a page by scanning the resolved range one block at a time, starting at `fromBlock`, and ends the page at the first of the following conditions:
+The server builds a page by scanning the resolved range one block at a time, starting at `fromBlock`. It ends the page when the first of the following conditions occurs:
 
 1. **Range end.** The server finishes scanning `toBlock`. `cursorBlock` is `toBlock`, and no blocks remain.
-2. **Target reached.** The server finishes scanning a block that brings the page's primary object count to `target` or greater. `cursorBlock` MUST be set to this final block, and the response MUST include every matching primary object in it, even if the count then exceeds `target`. This condition does not apply if `target` is omitted.
-3. **Budget reached.** The server exhausts its *budget* before completing a block. The budget is any server-imposed bound on the work or size of a single response, such as execution time, response size, or number of primary objects. The server MUST discard that block's partial results and end the page at the previous block.
+2. **Target reached.** The server finishes scanning a block that brings the page's primary object count to `target` or more. `cursorBlock` MUST be this block, and the response MUST include every matching primary object in it, even if the count then exceeds `target`. This condition applies only if the request includes `target`.
+3. **Budget reached.** The server exhausts its *budget* before completing a block. The budget is any server-imposed bound on the work or size of a single response, such as execution time, response size, or number of primary objects. The server MUST discard that block's partial results and end the page at the previous block in traversal order.
 
-Every successful response MUST include at least the `fromBlock` block, so each page advances by at least one block. If the server exhausts its budget before completing `fromBlock`, no block-aligned page exists, and the server MUST fail the request with `-32005`. Once the server has completed at least one block, it MUST return the page rather than fail with `-32005`.
+Every successful page MUST include at least the first block in the range, `fromBlock`, so each response advances by at least one block. If the server exhausts its budget before completing `fromBlock`, no block-aligned page exists, and the server MUST fail the request with `-32005`. Once the server has completed at least one block, it MUST return the page rather than fail with `-32005`.
 
-As a result, a page contains more than `target` primary objects when its final block holds more matches than needed, and fewer — possibly zero — when the range ends or the budget is reached first. The number of primary objects in a response therefore does not indicate whether more data remains; only `cursorBlock` does.
+As a result, the number of primary objects in a page often differs from `target`. A page can contain more than `target` when its final block holds more matches than needed, and fewer, possibly zero, when the range ends or the budget runs out first. The count therefore does not indicate whether more data remains; only `cursorBlock` does.
 
-For example, consider an `asc` request with `fromBlock` 10, `toBlock` 20, and `target` 100, where blocks 10 through 13 contain 40, 0, 55, and 30 matching primary objects (block numbers and counts are in decimal for readability).
+For example, consider an `asc` request with `fromBlock` 10, `toBlock` 20, and `target` 100, where blocks 10 through 13 contain 40, 0, 55, and 30 matching primary objects. Block numbers and counts are in decimal for readability. The following table shows the resulting page in three scenarios:
 
-| Scenario | Ending condition | `cursorBlock` | Primary objects returned |
+| Budget scenario | Ending condition | `cursorBlock` | Primary objects returned |
 | --- | --- | --- | --- |
 | Budget not exhausted | Target reached at block 13 (40 + 0 + 55 + 30 = 125) | 13 | 125 |
 | Budget exhausted while scanning block 13 | Budget reached | 12 | 95 |
@@ -211,23 +213,31 @@ This guarantee applies within a single response. Consecutive pages MAY reflect d
 
 #### Filters
 
-Each method defines its own set of filter fields; see that method's Filter section. The following rules apply to all of them.
+Each method defines its own set of filter fields; see that method's Filter section. The following rules apply to every method, except where a method's Filter section states otherwise.
 
-All conditions within a `filter` object are combined with AND semantics. Except where a method's Filter section states otherwise, each filter field accepts either a single value or an array of values; an array matches if the field equals any element of the array (OR within the field). Such an array MUST NOT contain `null` entries; if it does, the server MUST fail the request with `-32602`. An omitted filter field places no constraint on the result, unless the method's Filter section defines a default for that field. A filter field whose value is `null` is the same as an omitted field. An empty array (`[]`) also places no constraint on the result. Thus, a client that builds a filter field from an empty list matches all objects, not none. A filter key that the method's Filter section does not define is invalid, and the server MUST fail the request with `-32602`. If `filter` is omitted, every object of the method's primary object type within the block range is returned, subject to those defaults.
+An object matches a filter only if it matches every field in the `filter` object (AND across fields). Each filter field accepts either a single value or an array of values. An array matches if the object's field equals any element of the array (OR within a field). An array MUST NOT contain `null` entries.
+
+Omitting a filter field places no constraint on that field, unless the method's Filter section defines a default for it. A `null` value or an empty array (`[]`) is the same as omitting the field. As a result, a filter field built from an empty list matches all objects, not none. If `filter` itself is omitted, the response includes every object of the method's primary object type in the block range, subject to any defaults.
+
+The server MUST fail the request with `-32602` if `filter` contains a key that the method's Filter section does not define, or if a filter array contains a `null` entry.
 
 #### Fields and relations
 
-The `fields` object selects what the response includes. Each key names an object type, and each value is either an array of field names to include or the string `"all"` to include every field that the implementation supports for that object type. The key naming the method's primary object type selects fields on the primary objects; every other key names a relation to join. If `fields` is omitted, all fields of the primary object are included and no relations are joined. If `fields` is present, it MUST contain the key of the method's primary object type. A `fields` value MUST NOT be an empty array. If a request violates either rule, the server MUST fail it with `-32602`. Objects MUST NOT include fields that the request does not select. A field name that the implementation does not support for its key is invalid, and the server MUST fail the request with `-32602`. See each method's Fields section for the keys it accepts.
+The `fields` object selects which fields the response includes and which relations it joins. Each key names an object type. The key for the method's primary object type selects fields on the primary objects, and every other key names a relation to join. Each value is either an array of field names or the string `"all"`, which selects every field that the implementation supports for that object type. See each method's Fields section for the keys it accepts.
 
-A relation is a reference from a primary object to a single object of another type. Only many-to-one relations are joinable. If a `fields` key names a relation that the method does not support, the server MUST fail the request with `-32602`.
+If `fields` is omitted, the response includes all fields of the primary objects and joins no relations. Objects in the response MUST NOT include fields that the request does not select.
 
-Results MUST be returned in normalized form. Related objects appear under `data` in their own array, keyed by the same name that selected them in `fields`. A related array MUST contain only objects referenced by a primary object in the same response, and a related object referenced by more than one primary object MUST appear only once.
+A relation is a reference from a primary object to a single object of another type, such as a log's containing block. Only many-to-one relations are joinable; see [Many-to-one relations only](#rationale). Related objects use the schema of the method that returns them as its primary object type: `blocks` objects as defined under `eth_queryBlocks`, and `transactions` objects as defined under `eth_queryTransactions`.
 
-Related objects use the schema defined in the response section of the corresponding method: `blocks` objects as defined under `eth_queryBlocks`, and `transactions` objects as defined under `eth_queryTransactions`.
+Results MUST be returned in normalized form: related objects appear in their own arrays under `data`, not embedded in the primary objects. Each related array is keyed by the same name that selected it in `fields`. A related array MUST contain only objects that a primary object in the same response references, and MUST contain each of those objects only once, even if several primary objects reference it.
+
+The server MUST fail the request with `-32602` if `fields` is present but does not contain the key of the method's primary object type, if a `fields` value is an empty array, if a `fields` key is neither the primary object type nor a relation that the method supports, or if a field name is not supported for its object type.
 
 #### Ordering
 
-Each object type has an ordering key, defined in the Ordering section of the method that returns it as its primary object type. The primary and related object arrays in `data` MUST be sorted by these ordering keys — ascending in `asc` mode and descending in `desc` mode. The sort applies across the entire array, not only at block granularity: in `desc` mode the objects within a single block are returned in reverse order as well.
+Each object type has an ordering key, defined in the Ordering section of the method that returns that type as its primary object type. Composite keys, such as `(blockNumber, logIndex)`, are compared component by component, from left to right.
+
+Every array in `data`, primary or related, MUST be sorted by the ordering key of its object type: ascending in `asc` mode and descending in `desc` mode. The sort order applies within each block as well as across blocks. For example, in `desc` mode, the logs within a single block are returned from highest `logIndex` to lowest.
 
 ### `eth_queryBlocks`
 
