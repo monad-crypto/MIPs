@@ -544,11 +544,11 @@ The [Example](#example) request selects `blockNumber` on logs and `number` on bl
 
 **New `reverted` field for traces and transfers.** In both the Geth (`debug_*`) and Parity-style (`trace_*`) call trace formats, the `error` field reports only whether that frame itself failed. If an ancestor frame fails, the frame's state changes are discarded too, and the only way to detect this is to walk the transaction's call tree. Because these methods return flat, filtered lists that often omit those ancestors, each frame includes a `reverted` field that is `true` if its state changes were discarded for any reason. Reverted frames are excluded by default, because these methods are designed to return historical activity that actually took effect.
 
-## Backwards compatibility
+## Backwards Compatibility
 
 There are no backwards compatibility issues. This MIP adds five new JSON-RPC methods and does not change the request or response shape of any existing method. Clients that do not support these methods are unaffected, and a node that does not recognize them responds with the standard JSON-RPC "method not found" error (`-32601`). A node that recognizes the methods but is not configured to serve all of them responds with `-32004` for the methods it does not serve; see [Errors](#errors).
 
-## Security considerations
+## Security Considerations
 
 These methods increase server-side workload by enabling high-volume historical queries. Implementations should enforce request limits, such as a maximum response size or execution time. They should also apply fair-use controls, such as rate limiting and per-API-key quotas, to mitigate denial-of-service and cost-amplification risks.
 
@@ -558,7 +558,7 @@ Because the new RPC methods support joins and field selection, the worst-case wo
 
 ## Appendix 1: Monad response schemas
 
-This appendix is normative for Monad at revision `MONAD_TEN`. A Monad node that serves these methods MUST support every field in this appendix, and MUST NOT return fields that this appendix does not define.
+This appendix is normative for Monad at revision `MONAD_TEN`.
 
 ### Monad revisions
 
