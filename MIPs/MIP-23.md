@@ -1,4 +1,3 @@
-```jsx
 ---
 title: Account-configurable reserve balance
 description: Allow accounts to configure their reserve balance through an onchain precompile
@@ -10,7 +9,6 @@ category: Core
 created: 2026-09-29
 requires: 4, 8
 ---
-```
 
 ## Abstract
 
