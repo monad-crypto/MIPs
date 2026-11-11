@@ -59,9 +59,10 @@ For a record $r$ and block number $n$, define:
 
 $$
 \text{active}(r,n)=
-\begin{cases}\text{DEFAULT\_RESERVE}, & r.\text{validFrom}=0\\r.\text{settledReserve}, & 0<r.\text{validFrom}\ \text{and}\ n<r.\text{validFrom}\\
-r.\text{pendingReserve},
-& 0<r.\text{validFrom}\le n
+\begin{cases}
+\text{DEFAULT}\rule{0.5em}{0.06em}\text{RESERVE}, & r.\text{validFrom}=0 \\
+r.\text{settledReserve}, & 0<r.\text{validFrom}\ \text{and}\ n<r.\text{validFrom} \\
+r.\text{pendingReserve}, & 0<r.\text{validFrom}\le n
 \end{cases}
 $$
 
@@ -172,13 +173,13 @@ Let $R_h(a,b)$ be account $a$’s reserve for block $b$ calculated using only it
 Initialize the account’s remaining gas budget $G$:
 
 $$
-G_a = \min\!\left(\text{balance}(S_h,a),\; R_h(a,h)\right)
+G_a = \min\left(\text{balance}(S_h,a), R_h(a,h)\right)
 $$
 
 Process blocks $h+1,\ldots,n$ in order. Before processing transactions in each block $b$, cap the remaining budget at that block’s reserve:
 
 $$
-G_a = \min\!\left(G_a,\; R_h(a,b)\right)
+G_a = \min\left(G_a, R_h(a,b)\right)
 $$
 
 This cap MUST apply at each block boundary, including empty blocks. Implementations MAY apply it lazily when the account is accessed, provided the result is identical.
@@ -198,7 +199,7 @@ Replace the global reserve cap in the existing execution checks with the account
 Let $B_{pre}(a)$ be the account’s balance at the existing pre-transaction checkpoint, before the sender’s gas debit, and let $B_{post}(a)$ be its balance at the existing final reserve-check checkpoint. For a protected account $a$ with record $r_a$, in execution block $b$, define:
 
 $$
-\text{protected}(a) = \min\!\left(B_{pre}(a),\; \text{active}(r_a, b)\right)
+\text{protected}(a) = \min\left(B_{pre}(a), \text{active}(r_a, b)\right)
 $$
 
 A reserve violation is determined per protected account, in exactly one of three cases:
