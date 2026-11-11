@@ -1,4 +1,5 @@
 ---
+mip: 23
 title: Account-configurable Reserve Balance
 description: Allow accounts to configure their reserve balance through an onchain precompile
 author: QEDK (@qedk)
@@ -68,7 +69,7 @@ Activation occurs logically before the first transaction of the `validFrom` bloc
 
 ### Precompile interface
 
-Extend MIP-4 with:
+Extend [MIP-4](./MIP-4.md) with:
 
 ```solidity
 interface IReserveBalance {
@@ -404,4 +405,4 @@ Reserve balance accounting now requires loading an additional page (the one cont
 
 ## Copyright
 
-Copyright and related rights waived via CC0.
+Copyright and related rights waived via [CC0](../LICENSE.md).
