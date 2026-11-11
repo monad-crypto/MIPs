@@ -61,8 +61,8 @@ $$
 \text{active}(r,n)=
 \begin{cases}
 \text{DEFAULT}\rule{0.5em}{0.06em}\text{RESERVE}, & r.\text{validFrom}=0 \\
-r.\text{settledReserve}, & 0<r.\text{validFrom}\ \text{and}\ n<r.\text{validFrom} \\
-r.\text{pendingReserve}, & 0<r.\text{validFrom}\le n
+r.\text{settledReserve}, & 0 \lt r.\text{validFrom}\ \text{and}\ n \lt r.\text{validFrom} \\
+r.\text{pendingReserve}, & 0 \lt r.\text{validFrom} \le n
 \end{cases}
 $$
 
