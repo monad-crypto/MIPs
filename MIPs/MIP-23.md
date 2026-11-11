@@ -58,7 +58,7 @@ Every value in `[0, 2**256 - 1]` is valid. Zero MUST NOT mean “unconfigured”
 For a record $r$ and block number $n$, define:
 
 $$
-\operatorname{active}(r,n)=
+\text{active}(r,n)=
 \begin{cases}\text{DEFAULT\_RESERVE}, & r.\text{validFrom}=0\\r.\text{settledReserve}, & 0<r.\text{validFrom}\ \text{and}\ n<r.\text{validFrom}\\
 r.\text{pendingReserve},
 & 0<r.\text{validFrom}\le n
@@ -172,7 +172,7 @@ Let $R_h(a,b)$ be account $a$’s reserve for block $b$ calculated using only it
 Initialize the account’s remaining gas budget $G$:
 
 $$
-G_a = \min\!\left(\operatorname{balance}(S_h,a),\; R_h(a,h)\right)
+G_a = \min\!\left(\text{balance}(S_h,a),\; R_h(a,h)\right)
 $$
 
 Process blocks $h+1,\ldots,n$ in order. Before processing transactions in each block $b$, cap the remaining budget at that block’s reserve:
@@ -198,16 +198,16 @@ Replace the global reserve cap in the existing execution checks with the account
 Let $B_{pre}(a)$ be the account’s balance at the existing pre-transaction checkpoint, before the sender’s gas debit, and let $B_{post}(a)$ be its balance at the existing final reserve-check checkpoint. For a protected account $a$ with record $r_a$, in execution block $b$, define:
 
 $$
-\operatorname{protected}(a) = \min\!\left(B_{pre}(a),\; \operatorname{active}(r_a, b)\right)
+\text{protected}(a) = \min\!\left(B_{pre}(a),\; \text{active}(r_a, b)\right)
 $$
 
 A reserve violation is determined per protected account, in exactly one of three cases:
 
 1. **Sender eligible for emptying.** The sender is exempt from this check, as under the existing emptying exception.
-2. **Sender not eligible for emptying.** A reserve violation exists if $F(tx) > \operatorname{protected}(a)$, or if $B_{post}(a) < \operatorname{protected}(a) - F(tx)$. Implementations MUST NOT replace the first condition with a zero threshold by saturating the subtraction.
-3. **Any other protected account.** A reserve violation exists if $B_{post}(a) < \operatorname{protected}(a)$.
+2. **Sender not eligible for emptying.** A reserve violation exists if $F(tx) > \text{protected}(a)$, or if $B_{post}(a) < \text{protected}(a) - F(tx)$. Implementations MUST NOT replace the first condition with a zero threshold by saturating the subtraction.
+3. **Any other protected account.** A reserve violation exists if $B_{post}(a) < \text{protected}(a)$.
 
-For a transaction accepted by consensus, the first condition of case 2 cannot occur, because its gas-fee bound was checked against a budget that never exceeds $\operatorname{protected}(a)$. The condition is specified so that the check is defined for every transaction.
+For a transaction accepted by consensus, the first condition of case 2 cannot occur, because its gas-fee bound was checked against a budget that never exceeds $\text{protected}(a)$. The condition is specified so that the check is defined for every transaction.
 
 A setter call MUST NOT change the threshold for its transaction or for later transactions in the same block. Intermediate dips remain permissible if the final check succeeds.
 
@@ -215,7 +215,7 @@ A setter call MUST NOT change the threshold for its transaction or for later tra
 
 Two properties bound the record reads that the final check and `dippedIntoReserve()` require:
 
-- **Thresholds are constant within a block.** A setter call in block $b$ keeps the settled reserve equal to the active value and sets `validFrom` greater than $b$, so $\operatorname{active}(r_a, b)$ is unaffected by any setter call executed in block $b$. Implementations MAY read each record once per block and cache the threshold.
+- **Thresholds are constant within a block.** A setter call in block $b$ keeps the settled reserve equal to the active value and sets `validFrom` greater than $b$, so $\text{active}(r_a, b)$ is unaffected by any setter call executed in block $b$. Implementations MAY read each record once per block and cache the threshold.
 - **Reads for accounts in case 3 can be lazy.** Such an account can only be in violation if its balance is below $B_{pre}(a)$. Implementations MAY skip reading its record while its balance is at least $B_{pre}(a)$.
 
 ## Rationale
