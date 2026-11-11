@@ -1,5 +1,5 @@
 ---
-title: Account-configurable reserve balance
+title: Account-configurable Reserve Balance
 description: Allow accounts to configure their reserve balance through an onchain precompile
 author: QEDK (@qedk)
 discussions-to:
