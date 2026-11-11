@@ -3,7 +3,7 @@ mip: 23
 title: Account-configurable Reserve Balance
 description: Allow accounts to configure their reserve balance through an onchain precompile
 author: QEDK (@qedk)
-discussions-to:
+discussions-to: https://forum.monad.xyz/t/mip-23-account-configurable-reserve-balance/598
 status: Draft
 type: Standards Track
 category: Core
