@@ -13,7 +13,7 @@ requires: 4, 8
 
 ## Abstract
 
-Introduce account-configurable reserve balances by extending the reserve balance precompile at `0x1001`. Accounts MAY select any `uint256` amount, denominated in wei. Accounts that do not configure a reserve retain the existing global default of 10 MON.
+Introduce account-configurable reserve balances by extending the reserve balance precompile at `0x1001`. Accounts can select any `uint256` amount, denominated in wei. Accounts that do not configure a reserve retain the existing global default of 10 MON.
 
 Configuration changes activate after the consensus-execution delay. Consensus accounts for scheduled reductions without treating scheduled increases as immediately available gas collateral. Existing emptying transaction eligibility and transaction-end reserve balance enforcement are otherwise preserved.
 
