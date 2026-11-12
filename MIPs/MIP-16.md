@@ -37,7 +37,7 @@ These shortcomings impose unnecessary compute, memory, and bandwidth costs on bo
 
 ## Example
 
-This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emitted by the USDC contract on Monad mainnet, including the timestamp of each log's containing block.
+This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emitted by the USDC contract on Monad mainnet, including the sender of each log's containing transaction.
 
 ```json
 {
@@ -50,8 +50,8 @@ This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emit
       "topics": ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"]
     },
     "fields": {
-      "logs": ["blockNumber", "logIndex", "address", "data", "topics"],
-      "blocks": ["number", "timestamp"]
+      "logs": ["blockNumber", "transactionIndex", "logIndex", "address", "data", "topics"],
+      "transactions": ["blockNumber", "transactionIndex", "from"]
     },
     "order": "asc",
     "fromBlock": "0x5e69ec4",
@@ -60,7 +60,7 @@ This request uses the `eth_queryLogs` method to fetch `Transfer` event logs emit
 }
 ```
 
-The response includes the requested fields for each matching log and its related block, plus resolved block references for `fromBlock`, `toBlock`, and `cursorBlock`.
+The response includes the requested fields for each matching log and its related transaction, plus resolved block references for `fromBlock`, `toBlock`, and `cursorBlock`.
 
 ```json
 {
@@ -71,6 +71,7 @@ The response includes the requested fields for each matching log and its related
       "logs": [
         {
           "blockNumber": "0x5e69ec6",
+          "transactionIndex": "0x8",
           "logIndex": "0x4f",
           "address": "0x754704bc059f8c67012fed69bc8a327a5aafb603",
           "data": "0x000000000000000000000000000000000000000000000000000000000432d69f",
@@ -82,6 +83,7 @@ The response includes the requested fields for each matching log and its related
         },
         {
           "blockNumber": "0x5e69ec6",
+          "transactionIndex": "0x8",
           "logIndex": "0x57",
           "address": "0x754704bc059f8c67012fed69bc8a327a5aafb603",
           "data": "0x0000000000000000000000000000000000000000000000000000000003f87ab2",
@@ -92,10 +94,11 @@ The response includes the requested fields for each matching log and its related
           ]
         }
       ],
-      "blocks": [
+      "transactions": [
         {
-          "number": "0x5e69ec6",
-          "timestamp": "0x6a8d5688"
+          "blockNumber": "0x5e69ec6",
+          "transactionIndex": "0x8",
+          "from": "0x451f5c0cf3ef1e982d6cb7d1d44fd3664d566778"
         }
       ]
     },
@@ -175,6 +178,8 @@ Each request scans a contiguous, inclusive range of blocks from `fromBlock` to `
 
 If omitted, `fromBlock` defaults to `"earliest"` in `asc` mode and `"latest"` in `desc` mode, and `toBlock` defaults to the opposite end: `"latest"` in `asc` mode and `"earliest"` in `desc` mode. As a result, an `asc` scan with `toBlock` omitted runs to the chain tip, and a `desc` scan with `toBlock` omitted runs to genesis.
 
+The *resolved range* is the block range after the server has applied these defaults and resolved any tags to block numbers. Every rule in this document that refers to the block range, including the checks below, applies to the resolved range.
+
 The server MUST fail the request with `-32602` if the resolved range is inverted: that is, if `fromBlock` is greater than `toBlock` in `asc` mode, or less than `toBlock` in `desc` mode.
 
 A node is not required to hold the entire chain history. Each method has an *availability window*: the contiguous range of blocks for which that node can serve that method's objects. The window MAY differ between methods on the same node. For example, a node might retain every block back to genesis but retain traces only for recent history.
@@ -185,7 +190,7 @@ If any block in the resolved range falls outside the method's availability windo
 
 Each response covers a *page*: the contiguous run of blocks from `fromBlock` through `cursorBlock`, in traversal order. Pages are block-aligned, so a page never contains part of a block: the response contains every matching primary object from every block in the page, and none from blocks outside it.
 
-The `target` request field sets the desired number of primary objects per page. It is not a hard limit; see the Target reached condition below. If present, `target` MUST be at least `0x1`. Related objects MUST NOT count toward `target`.
+The `target` request field sets the desired number of primary objects per page. Only primary objects count toward `target`; related objects do not, although they can still consume the server's budget. `target` is not a hard limit; see the Target reached condition below. If present, `target` MUST be at least `0x1`.
 
 The server builds a page by scanning the resolved range one block at a time, starting at `fromBlock`. It ends the page when the first of the following conditions occurs:
 
@@ -457,7 +462,7 @@ The methods use standard JSON-RPC error codes plus application-specific codes th
 | `-32601` | Method not found | The node does not recognize the method, typically because its software predates this MIP. This is the standard JSON-RPC code and is listed here only to distinguish it from `-32004`. |
 | `-32004` | Method not supported | The node recognizes the method but is not configured to serve it, and so cannot serve it for any block range. A node that does not index traces, for example, returns this code for `eth_queryTraces` and `eth_queryTransfers` while still serving the other three methods. |
 | `-32602` | Invalid params | Malformed request: unknown keys in the request object, unknown filter keys, invalid filter values, a `null` entry in a filter array, a `fields` object without the key of the primary object type, an empty `fields` array, unknown `fields` keys, unknown field names in a `fields` array, a `fields` key naming an unrecognized or unsupported relation for this method, a `target` of `0x0`, or a block range that is inverted for the requested `order`. |
-| `-32001` | Resource not found | The node serves this method, but the resolved block range falls partly or wholly outside its availability window for the method. See [Block range](#block-range). |
+| `-32001` | Resource not found | The node serves this method, but the resolved range falls partly or wholly outside its availability window for the method. See [Block range](#block-range). |
 | `-32005` | Limit exceeded | The request exceeded a server-imposed resource limit. For the response budget, this occurs only when `fromBlock` alone exceeds the budget; see [Block-aligned pagination](#block-aligned-pagination). |
 
 Example `-32005` error response:
@@ -510,19 +515,21 @@ Setting `fromBlock` to `"latest"` rather than to the block number where the mism
 
 ### Joining relations
 
-To associate a primary object with its related objects, the client should match a *join key* on the primary object against the corresponding field on the related object. The join condition for each supported relation is:
+To associate a primary object with its related objects, the client should use the related type's [ordering key](#ordering) as the *join key*: it matches the ordering key of the related object against the corresponding fields on the primary object. The join condition for each supported relation is:
 
 | Primary type | Join `blocks` | Join `transactions` |
 | --- | --- | --- |
 | `blocks` | — | — |
 | `transactions` | `transactions.blockNumber == blocks.number` | — |
-| `logs` | `logs.blockNumber == blocks.number` | `logs.transactionHash == transactions.hash` |
-| `traces` | `traces.blockNumber == blocks.number` | `traces.transactionHash == transactions.hash` |
-| `transfers` | `transfers.blockNumber == blocks.number` | `transfers.transactionHash == transactions.hash` |
+| `logs` | `logs.blockNumber == blocks.number` | `(logs.blockNumber, logs.transactionIndex) == (transactions.blockNumber, transactions.transactionIndex)` |
+| `traces` | `traces.blockNumber == blocks.number` | `(traces.blockNumber, traces.transactionIndex) == (transactions.blockNumber, transactions.transactionIndex)` |
+| `transfers` | `transfers.blockNumber == blocks.number` | `(transfers.blockNumber, transfers.transactionIndex) == (transactions.blockNumber, transactions.transactionIndex)` |
+
+Because every object in a response comes from the same canonical chain (see [Chain consistency](#chain-consistency)), the ordering key identifies exactly one related object. The ordering key is a better join key than a hash: it consists of compact `QUANTITY` values rather than 32-byte hashes, and because each primary array is also sorted by its join key (within a block, log indexes and trace positions increase with transaction index), the client can join a primary array to a related array in a single linear merge pass. Joining on hashes, such as `logs.transactionHash == transactions.hash`, also works, but requires selecting larger fields.
 
 Join keys are selected like any other field. A client that requests a relation should include both sides of its join key in `fields`; otherwise, the client cannot tell which related object belongs to which primary object.
 
-The [Example](#example) request selects `blockNumber` on logs and `number` on blocks for this reason. Both returned logs have a `blockNumber` of `0x5e69ec6`, so both join to the single `blocks` object whose `number` is `0x5e69ec6`, so both logs share its timestamp, `0x6a8d5688`. The block appears once even though two logs reference it. Blocks in the range that contain no matching logs, such as `0x5e69ec4`, do not appear at all.
+The [Example](#example) request selects `blockNumber` and `transactionIndex` on both logs and transactions for this reason. Both returned logs have a `blockNumber` of `0x5e69ec6` and a `transactionIndex` of `0x8`, so both join to the single `transactions` object with that key and share its sender, `0x451f5c0cf3ef1e982d6cb7d1d44fd3664d566778`. The transaction appears once even though two logs reference it, and transactions that emitted no matching logs do not appear at all. The transaction sender is not available from the logs themselves: the `from` address in `topics[1]`, `0x928dc8afe312df45576b15b08c086c5427fd8207`, is the contract that the transaction called, not the account that sent it.
 
 ## Rationale
 
@@ -536,7 +543,7 @@ The [Example](#example) request selects `blockNumber` on logs and `number` on bl
 
 **Block references instead of an opaque cursor.** Because pages end on block boundaries, a block reference is a complete cursor. The response exposes it directly as `fromBlock`, `toBlock`, and `cursorBlock`, rather than wrapping it in an opaque token that would require either server-side state or an encoding shared by every implementation. With block numbers and hashes in every response, clients can resume pagination, check for completion, and detect reorgs without extra requests.
 
-**Many-to-one relations only.** One-to-many relations, such as all transactions in a block, would make response sizes unpredictable, because a single block can contain thousands of transactions. Restricting relations to many-to-one, such as each log's containing block, guarantees that a response never contains more related objects of a given type than primary objects. For the same reason, related objects do not count toward `target`: their number is already bounded by the primary count, and counting them would make page boundaries depend on which relations the client requested.
+**Many-to-one relations only.** One-to-many relations, such as all transactions in a block, would make response sizes unpredictable, because a single block can contain thousands of transactions. Restricting relations to many-to-one, such as each log's containing block, guarantees that a response never contains more related objects of a given type than primary objects. For the same reason, related objects do not count toward `target`: their number is already bounded by the primary count, and counting them would make the point where a page reaches `target` depend on which relations the client requested. Related objects may still consume the server's budget like any other response content, so requesting more relations or fields can make budget-limited pages shorter.
 
 **Normalized responses.** Related objects are returned in their own arrays, and each appears once even when several primary objects reference it. Embedding them instead would repeat the same block once for every matching log it contains. Separate arrays also match how clients typically store and index the data.
 
