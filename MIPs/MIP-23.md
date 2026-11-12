@@ -19,7 +19,7 @@ Configuration changes activate after the consensus-execution delay. Consensus ac
 
 ## Motivation
 
-A single reserve cap does not accommodate every account’s transaction pattern. Frequent senders may prefer a smaller protected balance rather than waiting to become eligible for an emptying transaction. Accounts submitting many transactions may instead prefer a larger reserve to support a larger outstanding gas budget.
+A single reserve cap does not suit every account, because accounts spend their balance differently. An account that mainly transfers MON may prefer a smaller reserve, so that more of its balance can be sent without waiting to become eligible for an emptying transaction. An account that submits many transactions in quick succession may instead prefer a larger reserve, since the reserve caps the total gas fees of its transactions that consensus has accepted but execution has not yet reached.
 
 EIP-7702 delegated accounts also need control over the balance protected against transfers initiated through their delegated code. In particular, a sponsored transaction should be able to transfer the account’s native balance without requiring that account to maintain the default reserve indefinitely.
 
