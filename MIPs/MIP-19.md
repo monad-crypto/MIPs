@@ -8,7 +8,7 @@ status: Draft
 type: Standards Track
 category: Core
 created: 2026-10-28
-requires: 4
+requires: 4, 23
 ---
 
 ## Abstract
@@ -29,9 +29,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 This MIP affects both the execution daemon and the consensus daemon.
 
-The active reserve of an account is as defined in the draft MIP "Account-configurable reserve balance". The only property of that design this MIP relies on is that the reserve can be set to zero.
-
-(**EDITORIAL NOTE**: add that MIP to `requires` once it has a number)
+The active reserve of an account is as defined in [MIP-23](./MIP-23.md). The only property this MIP relies on is that the reserve balance of an account can be set to zero.
 
 ### Parameters
 
