@@ -35,12 +35,12 @@ body {
 a { color: var(--link); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 a.btn, a.btn:hover { text-decoration: none; }
-.prose a, .author-value a, .cite a {
+.prose a, .author-value a, .metarail a, .cite a {
   text-decoration: underline;
   text-decoration-color: var(--bd2);
   text-underline-offset: 2px;
 }
-.prose a:hover, .author-value a:hover, .cite a:hover { text-decoration-color: currentColor; }
+.prose a:hover, .author-value a:hover, .metarail a:hover, .cite a:hover { text-decoration-color: currentColor; }
 button { font-family: inherit; font-size: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 

@@ -54,7 +54,15 @@ layout: default
           {% endif %}
           {% if page.requires %}
             <dt>Requires</dt>
-            <dd>{{ page.requires | escape }}</dd>
+            <dd>
+              {%- assign required = page.requires | split: "," -%}
+              {%- for item in required -%}
+                {%- assign number = item | strip -%}
+                {%- assign target = site.pages | where: "mip", number | first -%}
+                <a href="{{ target.url | relative_url }}">{{ target.mip }}</a>
+                {%- unless forloop.last %}, {% endunless -%}
+              {%- endfor -%}
+            </dd>
           {% endif %}
           {% if page.created %}
             <dt>Created</dt>
