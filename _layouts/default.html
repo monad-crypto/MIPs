@@ -49,9 +49,27 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-python.min.js" integrity="sha512-AKaNmg8COK0zEbjTdMHJAPJ0z6VeNqvRvH4/d5M4sHJbQQUToMBtodq4HaV4fa+WV2UTfoperElm66c9/8cKmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-solidity.min.js" integrity="sha512-cVwDlg8/p6UhSKtcNwXU8mv3QL7uwVilUFE5EtblYWLjAXqyYOh7yXDCkNKJH279fvVe4vzD0OoMX3GokaAU2A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     {% endif %}
-    {% if content contains "\[" or content contains "\(" %}
+    {% if content contains "\[" or content contains "\(" or content contains "$" %}
     <script>
-      window.MathJax = { loader: { load: ['ui/safe'] }, chtml: { scale: 0.9 } };
+      window.MathJax = {
+        loader: { load: ['ui/safe'] },
+        chtml: { scale: 0.9 },
+        startup: {
+          // kramdown only parses $$, so turn GitHub-style $...$ into \(...\) first. Same rules as GitHub:
+          // no space just inside either $, and no digit after the closing one, so "$5 and $10" stays text.
+          pageReady: function () {
+            var inline = /(^|[^\\$])\$(?![\s$])((?:\\[\s\S]|[^\\$])*?[^\s\\$])\$(?!\d)/g;
+            var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            var nodes = [];
+            while (walker.nextNode()) {
+              var n = walker.currentNode;
+              if (n.nodeValue.indexOf('$') >= 0 && !n.parentElement.closest('code, pre, script, style, textarea')) nodes.push(n);
+            }
+            nodes.forEach(function (n) { n.nodeValue = n.nodeValue.replace(inline, '$1\\($2\\)'); });
+            return MathJax.startup.defaultPageReady();
+          }
+        }
+      };
     </script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-chtml.min.js" integrity="sha512-kO24RkUwCpSCXtdV9p2FM/5isVLi06qQPGlE+AsOx8kN9MTc6Mk7qlZBSEh/b7bvCr2vEWlZLAdp20QLkB/qPg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     {% endif %}
