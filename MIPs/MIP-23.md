@@ -96,7 +96,7 @@ Selectors are the first four bytes of the Keccak-256 hash of each canonical func
 
 The new methods are non-payable and MUST be invoked through ordinary `CALL` semantics only. `STATICCALL`, `DELEGATECALL`, `CALLCODE`, and calls in a static execution context MUST fail. A top-level transaction to `0x1001` counts as a `CALL` with the sender as caller.
 
-If an account’s EIP-7702 delegation designator points to the precompile, a call to that account executes empty code as specified by EIP-7702. The precompile MUST NOT be executed, and no record is read or changed.
+If an account’s EIP-7702 delegation designator points to the precompile, a call to that account MUST fail, consuming all gas forwarded to that call frame and returning empty failure data. The precompile MUST NOT be executed, and no record is read or changed.
 
 A call whose calldata is not canonically ABI-encoded MUST fail. In particular, `getReserveBalance` MUST fail if the upper 12 bytes of its address word are nonzero.
 
@@ -186,7 +186,7 @@ This cap MUST apply at each block boundary, including empty blocks. Implementati
 
 For a transaction not eligible for emptying, require its existing protocol gas-fee bound `F(tx)` to be no greater than $G_{sender}$, then subtract that bound. An insufficient budget makes the candidate inadmissible. Existing nonce, authorization, and other transaction-validity checks remain applicable.
 
-For an emptying-eligible transaction, preserve the existing eligibility test and debit calculation: require its gas-fee bound to fit the sender’s snapshot balance, then set the remaining budget to the smaller of $R_h(sender, b)$ and the snapshot balance after the existing conservative emptying debit. That debit includes gas, transaction value, and any separately accounted sender charge required by the active protocol.
+For an emptying-eligible transaction, preserve the existing eligibility test and debit calculation: require its gas-fee bound to fit the sender’s snapshot balance, then set the remaining budget to $\min\left(R_h(\text{sender}, b), \max\left(0, \text{balance}(S_h, \text{sender}) - \text{debit}\right)\right)$, where $\text{debit}$ is the existing conservative emptying debit. That debit includes gas, transaction value, and any separately accounted sender charge required by the active protocol.
 
 A scheduled reduction MUST clamp the remaining budget. A scheduled increase MUST NOT **by itself** replenish it. In particular, consensus MUST NOT initialize the window’s budget directly from an increased reserve that is scheduled to activate later in that window.
 
@@ -277,7 +277,7 @@ Account `X` is unconfigured before block 100. Records are written as `(settledRe
 | C7 | Top-level transaction from an undelegated EOA to `0x1001` with `setReserveBalance(5)` calldata | Succeeds. The EOA’s record is updated |
 | C8 | Delegated account `A` executes `CALL` to `setReserveBalance(5)` in a transaction paid for by `B` | Succeeds. `A`’s record is updated; `B`’s is not |
 | C9 | Contract `H` executes `CALL` to `setReserveBalance(5)` when called by `A` | Succeeds. `H`’s record is updated; `A`’s is not |
-| C10 | `CALL` to an account whose EIP-7702 delegation designator points to `0x1001` | Succeeds as empty code. No record is read or changed |
+| C10 | `CALL` to an account whose EIP-7702 delegation designator points to `0x1001` | Fails. No record is read or changed |
 
 ### Consensus accounting
 
