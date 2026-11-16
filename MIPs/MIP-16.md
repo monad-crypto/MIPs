@@ -455,15 +455,15 @@ Transfer objects are ordered by `(blockNumber, transactionIndex, traceAddress)`,
 
 ### Errors
 
-The methods use standard JSON-RPC error codes plus application-specific codes that follow the conventions established by EIP-1474. The following codes have specific meanings for these methods:
+These methods return the following error codes. `-32601` and `-32602` are standard JSON-RPC 2.0 codes; `-32001`, `-32004`, and `-32005` are defined by EIP-1474. Each description states when these methods return that code.
 
 | Code | Message | Description |
 | --- | --- | --- |
-| `-32601` | Method not found | The node does not recognize the method, typically because its software predates this MIP. This is the standard JSON-RPC code and is listed here only to distinguish it from `-32004`. |
-| `-32004` | Method not supported | The node recognizes the method but is not configured to serve it, and so cannot serve it for any block range. A node that does not index traces, for example, returns this code for `eth_queryTraces` and `eth_queryTransfers` while still serving the other three methods. |
-| `-32602` | Invalid params | Malformed request: unknown keys in the request object, unknown filter keys, invalid filter values, a `null` entry in a filter array, a `fields` object without the key of the primary object type, an empty `fields` array, unknown `fields` keys, unknown field names in a `fields` array, a `fields` key naming an unrecognized or unsupported relation for this method, a `target` of `0x0`, or a block range that is inverted for the requested `order`. |
-| `-32001` | Resource not found | The node serves this method, but the resolved range falls partly or wholly outside its availability window for the method. See [Block range](#block-range). |
-| `-32005` | Limit exceeded | The request exceeded a server-imposed resource limit. For the response budget, this occurs only when `fromBlock` alone exceeds the budget; see [Block-aligned pagination](#block-aligned-pagination). |
+| `-32601` | Method not found | The node does not implement the method, typically because its software predates this MIP. Contrast with `-32004`. |
+| `-32004` | Method not supported | The node implements the method but is configured not to serve it, so the request fails regardless of block range. For example, a node that does not index traces returns this code for `eth_queryTraces` and `eth_queryTransfers` but still serves the other three methods. |
+| `-32602` | Invalid params | The request is malformed. In the request object: an unknown key, a `target` of `0x0`, or a resolved range that is inverted for the requested `order`. In `filter`: an unknown key, an invalid value, or a `null` array entry. In `fields`: a missing key for the primary object type, an empty array, a key that is neither the primary object type nor a supported relation, or an unsupported field name. |
+| `-32001` | Resource not found | The node serves the method, but at least one block in the resolved range is outside the method's availability window, because its data was pruned, was never indexed, or does not exist yet. See [Block range](#block-range). |
+| `-32005` | Limit exceeded | The request exceeds a server-imposed limit. For the page budget, this occurs only when the server exhausts its budget before completing `fromBlock`; once it completes at least one block, it returns a shorter page instead. See [Block-aligned pagination](#block-aligned-pagination). |
 
 Example `-32005` error response:
 
