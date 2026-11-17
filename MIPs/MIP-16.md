@@ -220,11 +220,11 @@ This guarantee applies within a single response. Consecutive pages MAY reflect d
 
 Each method defines its own set of filter fields; see that method's Filter section. The following rules apply to every method, except where a method's Filter section states otherwise.
 
-An object matches a filter only if it matches every field in the `filter` object (AND across fields). Each filter field accepts either a single value or an array of values. An array matches if the object's field equals any element of the array (OR within a field). An array MUST NOT contain `null` entries.
+An object matches a filter only if it matches every field in the `filter` object (AND across fields). Each filter field accepts either a single value or a non-empty array of values. An array matches if the object's field equals any element of the array (OR within a field). An array MUST NOT contain `null` entries.
 
-Omitting a filter field places no constraint on that field, unless the method's Filter section defines a default for it. A `null` value or an empty array (`[]`) is the same as omitting the field. As a result, a filter field built from an empty list matches all objects, not none. If `filter` itself is omitted, the response includes every object of the method's primary object type in the block range, subject to any defaults.
+Omitting a filter field places no constraint on that field, unless the method's Filter section defines a default for it. A filter field MUST NOT be `null` or an empty array (`[]`). If `filter` itself is omitted, the response includes every object of the method's primary object type in the block range, subject to any defaults.
 
-The server MUST fail the request with `-32602` if `filter` contains a key that the method's Filter section does not define, or if a filter array contains a `null` entry.
+The server MUST fail the request with `-32602` if `filter` contains a key that the method's Filter section does not define, if a filter field is `null`, if a filter array is empty, or if a filter array contains a `null` entry. See [Strict filter values](#rationale).
 
 #### Fields and relations
 
@@ -336,14 +336,15 @@ Query for event logs emitted during transaction execution.
 | `address` | `DATA` or `DATA[]` | Contract address that emitted the log. |
 | `topics` | see below | Positional topic filter. |
 
-The `topics` filter MUST follow the same matching semantics as `eth_getLogs`. The value is an array of up to 4 positional entries, where the entry at index `i` constrains `topics[i]`. Each entry can be one of the following:
+For every value that it accepts, the `topics` filter MUST follow the same matching semantics as `eth_getLogs`. The value is a non-empty array of up to 4 positional entries, where the entry at index `i` constrains `topics[i]`. Each entry can be one of the following:
 
 - A single topic hash (`DATA`): matches logs where `topics[i]` equals that hash.
 - A non-empty array of topic hashes (`DATA[]`): matches logs where `topics[i]` equals any hash in the array. The array MUST NOT contain `null` entries.
-- An empty array (`[]`): wildcard, the same as `null`.
 - `null`: wildcard — matches any topic at position `i`.
 
-`topics: []` and `topics: null` place no constraint on the result. A wildcard entry still requires the log to have a topic at that position: as in `eth_getLogs`, a log matches only if it has at least as many topics as the filter has entries. For example, `[A, null]` matches a log with topics `[A, B]`, but not a log with topics `[A]`.
+A wildcard entry still requires the log to have a topic at that position: as in `eth_getLogs`, a log matches only if it has at least as many topics as the filter has entries. For example, `[A, null]` matches a log with topics `[A, B]`, but not a log with topics `[A]`.
+
+As with every filter field, `topics` itself MUST NOT be `null` or an empty array (`[]`); to match logs regardless of their topics, the client omits `topics`. `null` is valid only as an entry in the `topics` array. The server MUST fail the request with `-32602` if an entry is an empty array (`[]`), at any position.
 
 #### Fields
 
@@ -461,7 +462,7 @@ These methods return the following error codes. `-32601` and `-32602` are standa
 | --- | --- | --- |
 | `-32601` | Method not found | The node does not implement the method, typically because its software predates this MIP. Contrast with `-32004`. |
 | `-32004` | Method not supported | The node implements the method but is configured not to serve it, so the request fails regardless of block range. For example, a node that does not index traces returns this code for `eth_queryTraces` and `eth_queryTransfers` but still serves the other three methods. |
-| `-32602` | Invalid params | The request is malformed. In the request object: an unknown key, a `target` of `0x0`, or a resolved range that is inverted for the requested `order`. In `filter`: an unknown key, an invalid value, or a `null` array entry. In `fields`: a missing key for the primary object type, an empty array, a key that is neither the primary object type nor a supported relation, or an unsupported field name. |
+| `-32602` | Invalid params | The request is malformed. In the request object: an unknown key, a `target` of `0x0`, or a resolved range that is inverted for the requested `order`. In `filter`: an unknown key, an invalid value, a `null` value, an empty array, or a `null` array entry other than an `eth_queryLogs` `topics` entry. In `fields`: a missing key for the primary object type, an empty array, a key that is neither the primary object type nor a supported relation, or an unsupported field name. |
 | `-32001` | Resource not found | The node serves the method, but at least one block in the resolved range is outside the method's availability window, because its data was pruned, was never indexed, or does not exist yet. See [Block range](#block-range). |
 | `-32005` | Limit exceeded | The request exceeds a server-imposed limit. For the page budget, this occurs only when the server exhausts its budget before completing `fromBlock`; once it completes at least one block, it returns a shorter page instead. See [Block-aligned pagination](#block-aligned-pagination). |
 
@@ -542,6 +543,8 @@ The [Example](#example) request selects `blockNumber` and `transactionIndex` on 
 **Block-aligned pagination.** The block is the atomic unit of chain history: a reorg replaces whole blocks, and indexers typically commit and roll back data one block at a time. Ending every page on a block boundary lets clients commit and roll back pages the same way. The downside is that page size cannot be a hard limit. A page must include all of its final block, so the final block can push a page past `target`. For the same reason, if a single block has more matches than the server's budget allows, the server cannot return that block at all.
 
 **Block references instead of an opaque cursor.** Because pages end on block boundaries, a block reference is a complete cursor. The response exposes it directly as `fromBlock`, `toBlock`, and `cursorBlock`, rather than wrapping it in an opaque token that would require either server-side state or an encoding shared by every implementation. With block numbers and hashes in every response, clients can resume pagination, check for completion, and detect reorgs without extra requests.
+
+**Strict filter values.** These methods diverge from the `eth_getLogs` filter behavior by rejecting the empty values `[]` and `null` rather than treating them as wildcards, because both wildcards are easy to trigger by mistake. An empty array is an OR over no values, so a client that builds a filter from a list at runtime and gets an empty list expects no results, but would instead receive every object in the range. A `null` value has no useful meaning as a filter condition. The only way to place no constraint on a field is to omit it entirely.
 
 **Many-to-one relations only.** One-to-many relations, such as all transactions in a block, would make response sizes unpredictable, because a single block can contain thousands of transactions. Restricting relations to many-to-one, such as each log's containing block, guarantees that a response never contains more related objects of a given type than primary objects. For the same reason, related objects do not count toward `target`: their number is already bounded by the primary count, and counting them would make the point where a page reaches `target` depend on which relations the client requested. Related objects may still consume the server's budget like any other response content, so requesting more relations or fields can make budget-limited pages shorter.
 
