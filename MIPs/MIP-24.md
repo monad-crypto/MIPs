@@ -90,7 +90,7 @@ The precompile MUST NOT revert for any input. Running out of gas is the only way
 
 ### Gas cost
 
-```
+```python
 words = ceil(max(0, L - PK_LEN - SIG_LEN) / 32)
 gas   = GAS_BASE + GAS_PER_WORD * words
 ```
