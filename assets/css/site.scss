@@ -4,20 +4,81 @@
 /* Monad Improvement Proposals site styles.
    Semantic aliases sit on top of the MDS tokens in ds/colors_and_type.css. */
 :root {
-  --elev: var(--mds-white);
-  --sunken: var(--mds-grey-100);
-  --muted: var(--mds-grey-600);
-  --faint: var(--mds-grey-500);
-  --bd: var(--mds-grey-200);
-  --bd2: var(--mds-grey-300);
-  --brand: var(--mds-purple-500);
-  --link: var(--mds-purple-500);
-  --mark: var(--mds-purple-50);
+  color-scheme: light;
+  --elev: var(--bg-elevated);
+  --sunken: var(--bg-subtle);
+  --muted: var(--fg-secondary);
+  --faint: var(--fg-tertiary);
+  --bd: var(--border);
+  --bd2: var(--border-hover);
+  --brand: var(--accent);
+  --link: var(--fg-accent);
+  --mark: var(--accent-subtle);
   --shadow: 0 1px 2px rgba(0, 0, 0, .06), 0 8px 24px -8px rgba(15, 15, 18, .10);
 }
-/* --faint is decoration only (dots, ticks, rules): 2.2:1 on both page surfaces.
-   Text uses --muted, which clears 4.5:1 on the page and on white but not on
-   --sunken, so any surface carrying muted text stays white. */
+/* Dark theme, from the data-theme the head script in _layouts/default.html
+   sets. Screen only, so print stays light. MDS dark puts the page on pure
+   black; here the page is grey-950 and black is the sunken well, which keeps
+   the light order: --sunken below the page, --elev above it. */
+@media not print {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: var(--mds-grey-950);
+    --sunken: var(--mds-black);
+
+    .brand svg { color: var(--fg); }
+    /* grey-700 is 2.9:1 on black */
+    .search-box kbd { color: var(--muted); }
+    /* the browser's placeholder grey is 3.9:1 on --elev, and Firefox fades it further */
+    .search-box input::placeholder { color: var(--muted); opacity: 1; }
+
+    /* Only Prism's light theme is loaded, and it sets black text. These
+       retint its token groups; the lowest is 8.2:1 on --sunken. */
+    .prose pre[class*="language-"], .prose code[class*="language-"] { color: var(--fg); }
+    .token:is(.comment, .prolog, .doctype, .cdata) { color: var(--mds-grey-500); }
+    .token.punctuation { color: var(--mds-grey-400); }
+    .token:is(.property, .tag, .boolean, .number, .constant, .symbol, .deleted) { color: var(--mds-purple-300); }
+    .token:is(.selector, .attr-name, .string, .char, .builtin, .inserted) { color: #A5D66B; }
+    .token:is(.operator, .entity, .url) { color: #D8AC7A; }
+    .token:is(.atrule, .attr-value, .keyword) { color: #6CBEF0; }
+    .token:is(.function, .class-name) { color: #FF8597; }
+    .token:is(.regex, .important, .variable) { color: #F5B13D; }
+    /* Prism's pale blue selection would wash the tokens out */
+    .prose :is(pre, code)[class*="language-"]::selection,
+    .prose :is(pre, code)[class*="language-"] ::selection { background: var(--mds-purple-800); }
+
+    /* figures are drawn for a white page, so give them one */
+    .prose img { padding: 12px; border-radius: 8px; background: var(--mds-white); }
+
+    /* ds/buttons.css only vendors the light secondary button */
+    .btn-secondary-light { background: var(--elev); color: var(--fg); box-shadow: 0 0 0 1px var(--bd2); }
+    .btn-secondary-light .grad-hover { background: var(--bg-hover); }
+  }
+}
+/* The vendored dark tokens are not screen-only, so print puts back the light
+   values of the ones read above. Keep in step with ds/colors_and_type.css. */
+@media print {
+  :root[data-theme="dark"] {
+    --bg: var(--mds-grey-50);
+    --bg-subtle: var(--mds-grey-100);
+    --bg-elevated: var(--mds-white);
+    --border: var(--mds-grey-200);
+    --border-hover: var(--mds-grey-300);
+    --fg: var(--mds-grey-900);
+    --fg-secondary: var(--mds-grey-600);
+    --fg-tertiary: var(--mds-grey-500);
+    --fg-accent: var(--mds-purple-500);
+    --accent: var(--mds-purple-500);
+    --accent-subtle: var(--mds-purple-50);
+  }
+}
+/* Contrast, light / dark.
+   --faint is decoration only (dots, ticks, icons): 2.2 / 4.1 on the page and
+   2.3 / 3.8 on --elev, short of 4.5:1 in both themes.
+   --muted is the text color: 4.5 / 11.5 on the page, 4.7 / 10.8 on --elev,
+   4.3 / 12.6 on --sunken, 4.1 / 10.1 on --mark. Light misses on the last two,
+   so muted text rests on the page or --elev and only row hover or a search
+   highlight puts it elsewhere. */
 
 html { scroll-behavior: smooth; }
 *, *::before, *::after { box-sizing: border-box; }
@@ -69,9 +130,33 @@ button { font-family: inherit; font-size: inherit; color: inherit; }
 .site-header .shell { height: 60px; display: flex; align-items: center; gap: 20px; }
 .brand { display: flex; align-items: center; gap: 14px; }
 .brand, .brand:hover { text-decoration: none; }
-.brand img { height: 18px; width: auto; }
+.brand svg { flex: none; height: 18px; width: auto; color: var(--mds-black); }
 .brand .rule { width: 1px; height: 16px; background: var(--bd2); }
 .header-links { margin-left: auto; display: flex; gap: 20px; }
+/* The negative margin lines the icon, not the hit area, up with the content edge. */
+.theme-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0 -6px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+/* the head script sets data-theme, so this is the no-JS case */
+:root:not([data-theme]) .theme-toggle { display: none; }
+.theme-toggle:hover { color: var(--fg); }
+.theme-toggle svg { display: none; }
+[data-theme-mode="system"] .ic-system,
+[data-theme-mode="light"] .ic-light,
+[data-theme-mode="dark"] .ic-dark { display: block; }
 .eyebrow {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -706,6 +791,13 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 }
 @media (max-width: 860px) {
   .desk-only { display: none !important; }
+  /* only the toggle is left beside the brand; the tighter gap fits it down to 360px */
+  .site-header .shell { gap: 6px; }
+  .theme-toggle { margin-left: auto; }
+}
+/* below that it would wrap the brand. A saved choice still applies, there is just no control to change it. */
+@media (max-width: 359px), print {
+  .theme-toggle { display: none; }
 }
 @media (max-width: 720px) {
   .shell { padding-left: 20px; padding-right: 20px; }
