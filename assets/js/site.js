@@ -382,6 +382,23 @@ document.addEventListener("DOMContentLoaded", function () {
       copyText(document.getElementById("citation-text").textContent, copyButton);
     });
   }
+
+  // The head script in _layouts/default.html owns the theme and can change it
+  // without a click here, so the label follows the attribute.
+  var root = document.documentElement;
+  var themeToggle = document.getElementById("theme-toggle");
+  var modes = ["system", "light", "dark"];
+  function nextMode() {
+    return modes[(modes.indexOf(root.dataset.themeMode) + 1) % modes.length];
+  }
+  function nameThemeToggle() {
+    var label = "Theme: " + root.dataset.themeMode + ". Switch to " + nextMode() + ".";
+    themeToggle.setAttribute("aria-label", label);
+    themeToggle.title = label;
+  }
+  themeToggle.addEventListener("click", function () { setTheme(nextMode()); });
+  new MutationObserver(nameThemeToggle).observe(root, { attributeFilter: ["data-theme-mode"] });
+  nameThemeToggle();
 });
 
 // Prefetch selected internal links on hover or focus.
