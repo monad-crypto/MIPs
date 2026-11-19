@@ -4,7 +4,7 @@ title: Automatic Priority Fee Distribution
 description: Automatically distribute priority fees to delegators.
 author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-11-automatic-priority-fee-distribution/419
-status: Draft
+status: Review
 type: Standards Track
 category: Core
 created: 2026-04-01
