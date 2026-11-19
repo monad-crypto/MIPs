@@ -4,7 +4,7 @@ title: Deterministic RaptorCast
 description: Canonical RaptorCast encoding that removes author control over chunk placement and binds each proposal to a per-round commitment
 author: Category Labs (@category-labs)
 discussions-to: https://forum.monad.xyz/t/mip-10-deterministic-raptorcast/453
-status: Draft
+status: Review
 type: Standards Track
 category: Networking
 created: 2026-04-28
