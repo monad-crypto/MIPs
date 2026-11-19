@@ -14,7 +14,7 @@ created: 2026-11-13
 
 This MIP adds one precompile, `VERIFY_SLHDSA_SHA2_128S`, that verifies SLH-DSA-SHA2-128s signatures as specified in FIPS 205. The input is `pubkey ++ signature ++ message` with no length fields: a 32-byte public key, a 7,856-byte signature, and a message of any length. The precompile verifies in pure mode with the empty context string and returns a 32-byte word: one for a valid signature, zero otherwise.
 
-The precompile targets high-assurance keys such as account recovery and rotation keys, for examples ones held in FIPS 205 Hardware Security Models (HSMs).
+The precompile targets high-assurance keys such as account recovery and rotation keys, for example ones held in Hardware Security Modules (HSMs) that implement FIPS 205.
 
 ## Motivation
 
@@ -34,14 +34,15 @@ Verification is possible in contract code, but it is poorly suited for most chai
 | Excluding calldata, worst case | 36,000 | 796,684 | 22.1× |
 | Including calldata, average | 336,520 | 590,263 | 1.75× |
 | Including calldata, worst case | 336,520 | 943,892 | 2.80× |
+
 - The gap is call overhead and not hashing. Of the 208 gas, 100 pays for the call and 60 is the base charge of the SHA-256 precompile, and a verifier pays both on every one of its calls. The proposed precompile charges 9.4 gas per hash call in the worst case, at a price set from measured verification time. Contract code therefore takes the block gas of 74 to 133 `ECRECOVER` calls for work that costs validators at most 5. That matters most in the event this scheme exists for: if the lattice assumption breaks, accounts would probably migrate to use keys backed by HSMs requiring a reasonably cheap signature verification pathway.
 - The number of hash calls depends on the signature, so the gas a verification needs varies from one signature to the next. Monad charges the gas limit and not the gas used, so a caller that cannot simulate the exact signature in advance, such as a contract that forwards a fixed amount of gas, has to pay for the worst case.
-- Hardware signers and key management services produce signatures exactly as FIPS 205 specifies. Variants that swap the standardized hash for `KECCAK256` (such as SPHINCS-) alter the standardized hash instantiation, parameters, or encoding.
+- Hardware signers and key management services produce signatures exactly as FIPS 205 specifies. Variants that swap the standardized hash for `KECCAK256`, such as SPHINCS- ("SPHINCS minus"), alter the standardized hash instantiation, parameters, or encoding.
 - Consensus validates transactions before they are executed, so contract code cannot authenticate the sender of a transaction. A future transaction type with post-quantum authentication needs a verifier the protocol can run natively. This MIP specifies such a verifier and leaves the transaction type to a separate proposal.
 
 ## Specification
 
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119 and RFC 8174.
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://www.ietf.org/rfc/rfc2119.html) and [RFC 8174](https://www.ietf.org/rfc/rfc8174.html).
 
 ### Parameters
 
@@ -89,7 +90,7 @@ The precompile MUST NOT revert for any input. Running out of gas is the only way
 
 ### Gas cost
 
-```jsx
+```
 words = ceil(max(0, L - PK_LEN - SIG_LEN) / 32)
 gas   = GAS_BASE + GAS_PER_WORD * words
 ```
@@ -150,7 +151,7 @@ The context string is fixed to empty because a context field would need a length
 
 ### Address
 
-Low addresses are assigned by Ethereum, and the range from `0x100`, where `P256VERIFY` lives, is assigned by a separate process. Monad-specific precompiles start at `0x1000` with the staking precompile, followed by the reserve balance precompile of MIP-4 at `0x1001`.
+Low addresses are assigned by Ethereum, and the range from `0x100`, where `P256VERIFY` lives, is assigned by a separate process. Monad-specific precompiles start at `0x1000` with the staking precompile, followed by the reserve balance precompile of [MIP-4](MIP-4.md) at `0x1001`.
 
 Those two are stateful, dispatch on a Solidity selector, and accept `CALL` only. This precompile is stateless and takes raw bytes. Placing it at `0x1002` keeps it in Monad's range and is the next sequentially available address.
 
@@ -169,7 +170,7 @@ A survey of 167 validator nodes found three CPU families.
 `GAS_BASE` is derived as follows.
 
 - Every surveyed CPU has SHA extensions (SHA-NI) and AVX2. The recommended deployment is bare metal, where no hypervisor can mask them, so the schedule assumes both. It does not assume AVX-512, which the Zen 3 CPUs lack.
-- Verification makes at most 3,823 calls to the tweakable hash functions `F`, `H` and `T`, which is 7,712 SHA-256 compressions. Hashing an empty message into the digest adds 3, for 7,715. No input reaches this bound exactly, but inputs that come close can be searched for (see Security Considerations), so the schedule uses the bound and not the average of about 2,123 calls.
+- Verification makes at most 3,823 calls to the tweakable hash functions `F`, `H` and `T`, which is 7,712 SHA-256 compressions. Hashing an empty message into the digest adds 3, for 7,715. No input reaching this bound can feasibly be found, but inputs that come close can be searched for (see Security Considerations), so the schedule uses the bound and not the average of about 2,123 calls.
 - An implementation that caches the compression of the constant first block needs 3,889 compressions for the same calls. The schedule assumes a verifier that uses SHA extensions and this optimization.
 - The schedule does not assume interleaved SHA-256 streams. Interleaving is an optional optimization. On Zen 4 it lowers the worst case from 3.87 times `ECRECOVER` to 2.31 with two streams and 2.11 with four. On Zen 5 no more than two streams can help, and the estimate for two is 2.8 to 3.5 times.
 - A client that hashes through OpenSSL one call at a time runs the worst case at 6.2 to 12.9 times `ECRECOVER` on Zen 4, which is up to 2.1 times below the priced rate. AVX2 does not help SHA-256 here, so the price depends on SHA extensions alone.
@@ -193,8 +194,8 @@ The measured rows are from a Ryzen 9 7950X on bare metal, on one pinned core wit
 The Zen 5 rows are estimates and not measurements. No Zen 5 or Zen 3 machine has been benchmarked. The estimates rest on published figures.
 
 - One SHA-256 stream is a dependency chain of 32 `SHA256RNDS2` instructions per block. The InstLatx64 timing dumps give that instruction a latency of 4 cycles on Zen 3, Zen 4 and Zen 5, so one stream costs about 128 cycles per block on each. A Ryzen 9 9950X3D is reported at 2.71 GB/s for single-stream SHA-256, against 2.51 GB/s on the measured 7950X. The 128-cycle figure was reproduced on an Emerald Rapids machine, where the latency is also 4 cycles.
-- `ECRECOVER` is faster on Zen 5. Published libsecp256k1 verification times are 25.2 microseconds on a Ryzen 7950X and 19.6 on Zen 5, and the same dumps show 64-bit multiplication at 1.5 times the Zen 4 throughput. The low end of the single-stream estimate combines the 9950X3D throughput with the 19.6 microsecond figure. The high end scales the Zen 4 measurement by the `ECRECOVER` speedup alone.
-- Zen 5 executes one `SHA256RNDS2` every 2 cycles, where Zen 4 executes one per cycle. Interleaving two streams raises raw SHA-256 throughput by 64% on a Ryzen 9950X and by 98% on Zen 4, as measured for a two-stream `sha256-ni` patch to the Linux kernel. The two-stream estimate applies that gain to the single-stream estimate, at the share of the raw gain that the Zen 4 verifier achieved.
+- `ECRECOVER` is faster on Zen 5. Published libsecp256k1 verification times are 25.2 µs on a Ryzen 7950X and 19.6 on Zen 5, and the same dumps show 64-bit multiplication at 1.5 times the Zen 4 throughput. The low end of the single-stream estimate combines the 9950X3D throughput with the 19.6 µs figure. The high end scales the Zen 4 measurement by the `ECRECOVER` speedup alone.
+- Zen 5 executes one `SHA256RNDS2` every 2 cycles, where Zen 4 executes one per cycle. Interleaving two streams raises raw SHA-256 throughput by 64% on a Ryzen 9950X and by 98% on Zen 4, as measured for a two-stream `sha256-ni` patch to the Linux kernel. The two-stream estimate applies that gain to the single-stream estimate: in full at the low end, and at the high end only the share of the raw gain that the Zen 4 verifier achieved.
 
 Zen 3 has the same `SHA256RNDS2` timing as Zen 4 and a slower `ECRECOVER`, so its ratio is estimated at or below Zen 4's.
 
@@ -215,6 +216,8 @@ This proposal adds a precompile at a previously unassigned address and does not 
 The key pair for the first seven cases is generated with `slh_keygen_internal` (FIPS 205, Algorithm 18) from `SK.seed = 000102030405060708090a0b0c0d0e0f`, `SK.prf = 101112131415161718191a1b1c1d1e1f` and `PK.seed = 202122232425262728292a2b2c2d2e2f`. The resulting public key is `202122232425262728292a2b2c2d2e2f990ce6298792b128846a8e4a3a68954c`. Signatures are produced with `slh_sign` (FIPS 205, Algorithm 22) in its deterministic variant under the empty context.
 
 The last two cases are taken from the NIST ACVP SLH-DSA signature verification vectors (revision FIPS205, test group 19).
+
+The complete inputs are in [`vectors.json`](../assets/MIP-24/vectors.json), one entry per case in the order of the table, in the JSON layout go-ethereum uses for precompile tests. `Input` and `Expected` are hex strings, `Gas` is the cost of the call, and `NoBenchmark` is set for the two cases that do no verification work.
 
 | # | Case | Input length | Output | Gas | SHA-256 of input |
 | --- | --- | --- | --- | --- | --- |
@@ -333,7 +336,7 @@ def precompile(data):
 
 The gas cost is a function of the input length alone and is charged before verification starts, so a caller cannot obtain work without paying for it.
 
-Verification work is bounded. For an input of valid length the precompile makes at most 3,823 tweakable hash calls plus one pass over the message, whether or not the signature is valid. The number of calls depends on the signature bytes, and a caller can search for inputs that approach the bound. Each layer's WOTS+ message is a hash of bytes the caller chooses, and about 2^40 hash evaluations per layer are enough to reach 3,298 calls, 86% of the bound. A measured search of 2^32 tries per layer reached 3,223 calls, 84% of the bound, and that input verifies in 43.9 µs on Zen 4 with four interleaved streams, which is 1.74 times `ECRECOVER` or about 10,450 gas at parity. `GAS_BASE` is therefore set for the bound and not for the average.
+Verification work is bounded. For an input of valid length the precompile makes at most 3,823 tweakable hash calls plus one pass over the message, whether or not the signature is valid. The number of calls depends on the signature bytes, and a caller can search for inputs that approach the bound. Each layer's WOTS+ message is a hash of bytes the caller chooses, and about 2^35 hash evaluations per layer are enough to reach 3,298 calls, 86% of the bound. Each layer's count moves in steps of 15, and the next step, 3,403 calls or 89% of the bound across all seven layers, takes about 2^43 per layer. A measured search of 2^32 tries per layer reached 3,223 calls, 84% of the bound, and that input verifies in 43.9 µs on Zen 4 with four interleaved streams, which is 1.74 times `ECRECOVER` or about 10,450 gas at parity. `GAS_BASE` is therefore set for the bound and not for the average.
 
 Benchmarking must include adversarially searched complete inputs and component benchmarks that exercise the maximum WOTS+ chain lengths. The gas schedule must then conservatively cover the analytical upper bound, including hashing, address construction, parsing, memory access, and dispatch overhead.
 
@@ -361,7 +364,7 @@ FIPS 205 makes hedged signing the default and permits a deterministic variant. D
 
 ### Implementation
 
-Verification handles only public data, so it needs no constant-time guarantees. Clients should use a maintained implementation and validate it against the NIST ACVP vectors and the cases in this document.
+Verification handles only public data, so it needs no constant-time guarantees. A general-purpose library that hashes one call at a time does not reach the priced rate (see [§ Hardware assumption](#hardware-assumption)), so clients should implement the verifier the gas schedule assumes, using SHA extensions directly with the first block cached. They should validate it against the NIST ACVP vectors and the cases in this document, and test it differentially against a maintained implementation.
 
 ### Scope
 
@@ -387,4 +390,4 @@ How a future transaction type refers to this verifier, and how it prices the 7,8
 
 ## Copyright
 
-Copyright and related rights waived via CC0.
+Copyright and related rights waived via [CC0](../LICENSE.md).
