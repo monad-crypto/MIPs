@@ -795,7 +795,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   .site-header .shell { gap: 6px; }
   .theme-toggle { margin-left: auto; }
 }
-/* below that it would wrap the brand, so the page just follows the OS */
+/* below that it would wrap the brand. A saved choice still applies, there is just no control to change it. */
 @media (max-width: 359px), print {
   .theme-toggle { display: none; }
 }
