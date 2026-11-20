@@ -3,7 +3,7 @@ mip: 24
 title: SLH-DSA Verification Precompile
 description: Add a precompile that verifies FIPS 205 SLH-DSA-SHA2-128s signatures
 author: QEDK (@qedk)
-discussions-to: https://forum.monad.xyz/c/mips/8
+discussions-to: https://forum.monad.xyz/t/mip-24-slh-dsa-verification-precompile/608
 status: Draft
 type: Standards Track
 category: Core
