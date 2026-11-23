@@ -29,7 +29,7 @@ Automated priority fee distribution has two components:
 1.  A new account that captures priority fees and arbitrary user transfers, referred to as the `distribution account`. The address for the distribution account will be `0xfee5fee5fee5fee5fee5fee5fee5fee5fee5fee5`. 
 2. A system transaction, inserted by consensus as the last transaction of every block and validated by execution, that distributes the balance accumulated in the `distribution account` to the corresponding validator pool, net of the validator's commission.
 
-The `beneficiary` remains settable by the block proposer, and within the execution context, `block.coinbase` continues to refer to the beneficiary address.
+The `beneficiary` remains settable by the block proposer, and within the execution context, `block.coinbase` continues to refer to the beneficiary address. This does not affect distribution: the validator pool credited by the system transaction is determined by the block's proposer, not by the beneficiary. The proposer is not configurable. Consensus sets `block_leader` to the current proposer, and all nodes verify that it matches when validating the block. A proposer therefore cannot redirect delegators' priority fees by changing the beneficiary.
 
 ### Execution Flow
 
