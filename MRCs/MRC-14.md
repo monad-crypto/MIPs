@@ -4,7 +4,7 @@ title: Account Attestation Registry
 description: An on-chain registry where an account publishes self-attestations about itself, authorized by proof-of-control
 author: Mohsen Ahmadvand (@mr-ma)
 discussions-to: https://forum.monad.xyz/t/account-attestation-registry-mrc/513
-status: Draft
+status: Review
 type: Standards Track
 category: MRC
 created: 2026-07-21
