@@ -47,6 +47,8 @@ The distribution is performed by a system transaction. Consensus inserts it and 
 
 **Insertion (consensus).** When constructing a block proposal, consensus appends exactly one distribution system transaction as the final transaction in the block, calling `syscall_distribute(block_leader)`. As with `syscall_reward`, consensus supplies `block_leader` in the calldata. Because consensus and execution are decoupled, consensus does not know the post-execution balance of the distribution account when the block is proposed. Priority fees can be determined statically, but the account can also receive arbitrary transfers during execution. The system transaction is therefore included unconditionally, and zero or below-`dust_threshold` balances are handled by `syscall_distribute` at execution time.
 
+**Block limits.** The distribution system transaction is not counted toward the block's maximum transaction count, and since it has gasLimit = 0, it does not consume block gas. 
+
 **Position.** Existing system transactions must precede all user transactions. The distribution system transaction is the single exception: it must be the last transaction in the block, so that it observes every priority fee and transfer credited to the distribution account during the block.
 
 **Gas accounting.** Like all system transactions, the distribution system transaction has `gasLimit = 0` and `gasUsed = 0`, and pays no fees. Its effect on block gas accounting is therefore fully determined at proposal time, so consensus can construct it, and execution can validate it, before any state transitions are computed. It always succeeds; it cannot revert.
