@@ -129,7 +129,7 @@ class distribution_account:
         else:
             commission_amount = 0 
 
-        # 5. Check if sufficent to distribute funds
+        # 5. Check if sufficient to distribute funds
         distribute_amount = total_balance - commission_amount
         staking_contract.apply_commission_to_auth_account(auth){msg.value = commission_amount}
         
