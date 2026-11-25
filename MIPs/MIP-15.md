@@ -26,6 +26,8 @@ This MIP activates the following EIPs:
 - [EIP-8024] — Backward compatible SWAPN, DUPN, EXCHANGE
 - [EIP-8246] — Remove SELFDESTRUCT Burn
 
+[EIP-7843] is adopted with Monad's consensus round number returned as the consensus slot number.
+
 [EIP-7981] is adopted with `access_list_data_cost = 40 * access_list_bytes`
 (800 gas per address and 1280 gas per storage key) rather than 64 gas per byte.
 
