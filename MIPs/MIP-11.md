@@ -26,7 +26,7 @@ To ensure consistent compensation for all stakers without relying on per-validat
 
 Automated priority fee distribution has two components:
 
-1.  A new account that captures priority fees and arbitrary user transfers, referred to as the `distribution account`. The address for the distribution account will be `0xfee5fee5fee5fee5fee5fee5fee5fee5fee5fee5`. 
+1.  A new account that captures priority fees and arbitrary user transfers, referred to as the `distribution account`. The address for the distribution account will be `0x0000000000000000000000000000000000001003`. 
 2. A system transaction, inserted by consensus as the last transaction of every block and validated by execution, that distributes the balance accumulated in the `distribution account` to the corresponding validator pool, net of the validator's commission.
 
 The `beneficiary` remains settable by the block proposer, and within the execution context, `block.coinbase` continues to refer to the beneficiary address. This does not affect distribution: the validator pool credited by the system transaction is determined by the block's proposer, not by the beneficiary. The proposer is not configurable. Consensus sets `block_leader` to the current proposer, and all nodes verify that it matches when validating the block. A proposer therefore cannot redirect delegators' priority fees by changing the beneficiary.
@@ -47,7 +47,7 @@ The distribution is performed by a system transaction. Consensus inserts it and 
 
 **Insertion (consensus).** When constructing a block proposal, consensus appends exactly one distribution system transaction as the final transaction in the block, calling `syscall_distribute(block_leader)`. As with `syscall_reward`, consensus supplies `block_leader` in the calldata. Because consensus and execution are decoupled, consensus does not know the post-execution balance of the distribution account when the block is proposed. Priority fees can be determined statically, but the account can also receive arbitrary transfers during execution. The system transaction is therefore included unconditionally, and zero or below-`dust_threshold` balances are handled by `syscall_distribute` at execution time.
 
-**Block limits.** The distribution system transaction is not counted toward the block's maximum transaction count, and since it has gasLimit = 0, it does not consume block gas. 
+**Block limits.** Like existing system transactions, the distribution system transaction counts toward the block's transaction limit (`tx_limit`) and byte limit; consensus reserves space for it before selecting user transactions. Since it has `gasLimit = 0`, it does not consume block gas.
 
 **Position.** Existing system transactions must precede all user transactions. The distribution system transaction is the single exception: it must be the last transaction in the block, so that it observes every priority fee and transfer credited to the distribution account during the block.
 
@@ -102,6 +102,8 @@ User transactions may not call `syscall_distribute`. Any call to it from a sende
 3. System transaction dispatch must route the `syscall_distribute` selector to the distribution account logic below.
 
 ### Distribution Account
+
+The distribution account has no code and no private key, so it cannot send transactions. Its balance is debited only by the distribution system transaction, which targets it (`tx.to = DISTRIBUTION_ACCOUNT`). This is a protocol-level balance change, not an EVM transfer; the authority for it is the protocol, as with the block reward mint. It is not subject to reserve balance checks: consensus applies them only to transaction senders, and execution does not apply them to system transactions.
 
 The distribution account has the following pseudocode logic:
 
