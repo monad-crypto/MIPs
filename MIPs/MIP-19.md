@@ -47,11 +47,11 @@ This proposal assumes [EIP-8298] semantics of `SETCODEFROM` (`0xA7`) are adopted
 
 (**EDITORIAL NOTE**: the above assumption would be better off in a separate MIP documenting the way EIP-8298 is adopted on Monad)
 
-In addition to [EIP-8298], if the current account holds a delegation indicator, `SETCODEFROM` causes an exceptional halt unless the current account is the sender of the transaction or its active reserve is `0`. The halt happens before `SETCODEFROM_SOURCE_GAS` is charged, together with the other halts of [EIP-8298]. When the current account is not the sender, the gas of `SETCODEFROM` includes the cost of reading its active reserve.
+In addition to [EIP-8298], if the current account holds a delegation indicator, `SETCODEFROM` causes an exceptional halt unless the current account is the sender of the transaction or its active reserve is `0`. Whether the current account holds a delegation indicator is decided by its `codeHash`; a pending code hash of [EIP-8298] is not taken into account. The halt happens before `SETCODEFROM_SOURCE_GAS` is charged, together with the other halts of [EIP-8298]. When the current account is not the sender, the gas of `SETCODEFROM` includes the cost of reading its active reserve.
 
 ### `CREATE` and `CREATE2` Restriction on Delegated Accounts
 
-Monad's restriction of `CREATE` and `CREATE2` in the context of a delegated account applies to a frame if the current account held a delegation indicator when the frame started. A `SETCODEFROM` in the frame does not lift the restriction for the rest of the frame, because the restriction is decided when the frame starts. `CREATE` becomes available to the account in frames that start after the adoption, including child frames of the adopting frame that run in the account's context.
+Monad's restriction of `CREATE` and `CREATE2` in the context of a delegated account applies to a frame if the current account held a delegation indicator when the frame started. `CREATE` becomes available to the account in frames that start after the adopted code hash is written, i.e. after the account's outermost active frame ends. Frames of the account that start before then, including child frames of the adopting frame that run in the account's context, remain restricted.
 
 ### Reserve Balance Check
 
@@ -121,7 +121,7 @@ Every interface that reports the `contractAddress` of a creation transaction on 
 
 ### Reserve Balance Introspection
 
-The `dippedIntoReserve()` method of the reserve balance precompile defined in [MIP-4](./MIP-4.md) MUST evaluate `dipped_into_reserve` as specified in Reserve Balance Check for every account touched so far, with the current state in place of the post-execution state.
+The `dippedIntoReserve()` method of the reserve balance precompile defined in [MIP-4](./MIP-4.md) MUST evaluate `dipped_into_reserve` as specified in Reserve Balance Check for every account touched so far, with the current state in place of the post-execution state. Pending code hashes of [EIP-8298] are not part of the current state.
 
 ## Rationale
 
@@ -136,6 +136,10 @@ An active reserve of `0` provides (1). Consensus admits no transaction from the 
 Adoption by the sender provides (2). The adopting transaction puts the account in `sent_in_window`, so the reserve balance check keeps the account checked for the window with no new state and no reads.
 
 A self-sent migration works as in [EIP-8298]. A migration through a zero reserve is run by another account, such as a relayer or an [ERC-4337] bundler, at least `k` blocks after the account sets its reserve to `0`.
+
+#### `CREATE` in the Adopting Transaction
+
+Under the `CREATE` restriction, the account's own frames cannot create contracts in the adopting transaction before its outermost active frame ends: until then the account still holds the delegation indicator. Migration code that deploys contracts in the adopting transaction uses a factory, or sends the transaction to a contract that calls the account to adopt and then calls it again to deploy. The transaction is still sent by the account, so the sender exemption from the halt and `sent_in_window` apply as for any self-sent migration.
 
 #### Alternatives
 
@@ -181,14 +185,14 @@ The frame of an in-flight creation transaction derives its address from the send
 
 The alternatives below, rejected for the reasons given, address the same issue at the protocol level:
 
-| Alternative                        | Mechanism                                                                                                                     | Drawbacks                                                                                                                     |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Restricting `CREATE` in the window | the `CREATE` restriction covers a migrated account for the window; the in-flight path raises the nonce past the transaction's | breaks migration code that deploys contracts during or shortly after the migration                                            |
-| Raising the nonce at adoption      | self-sent adoption raises the nonce by an offset, such as `2^24`, beyond any in-flight nonce                                  | nonce side effect absent from [EIP-8298]; nonce stops counting transactions; couples the nonce to the block gas limit and `k` |
-| Delaying creation transactions     | consensus delays a delegated sender's creation transaction after another transaction in the window                            | regression for every delegated sender, unrelated to `SETCODEFROM`, hindering usage patterns in use on live EVM networks       |
-| Marking in-flight transactions     | a system log marks in-flight transactions, and interfaces report no `contractAddress` for them                                | bespoke mechanism for a single field of a single interface                                                                    |
-| Declaring self-sent adoption       | an access-list marker declares the adoption, and consensus sequences nothing more from the sender in the window               | bespoke condition for wallets                                                                                                 |
-| Exhausting the budget              | a self-sent adoption's fee must cover the active reserve, exhausting the consensus budget                                     | fee must equal the reserve exactly, a bespoke condition for wallets                                                           |
+| Alternative                        | Mechanism                                                                                                                     | Drawbacks                                                                                                                                 |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Restricting `CREATE` in the window | the `CREATE` restriction covers a migrated account for the window; the in-flight path raises the nonce past the transaction's | breaks migration code that deploys contracts from the account after the migration, in the adopting transaction or the `k` blocks after it |
+| Raising the nonce at adoption      | self-sent adoption raises the nonce by an offset, such as `2^24`, beyond any in-flight nonce                                  | nonce side effect absent from [EIP-8298]; nonce stops counting transactions; couples the nonce to the block gas limit and `k`             |
+| Delaying creation transactions     | consensus delays a delegated sender's creation transaction after another transaction in the window                            | regression for every delegated sender, unrelated to `SETCODEFROM`, hindering usage patterns in use on live EVM networks                   |
+| Marking in-flight transactions     | a system log marks in-flight transactions, and interfaces report no `contractAddress` for them                                | bespoke mechanism for a single field of a single interface                                                                                |
+| Declaring self-sent adoption       | an access-list marker declares the adoption, and consensus sequences nothing more from the sender in the window               | bespoke condition for wallets                                                                                                             |
+| Exhausting the budget              | a self-sent adoption's fee must cover the active reserve, exhausting the consensus budget                                     | fee must equal the reserve exactly, a bespoke condition for wallets                                                                       |
 
 ### Reserve Balance Introspection
 
